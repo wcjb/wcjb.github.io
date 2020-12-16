@@ -2,7 +2,7 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://wcjb.github.io</id>
     <title>老学庵</title>
-    <updated>2020-12-16T07:39:50.022Z</updated>
+    <updated>2020-12-16T08:51:57.810Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://wcjb.github.io"/>
     <link rel="self" href="https://wcjb.github.io/atom.xml"/>
@@ -11,10 +11,24 @@
     <icon>https://wcjb.github.io/favicon.ico</icon>
     <rights>All rights reserved 2020, 老学庵</rights>
     <entry>
+        <title type="html"><![CDATA[决策树]]></title>
+        <id>https://wcjb.github.io/post/jue-ce-shu/</id>
+        <link href="https://wcjb.github.io/post/jue-ce-shu/">
+        </link>
+        <updated>2020-08-16T08:48:20.000Z</updated>
+    </entry>
+    <entry>
         <title type="html"><![CDATA[FaceNet详解]]></title>
         <id>https://wcjb.github.io/post/facenet/</id>
         <link href="https://wcjb.github.io/post/facenet/">
         </link>
         <updated>2019-11-03T01:24:21.000Z</updated>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[卡尔曼滤波]]></title>
+        <id>https://wcjb.github.io/post/kalman/</id>
+        <link href="https://wcjb.github.io/post/kalman/">
+        </link>
+        <updated>2018-12-16T07:41:37.000Z</updated>
     </entry>
 </feed>
