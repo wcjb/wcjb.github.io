@@ -2,7 +2,7 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://wcjb.github.io</id>
     <title>老学庵</title>
-    <updated>2021-01-20T06:38:36.813Z</updated>
+    <updated>2021-01-20T06:45:35.953Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://wcjb.github.io"/>
     <link rel="self" href="https://wcjb.github.io/atom.xml"/>
@@ -10,13 +10,6 @@
     <logo>https://wcjb.github.io/images/avatar.png</logo>
     <icon>https://wcjb.github.io/favicon.ico</icon>
     <rights>All rights reserved 2021, 老学庵</rights>
-    <entry>
-        <title type="html"><![CDATA[从希尔伯特空间到傅里叶变换]]></title>
-        <id>https://wcjb.github.io/post/cong-xi-er-bo-te-kong-jian-dao-fu-li-xie-bian-huan/</id>
-        <link href="https://wcjb.github.io/post/cong-xi-er-bo-te-kong-jian-dao-fu-li-xie-bian-huan/">
-        </link>
-        <updated>2021-01-20T06:17:52.000Z</updated>
-    </entry>
     <entry>
         <title type="html"><![CDATA[高斯混合模型]]></title>
         <id>https://wcjb.github.io/post/gao-si-hun-he-mo-xing/</id>
