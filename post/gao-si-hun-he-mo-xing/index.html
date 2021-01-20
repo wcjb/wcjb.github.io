@@ -8,7 +8,7 @@
 <meta name="keywords" content="Gridea静态个人博客">
 <meta name="description" content="少而好学，如日出之阳；壮而好学，如日中之光；老而好学，如秉烛之明。">
 <meta name="theme-color" content="#000">
-<title>老学庵</title>
+<title>高斯混合模型 | 老学庵</title>
 <link rel="shortcut icon" href="/favicon.ico?v=1611110936595">
 <link rel="stylesheet" href="/media/css/pisces.css">
 <link rel="stylesheet" href="/media/fonts/font-awesome.css">
@@ -39,6 +39,8 @@
 
 
 
+  <meta name="description" content="高斯混合模型" />
+  <meta name="keywords" content="高斯混合模型,正态分布" />
 </head>
 
 <body>
@@ -171,141 +173,485 @@
   <div class="main-continer">
     
     <div
-      class="section-layout  pisces">
+      class="section-layout pisces ">
       <div class="section-layout-wrapper">
-        <div id="sidebarMeta" class="sidebar">
-    
-<div class="sidebar-wrapper box-shadow-wrapper bg-color">
-  <div class="sidebar-item">
-    <img class="site-author-image right-motion" src="/images/avatar.png"/>
-    <p class="site-author-name">殉道者</p>
-    
-    <div class="site-description right-motion">
-      
-        <p id="binft">路漫漫其修远兮，吾将上下而求索。</p>
-      
-    </div>
-    
-  </div>
-  <div class="sidebar-item side-item-stat right-motion">
-    <div class="sidebar-item-box">
-      <a href="/archives/">
         
-        <span class="site-item-stat-count">5</span>
-        <span class="site-item-stat-name language" data-lan="article">文章</span>
-      </a>
-    </div>
-    <div class="sidebar-item-box">
-      <a href="">
-        <span class="site-item-stat-count">13</span>
-        <span class="site-item-stat-name language" data-lan="category">分类</span>
-      </a>
-    </div>
-    <div class="sidebar-item-box">
-      <a href="/tags/">
-        <span class="site-item-stat-count">13</span>
-        <span class="site-item-stat-name language" data-lan="tag">标签</span>
-      </a>
-    </div>
+
+<div class="sidebar">
+  
+    <div class="sidebar-box box-shadow-wrapper bg-color right-motion" id="sidebar">
+      
+      <div class="sidebar-body pisces" id="sidebar_body">
+        
+          
+            <div style="opacity: 1;">
+              <div class="toc-box right-motion">
+  <div class="toc-wrapper auto-number auto"
+    id="toc_wrapper">
+    <ul class="markdownIt-TOC">
+<li>
+<ul>
+<li><a href="#%E6%B7%B7%E5%90%88%E6%A8%A1%E5%9E%8Bmixture-model"><strong>混合模型（Mixture Model）</strong></a></li>
+<li><a href="#%E9%AB%98%E6%96%AF%E6%A8%A1%E5%9E%8B"><strong>高斯模型</strong></a></li>
+<li><a href="#%E6%A8%A1%E5%9E%8B%E5%8F%82%E6%95%B0%E5%AD%A6%E4%B9%A0"><strong>模型参数学习</strong></a></li>
+<li><a href="#em-%E7%AE%97%E6%B3%95"><strong>EM 算法</strong></a></li>
+<li><a href="#reference">Reference</a></li>
+</ul>
+</li>
+</ul>
+
   </div>
-  
-    
-      <div class="sidebar-item">
-        <span class="site-item-rss">
-            <i class="fa fa-rss"></i>
-            <a href="https://wcjb.github.io/atom.xml" target="_blank">RSS</a>
-        </span>
-      </div>
-    
-  
-  
-
-
-
-  <div style="width: 100%; position: relative;">
-    <canvas id="canvasDiyBlock" style="width:100%;">当前浏览器不支持canvas，请更换浏览器后再试</canvas>
-    <script src="/media/js/magic/clock.js"></script>
-  </div>
-
 </div>
-</div>
+
 <script>
-  let sidebarMeta = document.querySelector('#sidebarMeta');
-  let scheme = 'pisces';
-  let sidebarWrapper = document.querySelector('.sidebar-wrapper');
-  if (sidebarMeta && (scheme === 'pisces' || scheme === 'gemini')) {
-    document.addEventListener('scroll', function(e) {
-      if (document.scrollingElement.scrollTop > parseInt(sidebarMeta.style.marginTop) + 10) {
-        sidebarWrapper.classList.add('home-sidebar-fixed')
-      } else {
-        sidebarWrapper.classList.remove('home-sidebar-fixed')
+
+  let lastTop = 0, lList = [], hList = [], postBody, lastIndex = -1;
+  let active = 'active-show', activeClass = 'active-current';
+  let tocWrapper = document.querySelector('#toc_wrapper');
+  let tocContent = tocWrapper.children[0];
+  let autoNumber = tocWrapper && tocWrapper.classList.contains('auto-number');
+
+  function addTocNumber(elem, deep) {
+    if (!elem) {
+      return;
+    }
+    let prop = elem.__proto__;
+
+    if (prop === HTMLUListElement.prototype) {
+      for (let i = 0; i < elem.children.length; i++) {
+        addTocNumber(elem.children[i], deep + (i + 1) + '.');
       }
+    } else if (prop === HTMLLIElement.prototype) {
+      // 保存li元素
+      if (elem.children[0] && elem.children[0].__proto__ === HTMLAnchorElement.prototype) {
+        lList.push(elem);
+      }
+      for (let i = 0; i < elem.children.length; i++) {
+        let cur = elem.children[i];
+        if (cur.__proto__ === HTMLAnchorElement.prototype) {
+          if (autoNumber) {
+            cur.text = deep + ' ' + cur.text;
+          }
+        } else if (cur.__proto__ === HTMLUListElement.prototype) {
+          addTocNumber(cur, deep);
+        }
+      }
+    }
+  }
+
+  function removeParentActiveClass() {
+    let parents = tocContent.querySelectorAll('.' + active)
+    parents.forEach(function (elem) {
+      elem.classList.remove(active);
     });
   }
-  </script>
-        <div class="section-box tag-line box-shadow-wrapper">
-          <section class="section tags-section posts-expand bg-color">
-            <div class="padding-wrapper">
-  <div class="tag-timeline-box">
-    <div class="tag-timeline-wrapper">
-      <div class="tag-timeline-title">
-        <h2>
-          FaceNet
-          <small class="language" data-lan="tag">标签</small>
-        </h2>
+
+  function addActiveClass(index) {
+    if (index >= 0 && index < hList.length) {
+      lList[index].classList.add(activeClass);
+    }
+  }
+
+  function removeActiveClass(index) {
+    if (index >= 0 && index < hList.length) {
+      lList[index].classList.remove(activeClass);
+    }
+  }
+
+  function addActiveLiElemment(elem, parent) {
+    if (!elem || elem === parent) {
+      return;
+    } else {
+      if (elem.__proto__ === HTMLLIElement.prototype) {
+        elem.classList.add(active);
+      }
+      addActiveLiElemment(elem.parentElement, parent);
+    }
+  }
+
+  function showToc() {
+    if (tocWrapper) {
+      postBody = document.querySelector('#post_body');
+      for (let i = 0; i < postBody.children.length; i++) {
+        if (postBody.children[i].__proto__ === HTMLHeadingElement.prototype) {
+          hList.push(postBody.children[i]);
+        }
+      }
+      if (tocWrapper.classList.contains('compress')) {
+        tocContent.classList.add('closed');
+      } else if (tocWrapper.classList.contains('no_compress')) {
+        tocContent.classList.add('expanded');
+      } else {
+        if (hList.length > 10) {
+          active = 'active-hidden'
+          tocContent.classList.add('closed');
+        } else {
+          tocContent.classList.add('expanded');
+        }
+      }
+    }
+  }
+
+  (function () {
+    // 处理不是从#一级标题开始目录
+    if (tocContent.children.length === 1 && tocContent.children[0].__proto__ === HTMLLIElement.prototype) {
+      let con = tocContent.children[0].children[0];
+      tocContent.innerHTML = con.innerHTML;
+    }
+    let markdownItTOC = document.querySelector('.markdownIt-TOC');
+    let innerHeight = window.innerHeight;
+    markdownItTOC.style = `max-height: ${innerHeight - 80 > 0 ? innerHeight - 80 : innerHeight}px`
+    addTocNumber(tocContent, '');
+  })();
+
+  document.addEventListener('scroll', function (e) {
+    if (lList.length <= 0) {
+      return;
+    }
+    let scrollTop = document.scrollingElement.scrollTop + 10;
+    let dir;
+
+    if (lastTop - scrollTop > 0) {
+      dir = 'up';
+    } else {
+      dir = 'down';
+    }
+
+    lastTop = scrollTop;
+    if (scrollTop <= 0) {
+      if (lastIndex >= 0 && lastIndex < hList.length) {
+        lList[lastIndex].classList.remove(activeClass);
+      }
+      return;
+    }
+
+    let current = 0, hasFind = false;
+    for (let i = 0; i < hList.length; i++) {
+      if (hList[i].offsetTop > scrollTop) {
+        current = i;
+        hasFind = true;
+        break;
+      }
+    }
+    if (!hasFind && scrollTop > lList[lList.length - 1].offsetTop) {
+      current = hList.length - 1;
+    } else {
+      current--;
+    }
+    if (dir === 'down') {
+      if (current > lastIndex) {
+        addActiveClass(current);
+        removeActiveClass(lastIndex)
+        lastIndex = current;
+        removeParentActiveClass();
+        lList[current] && addActiveLiElemment(lList[current].parentElement, tocContent);
+      }
+    } else {
+      if (current < lastIndex) {
+        addActiveClass(current);
+        removeActiveClass(lastIndex);
+        lastIndex = current;
+        removeParentActiveClass();
+        lList[current] && addActiveLiElemment(lList[current].parentElement, tocContent);
+      }
+    }
+  });
+
+
+  window.addEventListener('load', function () {
+    showToc();
+    document.querySelector('#sidebar').style = 'display: block;';
+    tocWrapper.classList.add('toc-active');
+    setTimeout(function () {
+      if ("createEvent" in document) {
+        let evt = document.createEvent("HTMLEvents");
+        evt.initEvent("scroll", false, true);
+        document.dispatchEvent(evt);
+      }
+      else {
+        document.fireEvent("scroll");
+      }
+    }, 500)
+  })
+
+</script>
+            </div>
+          
+        
       </div>
+    </div>
+  
+</div>
+<script>
+  const SIDEBAR_TITLE_ACTIVE = 'sidebar-title-active';
+  const SIDEBAR_BODY_ACTIVE = 'sidebar-body-active';
+  const SLIDE_UP_IN = 'slide-up-in';
+
+  let sidebar = document.querySelector('#sidebar'),
+  tocSideBar = document.querySelector('#tocSideBar'),
+  metaSideBar = document.querySelector('#metaSideBar'),
+  postToc = document.querySelector('#post_toc'),
+  postSiteMeta = document.querySelector('#post_side_meta'),
+  sidebarTitle = document.querySelector('.sidebar-title'),
+  sidebarBody = document.querySelector('#sidebar_body');
+
+  tocSideBar && tocSideBar.addEventListener('click', (e) => {
+    toggleSidebar(e);
+  });
+
+  metaSideBar && metaSideBar.addEventListener('click', (e) => {
+    toggleSidebar(e);
+  });
+
+  function toggleSidebar(e) {
+    let currentTitle = document.querySelector("."+SIDEBAR_TITLE_ACTIVE);
+    if (currentTitle == e.srcElement) {
+      return ;
+    }
+    let current, showElement, hideElement;
+    if (e.srcElement == metaSideBar) {
+      showElement = postSiteMeta;
+      hideElement = postToc;
+    } else if (e.srcElement == tocSideBar){
+      showElement = postToc;
+      hideElement = postSiteMeta;
+    }
+    currentTitle.classList.remove(SIDEBAR_TITLE_ACTIVE);
+    e.srcElement.classList.add(SIDEBAR_TITLE_ACTIVE);
+
+    window.Velocity(hideElement, 'stop');
+    window.Velocity(hideElement, 'transition.slideUpOut', {
+      display: 'none',
+      duration: 200,
+      complete: function () {
+        window.Velocity(showElement, 'transition.slideDownIn', {
+          duration: 200
+        });
+      }
+    })
+    hideElement.classList.remove(SIDEBAR_BODY_ACTIVE);
+    showElement.classList.add(SIDEBAR_BODY_ACTIVE);
+  }
+
+  postToc && postToc.addEventListener('transitionend', function() {
+    this.classList.remove(SLIDE_UP_IN);
+  });
+
+  if (sidebarBody) {
+    if (sidebarBody.classList.contains('pisces') || sidebarBody.classList.contains('gemini')) {
+      let hasFix = false;
+      let scrollEl = document.querySelector('.main-continer');
+      let limitTop = document.querySelector('#nav_ul').children.length * 42 + 162;
+      window.addEventListener('scroll', function(e) {
+        if (document.scrollingElement.scrollTop >= limitTop) {
+          if (!hasFix) {
+            sidebar.classList.add('sidebar-fixed');
+            hasFix = true;
+          }
+        } else {
+          if (hasFix) {
+            sidebar.classList.remove('sidebar-fixed');
+            hasFix = false;
+          }
+        }
+      });
+    }
+  }
+  
+</script>
+        <div class="section-box box-shadow-wrapper">
+          <div class="section bg-color post post-page">
+            <section class="post-header">
+  <h1 class="post-title">
+    <a class="post-title-link" href="https://wcjb.github.io/post/gao-si-hun-he-mo-xing/">
+      高斯混合模型
+    </a>
+  </h1>
+  <div class="post-meta">
+    
+    <span class="meta-item pc-show">
+      <i class="fa fa-calendar-o"></i>
+      <span class="language" data-lan="publish">发布于</span>
+      <span class="publish-time" data-t="2021-01-20 10:47:28">2021-01-20</span>
+      <span class="post-meta-divider pc-show">|</span>
+    </span>
+    
+    <span class="meta-item">
+      <i class="fa fa-folder-o"></i>
+      <span class="pc-show language" data-lan="category-in">分类于</span>
+      
+      
+      <a href="https://wcjb.github.io/tag/hvEwhJJiy/">
+        <span>高斯混合模型</span>
+      </a>、
       
       
       
-      
-      
-      
-      
-      
-      
-      
-      
-      <a href="https://wcjb.github.io/post/facenet/">
-        <div class="motion-warpper">
-          <div class="tag-post-node">
-            <h1>
-              11-03
-              <small>FaceNet详解</small>
-            </h1>
-          </div>
-        </div>
+      <a href="https://wcjb.github.io/tag/eanwZ2PrcZ/">
+        <span>正态分布</span>
       </a>
       
       
+    </span>
+    <span class="post-meta-divider">|</span>
+    
+    <span class="meta-item">
+      <i class="fa fa-clock-o"></i>
+      <span>5<span class="language" data-lan="minute">分钟</span></span>
+    </span>
+    <span class="meta-item">
+      <span class="post-meta-divider">|</span>
+      <i class="fa fa-file-word-o"></i>
+      <span>1347<span class="pc-show language" data-lan="words">字数</span></span>
+    </span>
+    
+    
+    
+    <span id="/post/gao-si-hun-he-mo-xing/" data-flag-title="高斯混合模型" class="meta-item pc-show leancloud_visitors">
+      <span class="post-meta-divider">|</span>
+      <i class="fa fa-eye"></i>
+      <span><span class="language" data-lan="view">浏览量</span>：<span class="leancloud-visitors-count"></span></span>
+    </span>
+    
+  </div>
+</section>
+            <div class="post-body next-md-body" id="post_body">
+              <blockquote>
+<p>  笔者最近在计算机视觉课程里接触到了高斯混合模型（Gaussian Mixture Model），遂写一篇笔记来整理记录相关知识点，分享给大家。欢迎讨论、指正！</p>
+</blockquote>
+<h2 id="混合模型mixture-model"><strong>混合模型（Mixture Model）</strong></h2>
+<p>  混合模型是一个可以用来表示在总体分布（distribution）中含有 K 个子分布的概率模型，换句话说，混合模型表示了观测数据在总体中的概率分布，它是一个由 K 个子分布组成的混合分布。混合模型不要求观测数据提供关于子分布的信息，来计算观测数据在总体分布中的概率。</p>
+<h2 id="高斯模型"><strong>高斯模型</strong></h2>
+<p><strong>单高斯模型</strong></p>
+<p>当样本数据 X 是一维数据（Univariate）时，高斯分布遵从下方概率密度函数（Probability Density Function）：</p>
+<figure data-type="image" tabindex="1"><img src="https://www.zhihu.com/equation?tex=P%28x%7C%5Ctheta%29+%3D+%5Cfrac%7B1%7D%7B%5Csqrt%7B2%5Cpi%5Csigma%5E%7B2%7D%7D%7D+exp%28-%5Cfrac%7B%28x-%5Cmu%29%5E2%7D%7B2%5Csigma%5E%7B2%7D%7D%29" alt="" loading="lazy"></figure>
+<p>其中 <img src="https://www.zhihu.com/equation?tex=%5Cmu" alt="" loading="lazy"> 为数据均值（期望）， <img src="https://www.zhihu.com/equation?tex=%5Csigma" alt="" loading="lazy"> 为数据标准差（Standard deviation）。</p>
+<p>当样本数据 X 是多维数据（Multivariate）时，高斯分布遵从下方概率密度函数：</p>
+<figure data-type="image" tabindex="2"><img src="https://www.zhihu.com/equation?tex=P%28x%7C%5Ctheta%29+%3D+%5Cfrac%7B1%7D%7B%282%5Cpi%29%5E%7B%5Cfrac%7BD%7D%7B2%7D%7D%5Cleft%7C+%5CSigma+%5Cright%7C%5E%7B%5Cfrac%7B1%7D%7B2%7D%7D%7Dexp%28-%5Cfrac%7B%28x-%5Cmu%29%5E%7BT%7D%5CSigma%5E%7B-1%7D%28x-%5Cmu%29%7D%7B2%7D%29" alt="" loading="lazy"></figure>
+<p>其中， <img src="https://www.zhihu.com/equation?tex=%5Cmu" alt="" loading="lazy"> 为数据均值（期望）， <img src="https://www.zhihu.com/equation?tex=%5CSigma" alt="" loading="lazy"> 为协方差（Covariance），D 为数据维度。</p>
+<p><strong>高斯混合模型</strong></p>
+<p>  高斯混合模型可以看作是由 K 个单高斯模型组合而成的模型，这 K 个子模型是混合模型的隐变量（Hidden variable）。一般来说，一个混合模型可以使用任何概率分布，这里使用高斯混合模型是因为高斯分布具备很好的数学性质以及良好的计算性能。</p>
+<p>  举个不是特别稳妥的例子，比如我们现在有一组狗的样本数据，不同种类的狗，体型、颜色、长相各不相同，但都属于狗这个种类，此时单高斯模型可能不能很好的来描述这个分布，因为样本数据分布并不是一个单一的椭圆，所以用混合高斯分布可以更好的描述这个问题，如下图所示：</p>
+<figure data-type="image" tabindex="3"><img src="https://pic1.zhimg.com/v2-b1a0d985d1508814f45234bc98bf9120_r.jpg" alt="" loading="lazy"></figure>
+<p>首先定义如下信息：</p>
+<ul>
+<li><img src="https://www.zhihu.com/equation?tex=x_%7Bj%7D" alt="" loading="lazy"> 表示第 <img src="https://www.zhihu.com/equation?tex=j" alt="" loading="lazy"> 个观测数据， <img src="https://www.zhihu.com/equation?tex=j+%3D+1%2C2%2C...%2CN" alt="" loading="lazy"></li>
+<li><img src="https://www.zhihu.com/equation?tex=K" alt="" loading="lazy"> 是混合模型中子高斯模型的数量， <img src="https://www.zhihu.com/equation?tex=k+%3D+1%2C2%2C...%2CK" alt="" loading="lazy"></li>
+<li><img src="https://www.zhihu.com/equation?tex=%5Calpha_%7Bk%7D" alt="" loading="lazy"> 是观测数据属于第 <img src="https://www.zhihu.com/equation?tex=k" alt="" loading="lazy"> 个子模型的概率， <img src="https://www.zhihu.com/equation?tex=%5Calpha_%7Bk%7D+%5Cgeq+0" alt="" loading="lazy"> ， <img src="https://www.zhihu.com/equation?tex=%5Csum_%7Bk%3D1%7D%5E%7BK%7D%7B%5Calpha_%7Bk%7D%7D+%3D+1" alt="" loading="lazy"></li>
+<li><img src="https://www.zhihu.com/equation?tex=%5Cphi%28x%7C%5Ctheta_%7Bk%7D%29" alt="" loading="lazy"> 是第 <img src="https://www.zhihu.com/equation?tex=k" alt="" loading="lazy"> 个子模型的高斯分布密度函数， <img src="https://www.zhihu.com/equation?tex=%5Ctheta_%7Bk%7D+%3D+%28%5Cmu_%7Bk%7D%2C+%5Csigma_%7Bk%7D%5E%7B2%7D%29" alt="" loading="lazy"> 。其展开形式与上面介绍的单高斯模型相同</li>
+<li><img src="https://www.zhihu.com/equation?tex=%5Cgamma_%7Bjk%7D" alt="" loading="lazy"> 表示第 <img src="https://www.zhihu.com/equation?tex=j" alt="" loading="lazy"> 个观测数据属于第 <img src="https://www.zhihu.com/equation?tex=k" alt="" loading="lazy"> 个子模型的概率</li>
+</ul>
+<p>高斯混合模型的概率分布为：</p>
+<figure data-type="image" tabindex="4"><img src="https://www.zhihu.com/equation?tex=P%28x%7C%5Ctheta%29+%3D+%5Csum_%7Bk%3D1%7D%5E%7BK%7D%7B%5Calpha_%7Bk%7D%5Cphi%28x%7C%5Ctheta_%7Bk%7D%29%7D" alt="" loading="lazy"></figure>
+<p>对于这个模型而言，参数 <img src="https://www.zhihu.com/equation?tex=%5Ctheta+%3D+%28%5Ctilde%7B%5Cmu_%7Bk%7D%7D%2C+%5Ctilde%7B%5Csigma_%7Bk%7D%7D%2C+%5Ctilde%7B%5Calpha_%7Bk%7D%7D%29" alt="" loading="lazy"> ，也就是每个子模型的期望、方差（或协方差）、在混合模型中发生的概率。</p>
+<h2 id="模型参数学习"><strong>模型参数学习</strong></h2>
+<p>  <strong>对于单高斯模型</strong>，我们可以用最大似然法（Maximum likelihood）估算参数 <img src="https://www.zhihu.com/equation?tex=%5Ctheta" alt="" loading="lazy"> 的值，</p>
+<figure data-type="image" tabindex="5"><img src="https://www.zhihu.com/equation?tex=%5Ctheta+%3D+argmax_%7B%5Ctheta%7D+L%28%5Ctheta%29" alt="" loading="lazy"></figure>
+<p>这里我们假设了每个数据点都是独立的（Independent），似然函数由概率密度函数（PDF）给出。</p>
+<figure data-type="image" tabindex="6"><img src="https://www.zhihu.com/equation?tex=L%28%5Ctheta%29+%3D+%5Cprod_%7Bj%3D1%7D%5E%7BN%7DP%28x_%7Bj%7D%7C%5Ctheta%29" alt="" loading="lazy"></figure>
+<p>  由于每个点发生的概率都很小，乘积会变得极其小，不利于计算和观察，因此通常我们用 Maximum Log-Likelihood 来计算（因为 Log 函数具备单调性，不会改变极值的位置，同时在 0-1 之间输入值很小的变化可以引起输出值相对较大的变动）：</p>
+<figure data-type="image" tabindex="7"><img src="https://www.zhihu.com/equation?tex=logL%28%5Ctheta%29+%3D+%5Csum_%7Bj%3D1%7D%5E%7BN%7D%7BlogP%28x_%7Bj%7D%7C%5Ctheta%29%7D" alt="" loading="lazy"></figure>
+<p><strong>对于高斯混合模型</strong>，Log-Likelihood 函数是：</p>
+<figure data-type="image" tabindex="8"><img src="https://www.zhihu.com/equation?tex=logL%28%5Ctheta%29+%3D+%5Csum_%7Bj%3D1%7D%5E%7BN%7D%7BlogP%28x_%7Bj%7D%7C%5Ctheta%29%7D+%3D+%5Csum_%7Bj%3D1%7D%5E%7BN%7D%7Blog%28%5Csum_%7Bk%3D1%7D%5E%7BK%7D%7B%5Calpha_%7Bk%7D%5Cphi%28x%7C%5Ctheta_%7Bk%7D%29%7D%29%7D" alt="" loading="lazy"></figure>
+<p>  如何计算高斯混合模型的参数呢？这里我们无法像单高斯模型那样使用最大似然法来求导求得使 likelihood 最大的参数，因为对于每个观测数据点来说，事先并不知道它是属于哪个子分布的（hidden variable），因此 log 里面还有求和，对于每个子模型都有未知的 <img src="https://www.zhihu.com/equation?tex=%5Calpha_%7Bk%7D%2C+%5Cmu_%7Bk%7D%2C+%5Csigma_%7Bk%7D" alt="" loading="lazy"> ，直接求导无法计算。<strong>需要通过迭代的方法求解</strong>。</p>
+<h2 id="em-算法"><strong>EM 算法</strong></h2>
+<p>  EM 算法是一种迭代算法，1977 年由 Dempster 等人总结提出，用于含有隐变量（Hidden variable）的概率模型参数的最大似然估计。</p>
+<p>每次迭代包含两个步骤：</p>
+<ol>
+<li>E-step：求期望 <img src="https://www.zhihu.com/equation?tex=E%28%5Cgamma_%7Bjk%7D+%7C+X%2C+%5Ctheta%29" alt="" loading="lazy"> for all <img src="https://www.zhihu.com/equation?tex=j+%3D+1%2C2%2C...%2CN" alt="" loading="lazy"></li>
+<li>M-step：求极大，计算新一轮迭代的模型参数</li>
+</ol>
+<p>  这里不具体介绍一般性的 EM 算法（通过 Jensen 不等式得出似然函数的下界 Lower bound，通过极大化下界做到极大化似然函数），只介绍怎么在高斯混合模型里应用从来推算出模型参数。</p>
+<p>通过 EM 迭代更新高斯混合模型参数的方法（我们有样本数据 <img src="https://www.zhihu.com/equation?tex=x_%7B1%7D%2C+x_%7B2%7D%2C+...%2Cx_%7BN%7D" alt="" loading="lazy"> 和一个有 <img src="https://www.zhihu.com/equation?tex=K" alt="" loading="lazy"> 个子模型的高斯混合模型，想要推算出这个高斯混合模型的最佳参数）：</p>
+<ul>
+<li>首先初始化参数</li>
+<li>E-step：依据当前参数，计算每个数据 <img src="https://www.zhihu.com/equation?tex=j" alt="" loading="lazy"> 来自子模型 <img src="https://www.zhihu.com/equation?tex=k" alt="" loading="lazy"> 的可能性</li>
+</ul>
+<figure data-type="image" tabindex="9"><img src="https://www.zhihu.com/equation?tex=%5Cgamma_%7Bjk%7D+%3D+%5Cfrac%7B%5Calpha_%7Bk%7D%5Cphi%28x_%7Bj%7D%7C%5Ctheta_%7Bk%7D%29%7D%7B%5Csum_%7Bk%3D1%7D%5E%7BK%7D%7B%5Calpha_%7Bk%7D%5Cphi%28x_%7Bj%7D%7C%5Ctheta_%7Bk%7D%29%7D%7D%2C+j+%3D+1%2C2%2C...%2CN%3B+k+%3D+1%2C2%2C...%2CK" alt="" loading="lazy"></figure>
+<ul>
+<li>M-step：计算新一轮迭代的模型参数</li>
+</ul>
+<figure data-type="image" tabindex="10"><img src="https://www.zhihu.com/equation?tex=%5Cmu_%7Bk%7D+%3D+%5Cfrac%7B%5Csum_%7Bj%7D%5E%7BN%7D%7B%28%5Cgamma_%7Bjk%7D%7Dx_%7Bj%7D%29%7D%7B%5Csum_%7Bj%7D%5E%7BN%7D%7B%5Cgamma_%7Bjk%7D%7D%7D%2C+k%3D1%2C2%2C...%2CK" alt="" loading="lazy"></figure>
+<p><img src="https://www.zhihu.com/equation?tex=%5CSigma_%7Bk%7D+%3D+%5Cfrac%7B%5Csum_%7Bj%7D%5E%7BN%7D%7B%5Cgamma_%7Bjk%7D%7D%28x_%7Bj%7D-%5Cmu_%7Bk%7D%29%28x_%7Bj%7D-%5Cmu_%7Bk%7D%29%5E%7BT%7D%7D%7B%5Csum_%7Bj%7D%5E%7BN%7D%7B%5Cgamma_%7Bjk%7D%7D%7D%2C+k+%3D+1%2C2%2C...%2CK" alt="" loading="lazy"> （用这一轮更新后的 <img src="https://www.zhihu.com/equation?tex=%5Cmu_%7Bk%7D" alt="" loading="lazy"> ）</p>
+<figure data-type="image" tabindex="11"><img src="https://www.zhihu.com/equation?tex=%5Calpha_%7Bk%7D+%3D+%5Cfrac%7B%5Csum_%7Bj%3D1%7D%5E%7BN%7D%7B%5Cgamma_%7Bjk%7D%7D%7D%7BN%7D%2C+k%3D1%2C2%2C...%2CK" alt="" loading="lazy"></figure>
+<ul>
+<li>重复计算 E-step 和 M-step 直至收敛 （ <img src="https://www.zhihu.com/equation?tex=%7C%7C%5Ctheta_%7Bi%2B1%7D+-+%5Ctheta_%7Bi%7D%7C%7C+%3C+%5Cvarepsilon" alt="" loading="lazy"> , <img src="https://www.zhihu.com/equation?tex=%5Cvarepsilon" alt="" loading="lazy"> 是一个很小的正数，表示经过一次迭代之后参数变化非常小）</li>
+</ul>
+<p>  至此，我们就找到了高斯混合模型的参数。需要注意的是，EM 算法具备收敛性，但并不保证找到全局最大值，有可能找到局部最大值。解决方法是初始化几次不同的参数进行迭代，取结果最好的那次。</p>
+<blockquote>
+<p>转载地址：<a href="https://zhuanlan.zhihu.com/p/30483076">高斯混合模型</a></p>
+</blockquote>
+<h2 id="reference">Reference</h2>
+<ol>
+<li>《统计学习方法》第九章 - EM 算法及其推广——李航</li>
+<li><a href="https://link.zhihu.com/?target=https%3A//en.wikipedia.org/wiki/Mixture_model%23Gaussian_mixture_model">Mixture model - Wikipedia</a></li>
+<li><a href="https://link.zhihu.com/?target=http%3A//blog.csdn.net/jojozhangju/article/details/19182013">高斯混合模型（GMM）介绍以及学习笔记</a></li>
+</ol>
+
+            </div>
+            
+            
+              <div class="post-footer">
+  <ul class="post-copyright">
+    <li class="post-copyright-author">
+      <strong class="language" data-lan="author">本文作者：</strong>
+      殉道者
+    </li>
+    <li class="post-copyright-link">
+      <strong class="language" data-lan="link">本文链接：</strong>
+      <a href="https://wcjb.github.io/post/gao-si-hun-he-mo-xing/" title="高斯混合模型">https://wcjb.github.io/post/gao-si-hun-he-mo-xing/</a>
+    </li>
+    <li class="post-copyright-license">
+      <strong class="language" data-lan="copyright">版权声明： </strong>
+      本博客所有文章除特别声明外，均采用<a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" rel="noopener" target="_blank"><i class="fa fa-fw fa-creative-commons"></i> BY-NC-SA</a> 许可协议。转载请注明出处！
+    </li>
+  </ul>
+  <div class="tags">
+    
+      <a href="https://wcjb.github.io/tag/hvEwhJJiy/"># 高斯混合模型</a>
+    
+      <a href="https://wcjb.github.io/tag/eanwZ2PrcZ/"># 正态分布</a>
+    
+  </div>
+  <div class="nav">
+    <div class="nav-prev">
       
+    </div>
+    <div class="nav-next">
       
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
+        <a class="nav-pc-next" title="FaceNet详解" href="https://wcjb.github.io/post/facenet/">FaceNet详解</a>
+        <a class="nav-mobile-next" title="FaceNet详解" href="https://wcjb.github.io/post/facenet/">下一篇</a>
+        <i class="fa fa-chevron-right"></i>
       
     </div>
   </div>
 </div>
-          </section>
+            
+            
+  
+    
+      <link rel="stylesheet" href="https://unpkg.com/gitalk/dist/gitalk.css">
+<script src="https://unpkg.com/gitalk/dist/gitalk.min.js"></script>
+
+<div id="gitalk-container"></div>
+
+<script>
+  var gitalk = new Gitalk({
+    clientID: '2b2e83bf79bebe738d93',
+    clientSecret: 'fbffec9dd2955084d0a57d15d3036afc1ffb18eb',
+    repo: 'wcjb.github.io',
+    owner: 'wcjb',
+    admin: ['wcjb'],
+    id: (location.pathname).substring(0, 49),      // Ensure uniqueness and length less than 50
+    distractionFreeMode: false  // Facebook-like distraction free mode
+  })
+  gitalk.render('gitalk-container')
+</script>
+    
+    
+  
+
+          </div>
         </div>
       </div>
     </div>
@@ -511,6 +857,223 @@
     parent.appendChild(aelem);
   })
 </script>
+    <div class="reward-mask" style="display: none;">
+  <div class="reward-relative">
+    <span class="close" aria-hidden="true">x</span>
+    <div class="reward-body">
+      <h2>感谢您的支持，我会继续努力的!</h2>
+      <div class="reward-img-box">
+        <div style="position: relative; width: 140px; height: 140px;">
+          
+          
+          
+        </div>
+      </div>
+      <p class="reward-word">扫码打赏，你说多少就多少</p>
+      <p class="reward-tip">打开微信扫一扫，即可进行扫码打赏哦</p>
+    </div>
+    <div class="bottom">
+      
+      
+    </div>
+  </div>
+</div>
+<style>
+  .reward-mask {
+    position: fixed;
+    z-index: 99999;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background-color: #00000054;
+  }
+
+  .reward-relative {
+    position: relative;
+    width: 480px;
+    text-align: center;
+    margin: 0 auto;
+    border-radius: 5px;
+    background-color: #fff;
+    top: 50%;
+    margin-top: -205px;
+  }
+
+  .reward-relative .close {
+    position: absolute;
+    right: 10px;
+    font-weight: normal;
+    font-size: 16px;
+    color: #929292;
+  }
+
+  .reward-body {
+    padding: 40px 20px 20px;
+  }
+
+  .bottom {
+    display: flex;
+  }
+
+  .reward-btn {
+    text-align: center;
+  }
+
+  .reward-btn-text {
+    display: inline-block;
+    cursor: pointer;
+    width: 60px;
+    height: 60px;
+    line-height: 60px;
+    border-radius: 50%;
+    background-color: #ff9734;
+    color: #FFF;
+    margin-top: 20px;
+  }
+
+  .pay-text {
+    margin-top: 10px;
+    padding: 10px;
+    flex: 1;
+    transition: all .2s linear;
+  }
+
+  .pay-text:hover {
+    background-color: #a5a5a536;
+  }
+
+  .reward-body h2 {
+    padding-top: 10px;
+    text-align: center;
+    color: #a3a3a3;
+    font-size: 16px;
+    font-weight: normal;
+    margin: 0 0 20px;
+  }
+
+  .reward-body h2:after,
+  .reward-body h2:before {
+    font-family: Arial, Helvetica, sans-serif;
+    background: 0 0;
+    width: 0;
+    height: 0;
+    font-style: normal;
+    color: #eee;
+    font-size: 80px;
+    position: absolute;
+    top: 20px;
+  }
+
+  .reward-body h2:before {
+    content: '\201c';
+    left: 50px;
+  }
+
+  .reward-body h2:after {
+    content: '\201d';
+    right: 80px;
+  }
+
+  .reward-img-box {
+    display: inline-block;
+    padding: 10px;
+    border: 6px solid #ea5f00;
+    margin: 0 auto;
+    border-radius: 3px;
+    position: relative;
+  }
+
+  .reward-img {
+    position: absolute;
+    left: 0px;
+    top: 0px;
+    width: 100%;
+    height: 100%;
+  }
+
+  @media (max-width: 767px) {
+    .reward-relative {
+      height: 100%;
+      top: 0px;
+      margin-top: 0;
+      width: auto;
+    }
+
+    .reward-relative .bottom {
+      flex-direction: column;
+    }
+
+    .reward-relative .pay-text {
+      width: 80%;
+      margin: 5px auto;
+      border: 1px solid silver;
+      padding: 6px;
+      border-radius: 4px;
+    }
+
+    .reward-body h2:after {
+      right: 40px;
+    }
+
+    .reward-body h2:after,
+    .reward-body h2:before {
+      font-size: 60px;
+    }
+
+    .reward-body h2:before {
+      left: 20px;
+    }
+  }
+</style>
+<script>
+  !function () {
+    var mask = document.querySelector('.reward-mask');
+    let close = document.querySelector('.reward-relative .close');
+    let rewardBtn = document.querySelector('.reward-btn');
+
+    let zfb = document.querySelector('#zfb'),
+      wx = document.querySelector('#wx'),
+      zfbBtn = document.querySelector('#zfbBtn'),
+      wxBtn = document.querySelector('#wxBtn');
+
+    if (zfbBtn && wxBtn) {
+      zfbBtn.addEventListener('click', () => {
+        window.Velocity(zfb, 'transition.slideLeftIn', {
+          duration: 400
+        });
+        window.Velocity(wx, 'transition.slideRightOut', {
+          display: 'none',
+          duration: 400
+        });
+      });
+
+      wxBtn.addEventListener('click', () => {
+        window.Velocity(wx, 'transition.slideRightIn', {
+          duration: 400
+        });
+        window.Velocity(zfb, 'transition.slideLeftOut', {
+          display: 'none',
+          duration: 400
+        });
+      });
+    }
+
+    rewardBtn.addEventListener('click', (e) => {
+      window.Velocity(mask, 'transition.slideDownIn', {
+        duration: 400
+      })
+    });
+
+    close.addEventListener('click', (e) => {
+      e.preventDefault();
+      window.Velocity(mask, 'transition.slideUpOut', {
+        duration: 400
+      })
+    })
+  }()
+</script>
+
   </div>
 </body>
 
@@ -2194,6 +2757,5 @@ s-65,47,-65,47z M834 80H400000v40H845z&#39;/&gt;&lt;/svg&gt;&lt;/span&gt;&lt;/sp
 
 
 <script src="https://cdn.jsdelivr.net/gh/lete114/CDN/Sum/sakura.js"></script>
-
 
 </html>
