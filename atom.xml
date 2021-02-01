@@ -2,7 +2,7 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://wcjb.github.io</id>
     <title>老学庵</title>
-    <updated>2021-01-20T07:05:00.412Z</updated>
+    <updated>2021-02-01T02:25:29.931Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://wcjb.github.io"/>
     <link rel="self" href="https://wcjb.github.io/atom.xml"/>
@@ -58,5 +58,12 @@
         <link href="https://wcjb.github.io/post/qi-yi-zhi-fen-jie/">
         </link>
         <updated>2018-05-17T14:54:04.000Z</updated>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[头文件中定义函数引发的 multiple definition]]></title>
+        <id>https://wcjb.github.io/post/tou-wen-jian-zhong-ding-yi-han-shu-yin-fa-de-multiple-definition/</id>
+        <link href="https://wcjb.github.io/post/tou-wen-jian-zhong-ding-yi-han-shu-yin-fa-de-multiple-definition/">
+        </link>
+        <updated>2017-01-11T02:23:10.000Z</updated>
     </entry>
 </feed>

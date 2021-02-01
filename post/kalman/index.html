@@ -9,7 +9,7 @@
 <meta name="description" content="少而好学，如日出之阳；壮而好学，如日中之光；老而好学，如秉烛之明。">
 <meta name="theme-color" content="#000">
 <title>卡尔曼滤波 | 老学庵</title>
-<link rel="shortcut icon" href="/favicon.ico?v=1611126295414">
+<link rel="shortcut icon" href="/favicon.ico?v=1612146260869">
 <link rel="stylesheet" href="/media/css/pisces.css">
 <link rel="stylesheet" href="/media/fonts/font-awesome.css">
 <link
@@ -3421,6 +3421,179 @@ s-65,47,-65,47z M834 80H400000v40H845z&#39;/&gt;&lt;/svg&gt;&lt;/span&gt;&lt;/sp
 &lt;/li&gt;
 &lt;/ul&gt;
 ">奇异值分解</a>
+      </div>
+      
+      <div class="item">
+        <a class="result-title" style="opacity: 0;" href="https://wcjb.github.io/post/tou-wen-jian-zhong-ding-yi-han-shu-yin-fa-de-multiple-definition/"" data-c="
+          &lt;blockquote&gt;
+&lt;p&gt;本文引用了&lt;a href=&#34;https://zybuluo.com/uuprince/note/81709&#34;&gt;博文&lt;/a&gt;，感谢原文作者。&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;&lt;strong&gt;问题&lt;/strong&gt;：某个头文件中声明并定义了一个函数，然后在多个源码文件中调用该函数，编译链接时出现了该函数 multiple definition 问题，在头文件中添加了 #ifndef 头也不行，经过尝试发现如果将该函数的声明和定义分开到. h 和. cpp 文件之后问题消失，为什么不能将函数直接定义在. h 文件中呢？&lt;/p&gt;
+&lt;p&gt;针对该问题，抽象出如下几个问题：&lt;/p&gt;
+&lt;h3 id=&#34;1-头文件中只可以放置函数声明不可以放置函数定义吗&#34;&gt;1. 头文件中只可以放置函数声明，不可以放置函数定义吗？&lt;/h3&gt;
+&lt;p&gt;以下面的程序为例：&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&#34;language-c&#34;&gt;#ifndef __a_h__
+
+#define __a_h__
+
+void funcA(void);   
+
+void funcA(void)    
+
+{}
+
+#endif
+
+#ifndef __b_h__
+
+#define __b_h__
+
+void funcB(void);
+
+#endif
+
+#include &amp;quot;b.h&amp;quot;
+
+#include &amp;quot;a.h&amp;quot;
+
+void funcB(void)
+
+{
+
+    funcA();
+
+}
+
+#ifndef __c_h__
+
+#define __c_h__
+
+void funcC(void);
+
+#endif
+
+#include &amp;quot;c.h&amp;quot;
+
+#include &amp;quot;a.h&amp;quot;
+
+void funcC(void)
+
+{
+
+    funcA();
+
+}
+
+#include &amp;quot;b.h&amp;quot;
+
+#include &amp;quot;c.h&amp;quot;
+
+int main(int argc, char* argv[])
+
+{
+
+    funcB();
+
+    funcC();
+
+return 0;
+
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;上述代码编译链接的时候编译器（g++）会报如下错误：&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;c.o: In function `funcA()&#39;:
+
+c.cpp:(.text+0x0): multiple definition of `funcA()&#39;
+
+b.o:b.cpp:(.text+0x0): first defined here
+
+collect2: ld returned 1 exit status
+&lt;/code&gt;&lt;/pre&gt;
+&lt;blockquote&gt;
+&lt;p&gt;为什么编译器在链接的时候会抱怨 “funcA() 重复定义”？&lt;br&gt;
+其实本质问题就是 funcA 的定义被放在了 a.h 中，如果写在 a.cpp 中，就不会有重复定义的问题。下面分析一下编译过程都发生了什么，这样更容易从编译器的角度理解此问题。&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;编译器处理 include 指令很简单粗暴，就是直接把头文件中的内容包含进来。所以 b.cpp、c.cpp 和 main.cpp 代码展开后可以简化为：&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&#34;language-c&#34;&gt;void funcA(void);   
+
+void funcA(void)    
+
+{}
+
+void funcB(void);
+
+void funcB(void)
+
+{
+
+    funcA();
+
+}
+
+void funcA(void);   
+
+void funcA(void)    
+
+{}
+
+void funcC(void);
+
+void funcC(void)
+
+{
+
+    funcA();
+
+}
+
+void funcB(void);
+
+void funcC(void);
+
+int main(int argc, char* argv[])
+
+{
+
+    funcB();
+
+    funcC();
+
+return 0;
+
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;编译的时候，C++ 是采用独立编译，就是每个 cpp 单独编译成对应的. o 文件，最后链接器再将多个. o 文件链接成可执行程序。所以从编译的时候，从各个 cpp 文件看，编译没有任何问题。但是能发现一个问题，b.o 中声明和定义了一次 funcA()，c.o 中也声明和定义 funcA()，这就是编译器报重复定义的原因。有人可能会问，既然是从同一份文件 include 过来的函数 funcA，那么定义都是同一份，为什么编译器不会智能的处理一下，让链接时候不报错呢？&lt;br&gt;
+其实编译器链接的时候，并不知道 b.cpp 中定义的 funcA 与 c.cpp 中定义的 funcA 是同一个文件 include 过来的，它只会认为如果有两份定义，而且这两份定义如果实现不同，那么到底以哪个为准呢？既然决定不了，那就干脆报错好了。&lt;/p&gt;
+&lt;h3 id=&#34;2-为什么有些头文件中直接把函数定义都写进去了&#34;&gt;2. 为什么有些头文件中直接把函数定义都写进去了？&lt;/h3&gt;
+&lt;p&gt;刚才的分析，可以得出结论：头文件中只做变量和函数的声明，而不要定义，否则就会有重复定义的错误。但是有几种情况是例外的。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;内联函数的定义&lt;/li&gt;
+&lt;li&gt;类（class）的定义&lt;/li&gt;
+&lt;li&gt;const 和 static 变量&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;以上几种可以在头文件中定义，下面逐个进行解释。&lt;br&gt;
+内联的目的就是在编译期让编译器把使用函数的地方直接替换掉，而不是像普通函数一样通过链接器把地址链接上。这种情况，如果定义没有在头文件的话，编译器是无法进行函数替换的。所以 C++ 规定，内联函数可以在程序中定义多次，只要内联函数定义在同一个 cpp 中只出现一次就行。&lt;br&gt;
+按照这个理论，上述 a.h 简单修改一下就可以避免重复定义了。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;#ifndef __a_h__
+
+#define __a_h__
+
+inline void funcA(void);   
+
+void funcA(void)    
+
+{}
+
+#endif
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;此外，类（class）的定义，可以放在头文件中。&lt;br&gt;
+用类创建对象的时候，编译器要知道对象如何布局才能分配内存，因此类的定义需要在头文件中。一般情况下，我们把类内成员函数的定义放在 cpp 文件中，但是如果直接在 class 中完成函数声明 + 定义的话，这种函数会被编译器当作 inline 的，因此满足上面 inline 函数可以放在头文件的规则。但是如果声明和定义分开实现，但是都放在头文件中，那就会报重复定义了！！&lt;br&gt;
+const 和 static 变量，可以放在头文件中。&lt;br&gt;
+const 对象默认是 static 的，而不是 extern 的，所以即使放在头文件中声明和定义。多个 cpp 引用同一个头文件，互相也没有感知，所以不会导致重复定义。&lt;/p&gt;
+&lt;h3 id=&#34;3-模板函数-类中要求头文件中必须包含定义才能进行模板实例化这种定义放在头文件的情况会不会有问题&#34;&gt;3. 模板函数 / 类中要求头文件中必须包含定义才能进行模板实例化，这种定义放在头文件的情况会不会有问题？&lt;/h3&gt;
+&lt;p&gt;前面分析可知，头文件中要么只有函数声明，要么是含有 inline 函数的定义。但是模板的定义 (包括非 inline 函数 / 成员函数) 要求声明和实现都必须放在头文件中，难道没有 “重复定义” 的问题？？？&lt;br&gt;
+答案当然是不会有问题（要不 template 早就被抱怨死了）。其实编译器也考虑到会遇到类似的问题，在编译器或连接器的某处已经有防止重定义的处理了。这里参考 stackflow 中的答案：&lt;a href=&#34;http://stackoverflow.com/questions/235616/multiple-definitions-of-a-function-template&#34;&gt;http://stackoverflow.com/questions/235616/multiple-definitions-of-a-function-template&lt;/a&gt;&lt;/p&gt;
+">头文件中定义函数引发的 multiple definition</a>
       </div>
       
     </div>
