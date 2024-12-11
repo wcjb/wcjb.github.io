@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.3.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"wcjb.github.io","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="卡尔曼滤波（Kalman filter）是一种高效率的递归滤波器（自回归滤波器），它能够从一系列的不完全及包含杂讯的测量中，估计动态系统的状态。卡尔曼滤波会根据各测量量在不同时间下的值，考虑各时间下的联合分布，再产生对未知变数的估计，因此会比只以单一测量量为基础的估计方式要准。卡尔曼滤波得名自主要贡献者之一的鲁道夫·卡尔曼，最早用于解决阿波罗计划的轨道预测问题。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="卡尔曼滤波">
+<meta property="og:url" content="https://wcjb.github.io/2021/03/12/%E5%8D%A1%E5%B0%94%E6%9B%BC%E6%BB%A4%E6%B3%A2/index.html">
+<meta property="og:site_name" content="老学庵">
+<meta property="og:description" content="卡尔曼滤波（Kalman filter）是一种高效率的递归滤波器（自回归滤波器），它能够从一系列的不完全及包含杂讯的测量中，估计动态系统的状态。卡尔曼滤波会根据各测量量在不同时间下的值，考虑各时间下的联合分布，再产生对未知变数的估计，因此会比只以单一测量量为基础的估计方式要准。卡尔曼滤波得名自主要贡献者之一的鲁道夫·卡尔曼，最早用于解决阿波罗计划的轨道预测问题。">
+<meta property="og:locale">
+<meta property="article:published_time" content="2021-03-12T14:21:19.000Z">
+<meta property="article:modified_time" content="2024-12-11T06:23:53.049Z">
+<meta property="article:author" content="殉道者">
+<meta property="article:tag" content="卡尔曼滤波">
+<meta property="article:tag" content="马尔可夫链">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="https://wcjb.github.io/2021/03/12/%E5%8D%A1%E5%B0%94%E6%9B%BC%E6%BB%A4%E6%B3%A2/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-Hans'
+  };
+</script>
+
+  <title>卡尔曼滤波 | 老学庵</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+<link rel="alternate" href="/atom.xml" title="老学庵" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">老学庵</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">天行健，君子以自强不息；地势坤，君子以厚德载物！</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>Tags</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a>
+
+  </li>
+        <li class="menu-item menu-item-schedule">
+
+    <a href="/schedule/" rel="section"><i class="fa fa-calendar fa-fw"></i>Schedule</a>
+
+  </li>
+        <li class="menu-item menu-item-sitemap">
+
+    <a href="/sitemap.xml" rel="section"><i class="fa fa-sitemap fa-fw"></i>Sitemap</a>
+
+  </li>
+        <li class="menu-item menu-item-commonweal">
+
+    <a href="/404/" rel="section"><i class="fa fa-heartbeat fa-fw"></i>Commonweal 404</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="https://wcjb.github.io/2021/03/12/%E5%8D%A1%E5%B0%94%E6%9B%BC%E6%BB%A4%E6%B3%A2/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/uploads/avatar.png">
+      <meta itemprop="name" content="殉道者">
+      <meta itemprop="description" content="幼而学者,如日出之光；老而学者，如秉烛夜行，犹贤乎瞑目而无见者也！">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="老学庵">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          卡尔曼滤波
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2021-03-12 22:21:19" itemprop="dateCreated datePublished" datetime="2021-03-12T22:21:19+08:00">2021-03-12</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">Edited on</span>
+                <time title="Modified: 2024-12-11 14:23:53" itemprop="dateModified" datetime="2024-12-11T14:23:53+08:00">2024-12-11</time>
+              </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>  <strong>卡尔曼滤波</strong>（Kalman filter）是一种高效率的<a
+target="_blank" rel="noopener" href="https://www.wikiwand.com/zh-hans/递归滤波器">递归滤波器</a>（<a
+target="_blank" rel="noopener" href="https://www.wikiwand.com/zh-hans/自迴歸模型">自回归</a>滤波器），它能够从一系列的不完全及包含<a
+target="_blank" rel="noopener" href="https://www.wikiwand.com/zh-hans/雜訊_(通訊學)">杂讯</a>的<a
+target="_blank" rel="noopener" href="https://www.wikiwand.com/zh-hans/测量">测量</a>中，估计<a
+target="_blank" rel="noopener" href="https://www.wikiwand.com/zh-hans/动态系统">动态系统</a>的状态。卡尔曼滤波会根据各测量量在不同时间下的值，考虑各时间下的<a
+target="_blank" rel="noopener" href="https://www.wikiwand.com/zh-hans/联合分布">联合分布</a>，再产生对未知变数的估计，因此会比只以单一测量量为基础的估计方式要准。卡尔曼滤波得名自主要贡献者之一的<a
+target="_blank" rel="noopener" href="https://www.wikiwand.com/zh-hans/鲁道夫·卡尔曼">鲁道夫·卡尔曼</a>，最早用于解决阿波罗计划的轨道预测问题。
+<span id="more"></span></p>
+<p>  上面的定义摘自维基百科，是对卡尔曼滤波的专业阐述，为了便于理解通过下面两个例子来对卡尔曼滤波有个大致的了解。
+  航天器的发动机能够在足够高的温度下燃烧燃料，为航天器提供足够的动力，航天器发动机燃烧室在燃烧时温度可以达到数千摄氏度，过高的温度可能会损坏发动机的机械部件，导致火箭发射失败，因此需要密切关注火箭燃烧室的内部温度，显然在燃烧室内部放置温度传感器会直接被融化。此时，无法直接测量燃烧室的内部温度，基于这种情况，可以在燃烧室外放置一个温度传感器测量燃烧室的外部温度，使用卡尔曼滤波器利用外部温度来估算燃烧室的内部温度。</p>
+<p>  这是卡尔曼滤波器一种使用方式： &gt;
+当系统的状态无法通过直接测量得到但是可以间接测量时，可以使用卡尔曼滤波通过间接测量值来估算系统的状态。</p>
+<p>总所周知，汽车的导航系统使用<code>车载传感器（Onboard sensors）</code>得到汽车的当前位置并导航到目的地。常用的车载传感器有：<code>惯性测量单元（Inertial measurement unit,IMU）</code>使用加速度计和陀螺仪来测量汽车的加速度和角速度；<code>里程表(Odometer)</code>测量汽车的相对行驶距离；<code>GPS接收器(GPS receiver)</code>接收来自GPS卫星的信号，来确定汽车在地球表面的位置。IMU中的加速度计提供了汽车当前的加速度大小及方向，但是想要获得汽车的位置，需要对加速度进行两次积分（<span
+class="math inline">\(s =\iint
+a(t)dt\)</span>）得到汽车的位置，数值积分算法在计算位置时会存在微小的误差并且会随着时间的累积会不断，最终产生积分漂移，完全偏离汽车的正确位置；里程表容易受到轮胎压力和道路状况的影响；而GPS位置跟新速度慢，而且会存在一定噪声，最大问题还是在车辆通过隧道或车库时，信号很差，甚至无法接收到信号。三种车载传感器各自有各自的局限和优势，只用单独一种传感器进行定位效果都不尽如人意，此时可以使用卡尔曼滤波融合三种传感器得到汽车位置的最优估计值。</p>
+<p>  这是卡尔曼滤波的另一种使用方式：</p>
+<blockquote>
+<p>组合各种可能受到噪声影响的传感器测量值，得到一个最优的估计值。</p>
+</blockquote>
+<p>  卡尔曼滤波主要应用于高精度传感系统中，在时下大热的机器人、无人机、自动导航都有着应用，由于其递归的特性（即只要获知上一时刻状态的估计值以及当前状态的观测值就可以计算出当前状态的估计值），因此不需要记录观测或者估计的历史信息。与大多数滤波器不同之处，卡尔曼滤波器是一种纯粹的<a
+target="_blank" rel="noopener" href="https://www.wikiwand.com/zh-hans/時域">时域</a>滤波器，它不需要像<a
+target="_blank" rel="noopener" href="https://www.wikiwand.com/zh-hans/低通滤波器">低通滤波器</a>等<a
+target="_blank" rel="noopener" href="https://www.wikiwand.com/zh-hans/频域">频域</a>滤波器那样，需要在频域设计再转换到时域实现。</p>
+<p>  其本质思想是采用信号与噪声的状态空间模型，利用前一时刻地估计值和现时刻的观测值来更新对状态变量的估计，求出现时刻的估计值，它适合于实时处理和计算机运算。下面我们一步步来解开卡尔曼滤波的神秘面纱。</p>
+<hr />
+<h3 id="隐马尔可夫">隐马尔可夫</h3>
+<h4 id="随机过程">随机过程</h4>
+<p>  随机过程被认为是概率论的“动力学”部分，其研究对象是随时间演变的随机现象。对于这种现象，已不能用随机变量或多维随机变量来合理表达，而需要一族（无限多个）随机变量来描述。高等教育出版社的《概率论和数理统计》第四版是这样定义随机过程：</p>
+<blockquote>
+<p>  设<span
+class="math inline">\(T\)</span>是一无限实数集，我们把依赖于参数<span
+class="math inline">\(t\in
+T\)</span>的一族随机变量称为<code>随机过程</code>，记为<span
+class="math inline">\(\{X(t),t\in T\}\)</span>,其中对<span
+class="math inline">\(\forall t \in T,X(t)\)</span>是一随机变量，<span
+class="math inline">\(T\)</span>叫做<code>参数集</code>。通常把<span
+class="math inline">\(t\)</span>看作时间，称<span
+class="math inline">\(X(t)\)</span>为时刻<span
+class="math inline">\(t\)</span>时过程的状态，而<span
+class="math inline">\(X(t_1)=x,x \in R\)</span>定义为<span
+class="math inline">\(t=t_1\)</span>时过程处于状态<span
+class="math inline">\(x\)</span>，对于<span
+class="math inline">\(\forall t\in
+T,X(t)\)</span>的所有可能取一切值的全体称为随机过程的<code>状态空间</code>，<code>泊松过程</code>和<code>维纳过程</code>都是典型的随机过程，篇幅有限这里不做进一步展开，有兴趣的读者可以自行Google。</p>
+</blockquote>
+<h4 id="马尔可夫过程">马尔可夫过程</h4>
+<p>  一个随机过程在时刻<span
+class="math inline">\(t_0\)</span>所处的状态为已知的条件下，随机过程在时刻<span
+class="math inline">\(t（t&gt;t_0)\)</span>所处的状态与其在时刻<span
+class="math inline">\(t_0\)</span>之前所处的状态无关。简而言之，就是“将来”仅依赖于”现在”与“过去”无关。我们称这种特性为<code>马尔可夫性</code>或无后效性。而这种具有马尔可夫性质的随机过程称之为<code>马尔可夫过程</code>，可以推出，泊松过程是时间连续状态离散的马尔可夫过程，而维纳过程则是时间状态都连续的马尔可夫过程。对于时间和状态都是离散的马尔可夫过程就是构成卡尔曼滤波的重要基石<code>马尔可夫链</code>：</p>
+<blockquote>
+<p>对于随机过程<span
+class="math inline">\(\{X_n,n=1,2,\cdots\}\)</span>,若其条件概率分布满足:<span
+class="math inline">\(P\{X_{n+1}=x_{n+1}|X_n=x_n,\cdots,X_1=x_1\}=P\{X_{n+1}=x_{n+1}|X_n=x+n\}\)</span>，则称此随机过程为马尔可夫链。</p>
+</blockquote>
+<h4 id="状态转移矩阵">状态转移矩阵</h4>
+<p>  在马尔可夫链中，从一个状态转移到另一个状态的概率称为状态转移概率，如果系统的可能状态是有限的，例如有<span
+class="math inline">\(K\)</span>个状态，则状态转移概率构成一个<span
+class="math inline">\(K\times K\)</span>的状态转移矩阵： <span
+class="math display">\[P=\left[ \begin{matrix}   p_{11} &amp; p_{12}
+&amp; \cdots &amp; p_{1K} \\ p_{21} &amp; p_{22} &amp; \cdots &amp;
+p_{2K}\\ \cdots &amp; \cdots &amp; \cdots &amp;\cdots \\ p_{K1} &amp;
+p_{K2} &amp; \cdots &amp; p_{KK}\end{matrix}  \right]\]</span>
+其中矩阵的每一行的和为1，该矩阵是一个随机矩阵，任何一个随机矩阵都可以作为状态转移矩阵
+。</p>
+<h4 id="隐马尔可夫模型">隐马尔可夫模型</h4>
+<p>  在马尔可夫模型中，系统的状态是直接可见的，这样状态的转移概率就可以构成该系统的全部参数。但是，在实际生活中更多的情况是：系统状态并不是直接可见，我们往往只能观测到受状态影响的某些变量。显然对这些可观测到的变量使用马尔可夫模型对系统进行状态分析是不严谨的。为此，对于这种含有隐含未知参数的马尔可夫过程，数学家通过随机过程可观察的参数确定该过程的隐含参数，然后利用这些参数来作进一步分析，这也是大名鼎鼎的<code>隐马尔可夫模型（Hidden Markov model，HMM）</code>的本质，至于隐马尔可夫模型的更多详细内容，如果进行展开的话，需要花费大量篇幅，在此先不做展开。隐马尔可夫模型在语音识别和模式识别领域都有着应用，而卡尔曼滤波也是构建在隐马尔可夫模型之上的。</p>
+<h3 id="线性卡尔曼滤波">线性卡尔曼滤波</h3>
+<p>  <code>卡尔曼滤波是一个递归滤波器，其算法本质是通过动态系统的有限个观测值，估计动态系统的隐藏状态。</code>接下来，我们从动态系统的状态空间模型开始，一步步推导卡尔曼滤波算法。</p>
+<h4 id="状态空间模型">状态空间模型</h4>
+<p>  动态系统都具有一个基本特征：系统的状态，那么什么是系统的状态呢，其定义如下：</p>
+<blockquote>
+<p>  一个随机动态系统的状态被定义为最少量的信息，这些信息包含过去作用于该系统的输入的影响，并足以完全描述系统将来的行为。（该定义截取自机械工业出版社译制的《神经网络与机器学习》第三版
+第十四章 动态系统状态估计的贝叶斯滤波）</p>
+</blockquote>
+<p>  通常我们使用状态空间模型来描述动态系统状态对外部世界的影响，一般而言，状态空间模型分为两个部分：</p>
+<blockquote>
+<ul>
+<li><p>系统模型</p>
+<p>  系统模型使用时域函数来描述动态系统状态的演变，其数学表示为一阶马尔可夫链：<span
+class="math inline">\(x_{n+1}=\zeta_{n}(x_n,\omega_n)\)</span>，其中<span
+class="math inline">\(n\)</span>表示离散时间，向量<span
+class="math inline">\(x_n\)</span>表示动态系统当前的状态，向量<span
+class="math inline">\(x_{n+1}\)</span>表示下一状态的值，向量<span
+class="math inline">\(\omega_n\)</span>表示过程噪声，<span
+class="math inline">\(\zeta\)</span>为<span
+class="math inline">\(x_n,\omega_n\)</span>的向量函数，会随时间改变。</p></li>
+<li><p>测量模型</p>
+<p>  测量模型描述了动态系统状态对外部世界的影响，公式如下：<span
+class="math inline">\(y_n = \xi(x_n,v_n)\)</span>，其中向量<span
+class="math inline">\(y_n\)</span>表示外部世界对动态系统的一组观测值，向量<span
+class="math inline">\(v_n\)</span>是外部世界噪声的测量值，<span
+class="math inline">\(\xi\)</span>是<span
+class="math inline">\(x_n,v_n\)</span>的向量函数，会随时间改变。</p></li>
+</ul>
+</blockquote>
+<p>  对于状态空间模型，有着如下假设：</p>
+<blockquote>
+<ul>
+<li>动态系统的任意时刻<span
+class="math inline">\(k\)</span>,其过程噪声<span
+class="math inline">\(\omega_k\)</span>与初始状态<span
+class="math inline">\(x_0\)</span>无关；</li>
+<li>动态系统的过程噪声<span
+class="math inline">\(\omega_n\)</span>于测量噪声<span
+class="math inline">\(v_n\)</span>是统计独立，也就是说对<span
+class="math inline">\(\forall i,j\)</span>都有<span
+class="math inline">\(E[\omega_iv_j^T]=0\)</span>成立；</li>
+</ul>
+</blockquote>
+<p>  一般而言，跟状态与状态之间的是否为线性关系及过程噪声、测量噪声二者是否服从高斯分布将状态空间模型分为四大类：</p>
+<blockquote>
+<ul>
+<li>线性高斯模型</li>
+<li>线性非高斯模型</li>
+<li>非线性高斯模型</li>
+<li>非线性非高斯模型</li>
+</ul>
+</blockquote>
+<p>  显然不管是非线性还是非高斯或二者兼之的状态空间模型，其处理难度是远高于线性高斯模型的，我们先来处理最简单的状态空间模型——线性高斯模型。</p>
+<h4 id="线性卡尔曼滤波的理论推导">线性卡尔曼滤波的理论推导</h4>
+<p>对于线性高斯模型，其状态空间模型可设为如下形式：</p>
+<p><span class="math display">\[
+\begin{cases}
+x_{n}=A_{n}x_{n-1}+\omega_{n} \\
+y_n = H_nx_n+v_n
+\end{cases}
+\]</span>   其中<span class="math inline">\(\omega_n\sim N(0,Q),v_n\sim
+N(0,R)\)</span>，<span
+class="math inline">\(A_{n+1}\)</span>是动态系统从状态<span
+class="math inline">\(x_n\)</span>到<span
+class="math inline">\(x_{n+1}\)</span>的状态转移矩阵，<span
+class="math inline">\(H_n\)</span>是测量矩阵，表示系统状态<span
+class="math inline">\(x_n\)</span>对<span
+class="math inline">\(y_n\)</span>的增益，将系统状态映射到外部世界。</p>
+<p>  考虑到动态系统会受到系统中已知的控制器的控制信息的影响，需要在系统模型中加入这部分信息，修正后的状态空间模型如下：</p>
+<p><span class="math display">\[
+\begin{cases}
+x_{n}=A_{n}x_{n-1}+B_{n}\mu_{n}+\omega_{n} \\ y_n = H_nx_n+v_n
+\end{cases}
+\]</span> 其中<span
+class="math inline">\(\mu_n\)</span>是系统的控制器向量，<span
+class="math inline">\(B_n\)</span>是系统的控制向量。</p>
+<p>  为方便进行推导，定义<span class="math inline">\(\hat{x}^{-}_k \in
+R^n\)</span>（<span
+class="math inline">\(^-\)</span>代表先验,^代表估计）为在已知第<span
+class="math inline">\(k\)</span>步以前状态情况下第<span
+class="math inline">\(k\)</span>步的先验状态估计。定义<span
+class="math inline">\(\hat{x}_k\in R^n\)</span>为已知观测变量<span
+class="math inline">\(y_k\)</span>时，第<span
+class="math inline">\(k\)</span>步的后验估计状态，由此定义先验估计误差和后验估计误差：</p>
+<p><span class="math display">\[
+\begin{cases}
+  e_k^-\equiv{x_k-\hat{x}_k^-} \\ e_k\equiv{x_k-\hat{x}_k}
+\end{cases}
+\]</span> 先验估计误差的协方差为：</p>
+<p><span class="math display">\[
+P_k^-=E[e_k^-{e_k^-}^T]
+\]</span> 后验误差估计的协方差为： <span class="math display">\[
+P_k=E[e_ke_k^T]
+\]</span>   显然<span
+class="math inline">\(P_k^-\)</span>是真实值和预测值之间的协方差，<span
+class="math inline">\(P_k\)</span>是真实值和最优估计值之间的协方差。卡尔曼滤波的核心就是如何根据<span
+class="math inline">\(k-1\)</span>时刻的最优状态估计<span
+class="math inline">\(\hat{x}_{k-1}\)</span>和第<span
+class="math inline">\(k\)</span>时刻的观测值<span
+class="math inline">\(y_k\)</span>得到<span
+class="math inline">\(k\)</span>时刻的最优状态估计值<span
+class="math inline">\(\hat{x}_k\)</span>,显然根据定义<span
+class="math inline">\(P_k\)</span>越小，估计值越接近于真实值，此时，只需求解当前条件下使得<span
+class="math inline">\(P_k\)</span>最小的状态估计值即是当前时刻状态的最优估计值。利用上文修正后的状态空间模型的系统模型得到<span
+class="math inline">\(k\)</span>时刻状态的预测值<span
+class="math inline">\(\hat{x}_k^-=A\hat{x}_{k-1}+B\mu_k\)</span>，为了得到<span
+class="math inline">\(k\)</span>时刻的最小协方差<span
+class="math inline">\(P_k\)</span>，卡尔曼滤波定义参数卡尔曼增益<span
+class="math inline">\(K=\frac{\hat{x}_k-\hat{x}_k^-}{y_k-H\hat{x}_k^-}\)</span>，其中，观测向量及其预测之差<span
+class="math inline">\(y_k-H\hat{x}_k^-\)</span>被称为测量过程的新息或残余。新息反应了预测值和实际值之间的不一致程度，为零时表明二者完全吻合，推导过程如下。</p>
+<hr />
+<p>由卡尔曼增益的定义式变形得到:</p>
+<p><span
+class="math display">\[\hat{x}_k=\hat{x}_k^-+K(y_k-H\hat{x}_k^-)\]</span></p>
+<p>将状态空间模型的观测模型代入得到:</p>
+<p><span class="math display">\[\hat{x}_k=\hat{x}_k^-+K(Hx_k
++v_k-H\hat{x}_k^-)\]</span></p>
+<p>进一步整理变换得到:</p>
+<p><span
+class="math display">\[\hat{x}_k-x_k=\hat{x}_k^—x_k+KH(x_k-\hat{x}_k^-)+Kv_k\]</span></p>
+<p>结合先验估计误差和后验估计误差的定义可知:</p>
+<p><span class="math display">\[e_k=(I-KH)e_k^-+Kv_k\]</span></p>
+<p>代入后验误差协方差的定义计算得到:</p>
+<p><span class="math display">\[P_k=E[e_ke_k^T]=
+E[[(I-KH)e_k^—Kv_k][(I-KH)e_k^—Kv_k]^T]\]</span></p>
+<p>展开可知:</p>
+<p><span
+class="math display">\[P_k=P^-_k-KHP^-_k-P^-_kH^TK^T+K(HP^-_kH^T+R)K^T=P(K)\]</span></p>
+<p>要求<span
+class="math inline">\(P_k\)</span>的最小值，结合上式对卡尔曼增益<span
+class="math inline">\(K\)</span>求偏导，得到：</p>
+<p><span
+class="math display">\[\frac{\partial{P_k}}{\partial{K}}=-2P^-_kH^T+2KHP_k^-H^T+2KR\]</span></p>
+<blockquote>
+<p>  需要注意的是，因为涉及到矩阵导数，与常规导数求导略有不同，有兴趣的读者，可以结合下面的矩阵求导规则进行求导：</p>
+<p>若<span class="math inline">\(Y=AX\)</span>,则<span
+class="math inline">\(\frac{d{Y}}{d{X}}=A^T\)</span>；</p>
+<p>若<span class="math inline">\(Y=XA\)</span>,则<span
+class="math inline">\(\frac{d{Y}}{d{X}}=A\)</span>；</p>
+<p>若<span class="math inline">\(Y=A^TXB\)</span>,则<span
+class="math inline">\(\frac{d{Y}}{d{X}}=AB^T\)</span>；</p>
+<p>若<span class="math inline">\(Y=A^TX^TB\)</span>,则<span
+class="math inline">\(\frac{d{Y}}{d{X}}=BA^T\)</span>；</p>
+<p>若<span class="math inline">\(Y=X^TX\)</span>,则<span
+class="math inline">\(\frac{d{Y}}{d{X}}=\)</span>X；</p>
+<p>若<span class="math inline">\(Y=AX^T\)</span>,则<span
+class="math inline">\(\frac{d{Y}}{d{X}}=A\)</span>；</p>
+<p>若<span class="math inline">\(Y=u(X)^Tv(X)\)</span>,则<span
+class="math inline">\(\frac{d{uv}}{d{X}}=\frac{du^T}{dX}v+\frac{dv^T}{X}u\)</span>；</p>
+</blockquote>
+<p>令<span
+class="math inline">\(\frac{\partial{P_k}}{\partial{K}}=0\)</span>，求解得到:</p>
+<p><span
+class="math display">\[K=\frac{P^-_kH^T}{HP^-_KH^T+R}\]</span></p>
+<blockquote>
+<p>直观来看，一方面：</p>
+<p><span
+class="math display">\[\lim\limits_{R\to0}K=\lim\limits_{R\to0}\frac{P_k^-H^T}{HP_k^-H^T+R}=H^{-1}\]</span></p>
+<p>即，随着观测噪声协方差 <span
+class="math inline">\(R\)</span>的减小，卡尔曼增益逐渐增大，当<span
+class="math inline">\(R=0\)</span>时，取得最大值<span
+class="math inline">\(H^{-1}\)</span>;</p>
+<p>另一方面：</p>
+<p><span class="math display">\[\lim\limits_{P_k^-\to0}K=0\]</span></p>
+<p>即，随着先验估计协方差<span
+class="math inline">\(P_k^-\)</span>的减小，卡尔曼增益随之减小，当<span
+class="math inline">\(P_k^-=0\)</span>时，取得最小值0；</p>
+<p>结合卡尔曼增益的定义可知，<code>卡尔曼增益实际上表征了状态最优估计过程中模型预测误差与量测误差的比重，随着观测噪声协方差趋近于零，模型中预测误差的比重越来越大，此时模型更信任模型中观测值的信息；另一方面，随着先验估计误差协方差趋近于零，模型中预测误差的比重越来越小，此时模型更信任模型中预测值的信息。</code></p>
+</blockquote>
+<p>代入矩阵函数<span class="math inline">\(P(K)\)</span>得到：</p>
+<p><span class="math display">\[P_k=(I-KH)P_k^-\]</span></p>
+<p>至此，我们已经得到了第<span
+class="math inline">\(k\)</span>时刻最优状态估计值为：</p>
+<p><span class="math display">\[\hat{x}_k
+=\hat{x}_k^-+K(y_k-H\hat{x}_k^-)\]</span></p>
+<p>  但是，到了这一步问题仍然没有得到解决，因为在计算<span
+class="math inline">\(k\)</span>时刻的卡尔曼增益时，仍有一个值未确定的：先验估计的协方差矩阵<span
+class="math inline">\(P_k^-\)</span>，在计算<span
+class="math inline">\(P_k^-\)</span>之前，需要先计算先验误差：</p>
+<p><span class="math display">\[
+e^-_k=x_k-\hat{x}_k^-=(Ax_{k-1}+B\mu_k+\omega_k)-(A\hat{x}_{k-1}+Bu_k)=Ae_{k-1}+\omega_k
+\]</span> 因为</p>
+<p><span class="math display">\[
+P_k^-=E[e_k^-{e_k^-}^T]=E[(Ae_{k-1}+\omega_k)(Ae_{k-1}+\omega_k)^T]=E[Ae_{k-1}e_{k-1}^TA^T]+E[\omega_k\omega_k^T]
+\]</span> 得到：</p>
+<p><span class="math display">\[P_k^-=AP_{k-1}A^T+Q\]</span></p>
+<p>到这步，卡尔曼滤波形成一个完整的理论闭环。</p>
+<h3 id="离散线性卡尔曼滤波算法">离散线性卡尔曼滤波算法</h3>
+<p>  卡尔曼滤波器采用反馈控制的方法来估计过程状态：滤波器估计过程某一时刻的状态，然后以（含噪声的）观测变量的方式获得反馈。因此卡尔曼滤波器可分为两个部分：</p>
+<h4 id="时间更新方程"><code>时间更新方程</code></h4>
+<p>  时间更新方程负责及时向前推算当前状态变量和误差协方差估计的值，以便为下一个时间状态构造先验估计，其数学表示如下：
+<span class="math display">\[
+\hat x_k^- = A \hat x_{k-1}+B\hat \mu_k+w_k \\
+P_{k}^-=AP_{k-1}A^T+Q
+\]</span></p>
+<h4 id="测量更新方程"><code>测量更新方程</code></h4>
+<p>  测量更新方程负责反馈——也就是说，它将先验估计
+和新的测量变量结合以构造改进的后验估计，其数学表示如下：</p>
+<p><span
+class="math display">\[K_k=P^-_kH^T(HP^-_kH^T+R)^{-1}\]</span></p>
+<p><span class="math display">\[Z_k=Hx_k+v_k\]</span></p>
+<p><span class="math display">\[\hat x = \hat x_k^{-}+K_k(Z_k-H\hat
+x_k^{-})\]</span></p>
+<p><span class="math display">\[P_k=(I-K_kH)P_k^{-}\]</span></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">离散线性卡尔曼滤波器的递归计算过程如下图：</span><br></pre></td></tr></table></figure>
+<figure>
+<img
+src="https://upload-images.jianshu.io/upload_images/147042-98e4d1d9391712a7.jpg?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240"
+alt="离散卡尔曼滤波的递归过程" />
+<figcaption aria-hidden="true">离散卡尔曼滤波的递归过程</figcaption>
+</figure>
+<p>  时间更新方程将当前状态变量作为先验估计及时地向前投射到测量更新方程，测量更新方程校正先验估计以获得状态的后验估计。完成时间更新方程和测量更新方程的一轮更新之后，再次重复这个过程，将上一次计算得到的后验估计作为下一次计算的先验估计。</p>
+<h4 id="卡尔曼滤波器参数分析">卡尔曼滤波器参数分析</h4>
+<p>  在实现卡尔曼滤波器算法时，会涉及到很多参数，如下：</p>
+<blockquote>
+<p><span class="math inline">\(x_0\)</span>：动态系统的初始状态变量<span
+class="math inline">\(x_0\)</span>一般直接取第一个测量值<span
+class="math inline">\(z_0\)</span>；</p>
+<p><span class="math inline">\(P_0\)</span>：系统初始状态变量<span
+class="math inline">\(x_0\)</span>的协方差，只要初始值不为零，初始协方差矩阵的取值对滤波效果影响很小，都能很快收敛；</p>
+<p><span
+class="math inline">\(A\)</span>：状态转移矩阵，是根据经验对下一个时间周期目标状态的
+一种预测。在某些情况下，这种预测是确定的，而另一些情况下
+这种预测是未知的；</p>
+<p><span
+class="math inline">\(B\)</span>：输入控制矩阵，作用在控制向量<span
+class="math inline">\(\mu_k\)</span>上的<span
+class="math inline">\(n\times1\)</span>输入控制矩阵，由于控制信息是已知的，一般很好确定；
+<span class="math inline">\(H\)</span>：<span
+class="math inline">\(m\times n\)</span>观测模型矩阵，
+负责将系统的真实状态映射到观测空间，根据动态系统很容易确定；</p>
+<p><span class="math inline">\(P ^-\)</span>：为<span
+class="math inline">\(n\times n\)</span>先验估计误差协方差矩阵，由<span
+class="math inline">\(P_0\)</span>递归即可得到；</p>
+<p><span class="math inline">\(P\)</span> ：为<span
+class="math inline">\(n×n\)</span>后验估计误差协方差矩阵，由<span
+class="math inline">\(P_0\)</span>递归即可得到；</p>
+<p><span class="math inline">\(Q\)</span>：<span
+class="math inline">\(n\times n\)</span>过程噪声<span
+class="math inline">\(\omega_n\)</span>是的协方差矩阵
+，当动态系统的状态转换过程确定时，<span
+class="math inline">\(Q\)</span>是一个确定的值，此时，可通过离线测试确定对于某个过程的最优<span
+class="math inline">\(Q\)</span>值，一般来说，当状态转换过程为已确定时，<span
+class="math inline">\(Q\)</span> 的取值越小越好。 当 <span
+class="math inline">\(Q\)</span>
+取值逐渐增大时，滤波收敛变慢，且状态变量的扰动变大。当系统的动态转换过程是不确定的，随时间变化，此时<span
+class="math inline">\(Q\)</span>不再是一个确定值，而是一个随时间变化的变量<span
+class="math inline">\(Q(k)\)</span>，此时的卡尔曼滤波为自适应卡尔曼滤波，关于自适应卡尔曼滤波的更详细内容请参考此文—<a
+target="_blank" rel="noopener" href="http://read.pudn.com/downloads76/ebook/285147/Paper/pdf/y8576770004.pdf">自适应卡尔曼滤波技术</a>，在此不做进一步展开；</p>
+<p><span class="math inline">\(R\)</span>：<span
+class="math inline">\(m\times m\)</span>测量噪声<span
+class="math inline">\(v_n\)</span>协方差矩阵，
+跟系统外部环境的测量仪器相关，一般很难获得改值，根据平时的使用经历来看:</p>
+<blockquote>
+<p><span
+class="math inline">\(R\)</span>取值过小或过大都会使滤波效果变差；</p>
+<p><span
+class="math inline">\(R\)</span>取值越小收敛越快，反之收敛越慢；</p>
+<p>一般离线得到合适的<span
+class="math inline">\(R\)</span>值，再代入滤波器中；</p>
+</blockquote>
+<p><span class="math inline">\(I\)</span>：<span
+class="math inline">\(n\times n\)</span> 单位矩阵</p>
+<p><span class="math inline">\(K\)</span>:<span
+class="math inline">\(n×m\)</span>阶矩阵， 卡尔曼增益</p>
+</blockquote>
+<p>  关于卡尔曼滤波参数的更详细内容，由于篇幅有限，只做了简单的描述，但是卡尔曼滤波器参数的确定却是重中之重，直接影响到算法的效果，要进行实际应用的读者可结合<a
+target="_blank" rel="noopener" href="http://file.elecfans.com/web1/M00/80/05/pIYBAFwnp8uAL-vDAAZFhhuu8y8385.pdf">卡尔曼滤波器参数分析与应用方法研究</a>一文，来做进一步讨论。</p>
+<h3 id="发散现象及平方根滤波">发散现象及平方根滤波</h3>
+<h4 id="发散现象">发散现象</h4>
+<p>  线性卡尔曼滤波基于线性高斯状态空间模型的假设推导的，但是在实际应用时动态系统不一定完全满足这些假定，这会儿导致卡尔曼滤波的不稳定，这也叫卡尔曼滤波的发散现象，另外在计算时如果数值不太精确也会产生发散现象。</p>
+<h4 id="平方根滤波">平方根滤波</h4>
+<p>  一个数学上优美且计算可行的，解决卡尔曼滤波发散问题的方法是使用平方根滤波，其本质思想是对卡尔曼滤波进行修正，在算法的每一次循环中使用数值稳定的正交变换。具体而言，就是使用乔里斯基分解将卡尔曼滤波的误差协方差矩阵转换为其平方根形式。理论推导部分可以参考机械工业出版社的《神经网络与机器学习》
+第十四章 动态系统状态估计的贝叶斯滤波
+中的平方根滤波部分，在此不做推导。</p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/%E5%8D%A1%E5%B0%94%E6%9B%BC%E6%BB%A4%E6%B3%A2/" rel="tag"># 卡尔曼滤波</a>
+              <a href="/tags/%E9%A9%AC%E5%B0%94%E5%8F%AF%E5%A4%AB%E9%93%BE/" rel="tag"># 马尔可夫链</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item"></div>
+      <div class="post-nav-item">
+    <a href="/2021/03/12/%E5%A5%87%E5%BC%82%E5%80%BC%E5%88%86%E8%A7%A3/" rel="next" title="奇异值分解">
+      奇异值分解 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%9A%90%E9%A9%AC%E5%B0%94%E5%8F%AF%E5%A4%AB"><span class="nav-number">1.</span> <span class="nav-text">隐马尔可夫</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E9%9A%8F%E6%9C%BA%E8%BF%87%E7%A8%8B"><span class="nav-number">1.1.</span> <span class="nav-text">随机过程</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E9%A9%AC%E5%B0%94%E5%8F%AF%E5%A4%AB%E8%BF%87%E7%A8%8B"><span class="nav-number">1.2.</span> <span class="nav-text">马尔可夫过程</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E7%8A%B6%E6%80%81%E8%BD%AC%E7%A7%BB%E7%9F%A9%E9%98%B5"><span class="nav-number">1.3.</span> <span class="nav-text">状态转移矩阵</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E9%9A%90%E9%A9%AC%E5%B0%94%E5%8F%AF%E5%A4%AB%E6%A8%A1%E5%9E%8B"><span class="nav-number">1.4.</span> <span class="nav-text">隐马尔可夫模型</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%BA%BF%E6%80%A7%E5%8D%A1%E5%B0%94%E6%9B%BC%E6%BB%A4%E6%B3%A2"><span class="nav-number">2.</span> <span class="nav-text">线性卡尔曼滤波</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E7%8A%B6%E6%80%81%E7%A9%BA%E9%97%B4%E6%A8%A1%E5%9E%8B"><span class="nav-number">2.1.</span> <span class="nav-text">状态空间模型</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E7%BA%BF%E6%80%A7%E5%8D%A1%E5%B0%94%E6%9B%BC%E6%BB%A4%E6%B3%A2%E7%9A%84%E7%90%86%E8%AE%BA%E6%8E%A8%E5%AF%BC"><span class="nav-number">2.2.</span> <span class="nav-text">线性卡尔曼滤波的理论推导</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%A6%BB%E6%95%A3%E7%BA%BF%E6%80%A7%E5%8D%A1%E5%B0%94%E6%9B%BC%E6%BB%A4%E6%B3%A2%E7%AE%97%E6%B3%95"><span class="nav-number">3.</span> <span class="nav-text">离散线性卡尔曼滤波算法</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%97%B6%E9%97%B4%E6%9B%B4%E6%96%B0%E6%96%B9%E7%A8%8B"><span class="nav-number">3.1.</span> <span class="nav-text">时间更新方程</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%B5%8B%E9%87%8F%E6%9B%B4%E6%96%B0%E6%96%B9%E7%A8%8B"><span class="nav-number">3.2.</span> <span class="nav-text">测量更新方程</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%8D%A1%E5%B0%94%E6%9B%BC%E6%BB%A4%E6%B3%A2%E5%99%A8%E5%8F%82%E6%95%B0%E5%88%86%E6%9E%90"><span class="nav-number">3.3.</span> <span class="nav-text">卡尔曼滤波器参数分析</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8F%91%E6%95%A3%E7%8E%B0%E8%B1%A1%E5%8F%8A%E5%B9%B3%E6%96%B9%E6%A0%B9%E6%BB%A4%E6%B3%A2"><span class="nav-number">4.</span> <span class="nav-text">发散现象及平方根滤波</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%8F%91%E6%95%A3%E7%8E%B0%E8%B1%A1"><span class="nav-number">4.1.</span> <span class="nav-text">发散现象</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%B9%B3%E6%96%B9%E6%A0%B9%E6%BB%A4%E6%B3%A2"><span class="nav-number">4.2.</span> <span class="nav-text">平方根滤波</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="殉道者"
+      src="/uploads/avatar.png">
+  <p class="site-author-name" itemprop="name">殉道者</p>
+  <div class="site-description" itemprop="description">幼而学者,如日出之光；老而学者，如秉烛夜行，犹贤乎瞑目而无见者也！</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">3</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">8</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/wcjb" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;wcjb" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="/wcjbyjx@gmail.com" title="E-Mail → wcjbyjx@gmail.com"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2024</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">殉道者</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a>
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+      
+
+<script>
+  if (typeof MathJax === 'undefined') {
+    window.MathJax = {
+      loader: {
+          load: ['[tex]/mhchem'],
+        source: {
+          '[tex]/amsCd': '[tex]/amscd',
+          '[tex]/AMScd': '[tex]/amscd'
+        }
+      },
+      tex: {
+        inlineMath: {'[+]': [['$', '$']]},
+          packages: {'[+]': ['mhchem']},
+        tags: 'ams'
+      },
+      options: {
+        renderActions: {
+          findScript: [10, doc => {
+            document.querySelectorAll('script[type^="math/tex"]').forEach(node => {
+              const display = !!node.type.match(/; *mode=display/);
+              const math = new doc.options.MathItem(node.textContent, doc.inputJax[0], display);
+              const text = document.createTextNode('');
+              node.parentNode.replaceChild(text, node);
+              math.start = {node: text, delim: '', n: 0};
+              math.end = {node: text, delim: '', n: 0};
+              doc.math.push(math);
+            });
+          }, '', false],
+          insertedScript: [200, () => {
+            document.querySelectorAll('mjx-container').forEach(node => {
+              let target = node.parentNode;
+              if (target.nodeName.toLowerCase() === 'li') {
+                target.parentNode.classList.add('has-jax');
+              }
+            });
+          }, '', false]
+        }
+      }
+    };
+    (function () {
+      var script = document.createElement('script');
+      script.src = '//cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js';
+      script.defer = true;
+      document.head.appendChild(script);
+    })();
+  } else {
+    MathJax.startup.document.state(0);
+    MathJax.texReset();
+    MathJax.typeset();
+  }
+</script>
+
+    
+
+  
+
+</body>
+</html>
