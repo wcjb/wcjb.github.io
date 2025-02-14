@@ -29,7 +29,7 @@
 <meta property="og:locale">
 <meta property="og:image" content="https://tva1.sinaimg.cn/large/007S8ZIlly1gjns1e4w9qj30uy0u0n2j.jpg">
 <meta property="article:published_time" content="2022-04-14T09:26:09.000Z">
-<meta property="article:modified_time" content="2024-12-11T06:13:52.850Z">
+<meta property="article:modified_time" content="2025-02-14T07:37:31.619Z">
 <meta property="article:author" content="殉道者">
 <meta property="article:tag" content="傅立叶">
 <meta property="article:tag" content="希尔伯特空间">
@@ -217,7 +217,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">Edited on</span>
-                <time title="Modified: 2024-12-11 14:13:52" itemprop="dateModified" datetime="2024-12-11T14:13:52+08:00">2024-12-11</time>
+                <time title="Modified: 2025-02-14 15:37:31" itemprop="dateModified" datetime="2025-02-14T15:37:31+08:00">2025-02-14</time>
               </span>
 
           
@@ -305,14 +305,14 @@ class="math inline">\(f(x)\)</span>都可根据这个标准正交函数系展开
 <p><span class="math display">\[
 f(x)=\sum\limits_{i=1}^{\infty}a_i\phi_i(x)=a_1\phi_1(x)+a_2\phi_2(x)+\cdots+a_n\phi_n(x)+\cdots\tag{10}
 \]</span> <span class="math inline">\(a_n\)</span>为<span
-class="math inline">\(\phi_n(x)\)</span>在这个标准正交函数系上的投影：</p>
-<p><span class="math display">\[
-a_n = (f,\phi_n)=\int_{a}^{b}f(x)\phi_n(x)dx（n=1,2,\cdots）\tag{11}
-\]</span> 很容易证明 <span class="math display">\[
-\int_{a}^{b}f^2(x)dx=\sum\limits_{i=1}^{\infty}a^2_i\tag{12}
-\]</span> 代表<span
-class="math inline">\(H\)</span>空间中矢量的长度平方等于该矢量在完备的标准正交系中的矢量上的投影平方和。</p></li>
+class="math inline">\(\phi_n(x)\)</span>在这个标准正交函数系上的投影：</p></li>
 </ul>
+<p><span class="math display">\[
+  a_n = (f,\phi_n)=\int_{a}^{b}f(x)\phi_n(x)dx（n=1,2,\cdots）\tag{11}
+\]</span> 很容易证明 <span class="math display">\[
+  \int_{a}^{b}f^2(x)dx=\sum\limits_{i=1}^{\infty}a^2_i\tag{12}
+\]</span> 代表<span
+class="math inline">\(H\)</span>空间中矢量的长度平方等于该矢量在完备的标准正交系中的矢量上的投影平方和。</p>
 <h1 id="傅立叶级数">傅立叶级数</h1>
 <p>  希尔伯特空间是有限维欧几里得空间的推广，与欧几里得空间相同，希尔伯特空间也是内积空间，也有距离和角的概念，并且不同于欧几里得空间，<span
 class="math inline">\(H\)</span>空间具有<code>完备性</code>：希尔伯特空间内的所有的<code>柯西列</code>会收敛到一点。因此微积分中的大部分概念可无障碍推广至希尔伯特空间中。希尔伯特空间提供了一个很强大理论工具：<strong>对于<span
@@ -450,12 +450,12 @@ b_n&amp;=\frac{1}{T}\int_{-T}^{T}f(x)sin(\frac{n\pi}{T}x)\mathrm{d}x
 \]</span>
 因此，对于可积的任意周期函数，都能展开为对应的傅立叶级数，并且由于周期函数的特性，当定义域拓展到实数域时也是成立的。</p>
 <h3 id="非周期函数的傅立叶积分">非周期函数的傅立叶积分</h3>
-  在更多情况下，需要处理非周期函数，对此比较直观的处理技巧是，将非周期函数视为周期为<span
+<p>  在更多情况下，需要处理非周期函数，对此比较直观的处理技巧是，将非周期函数视为周期为<span
 class="math inline">\(\infty\)</span>的周期函数，即<span
 class="math inline">\(2T \to +\infty\)</span>。设<span
 class="math inline">\(\xi(x)\)</span>是定义在<span
 class="math inline">\(R\)</span>上，并且在定义域绝对可积，<span
-class="math inline">\(\xi_T{x}\)</span>是<span
+class="math inline">\(\xi_T(x)\)</span>是<span
 class="math inline">\(\xi(x)\)</span>在有限区间<span
 class="math inline">\([-T,T]\)</span>上的截取，因为<span
 class="math inline">\(\xi_{T}(x)\)</span>可视为该有限区间上的周期函数，令<span
@@ -464,37 +464,35 @@ class="math inline">\(\xi_{T}(x)\)</span>的傅立叶级数为： <span
 class="math display">\[
 \xi_{T}(x)=\frac{a_0}{2}+\sum_{n=1}^{\infty}[a_ncos(n\omega
 x)+b_nsin(n\omega x)]\tag{40}
-\]</span> 其中： $$
-<span class="math display">\[\begin{aligned}
-
+\]</span> 其中： <span class="math display">\[
+\begin{aligned}
 a_0&amp;=\frac{1}{T}\int_{-T}^{T}f(t)\mathrm{d}t\\
 a_n&amp;=\frac{1}{T}\int_{-T}^{T}f(t)cos(n\omega t)\mathrm{d}t\\
 b_n&amp;=\frac{1}{T}\int_{-T}^{T}f(t)sin(n \omega t)\mathrm{d}t
-\end{aligned}\tag{41}\]</span>
-<span class="math display">\[
-得到：
-\]</span>
-<span class="math display">\[\begin{aligned}
-
+\end{aligned}\tag{41}
+\]</span> 得到： <span class="math display">\[
+\begin{aligned}
 \xi_T(x)&amp;=\frac{1}{2T}\int_{-T}^{T}f(t)\mathrm{d}t+\sum_{n=1}^{\infty}[\frac{1}{T}\int_{-T}^{T}f(t)cos(n\omega
 t)\mathrm{d}tcos(n\omega x)+\frac{1}{T}\int_{-T}^{T}f(t)sin(n \omega
 t)\mathrm{d}tsin(n\omega x)] \\
 &amp;=\frac{1}{2T}\int_{-T}^{T}f(t)\mathrm{d}t+\sum_{n=1}^{\infty}\frac{1}{T}\int_{-T}^{T}f(t)[cos(n\omega
 t)cos(n\omega x)+sin(n \omega t)sin(n\omega x)]\mathrm{d}t \\
 &amp;=\frac{1}{2T}\int_{-T}^{T}f(t)\mathrm{d}t+\sum_{n=1}^{\infty}\frac{1}{T}\int_{-T}^{T}f(t)cos[n\omega(x-t)]\mathrm{d}t
-
-\end{aligned}\tag{42}\]</span>
-<p><span class="math display">\[
-于是有：
-\]</span> (x)=<em>{T }</em>{T}(x)=<em>{T }</em>{-T}<sup>{T}f(t)t+<em>{T
-}</em>{n=1}</sup>{}_{-T}^{T}f(t)cos[n(x-t)]t $$
-关（43）式的两个极限，接下来分别进行讨论：</p>
+\end{aligned}\tag{42}
+\]</span></p>
+<p>于是有： <span class="math display">\[
+\xi(x)=\lim_{T \to \infty}\xi_{T}(x)=\lim_{T \to
+\infty}\frac{1}{2T}\int_{-T}^{T}f(t)\mathrm{d}t+\lim_{T \to
+\infty}\sum_{n=1}^{\infty}\frac{1}{T}\int_{-T}^{T}f(t)cos[n\omega(x-t)]\mathrm{d}t\tag{43}
+\]</span></p>
+<p>对于（43）式的两个极限，接下来分别进行讨论：</p>
 <blockquote>
 <p>对于第一个极限：</p>
 <p>  由于<span class="math inline">\(f(t)\)</span>在<span
 class="math inline">\(R\)</span>上绝对可积，则： <span
 class="math display">\[
-｜\frac{1}{2T}\int_{-T}^{T}f(t)\mathrm{d}t｜\leq\frac{1}{2T}\int_{-\infty}^{\infty}|f(t)|\mathrm{d}t=\frac{\alpha}{2T}\tag{44}
+\frac{1}{2T}\int_{-T}^{T}f(t)\mathrm{d}t
+\leq\frac{1}{2T}\int_{-\infty}^{\infty}|f(t)|\mathrm{d}t=\frac{\alpha}{2T}\tag{44}
 \]</span> 所以，有： <span class="math display">\[
 \lim_{T \to \infty}\frac{1}{2T}\int_{-T}^{T}f(t)\mathrm{d}t=0\tag{45}
 \]</span> 对于第二个极限，先直接给出结论：</p>
@@ -613,11 +611,11 @@ Transform，缩写为DFT），是傅里叶变换在时域和频域上都呈离�
 <span class="math display">\[
   \hat{x}[k]=\sum_{n=0}^{N-1}e^{-i\frac{2nk\pi}{N}}x[n]\quad
 k=0,1,\dots,N-1.
-  \]</span> 离散傅里叶变换的逆变换（IDFT）如下： <span
+\]</span> 离散傅里叶变换的逆变换（IDFT）如下： <span
 class="math display">\[
   x[n]=\frac{1}{N}\sum_{k=0}^{N-1}e^{i\frac{2nk\pi}{N}}\hat{x}[k] \quad
 n=0,1,\dots,N-1
-  \]</span> 离散傅里叶变换的应用：</p>
+\]</span> 离散傅里叶变换的应用：</p>
 <blockquote>
 <ul>
 <li>数据压缩</li>
@@ -765,21 +763,22 @@ target="_blank" rel="noopener" href="https://www.wikiwand.com/zh-hans/正交">�
 target="_blank" rel="noopener" href="https://www.wikiwand.com/zh-hans/欧几里得空间">欧几里得空间</a>抽象而来（内积是点积的抽象），这是<a
 target="_blank" rel="noopener" href="https://www.wikiwand.com/zh-hans/泛函分析">泛函分析</a>讨论的课题。</p></li>
 <li><p>欧拉公式的证明</p>
-<p>  欧拉公式（50）的证明方式有两种，第一种是构造函数：</p>
+<p>  欧拉公式（50）的证明方式有两种，第一种是构造函数：</p></li>
+</ul>
 <p><span class="math display">\[
-f(x)=\frac{e^{ix}}{cos(x)+isin(x)}
+  f(x)=\frac{e^{ix}}{cos(x)+isin(x)}
 \]</span></p>
 <p>利用拉格朗日中值定理证明<span
 class="math inline">\(f(x)=1\)</span>即可；第二种则是使用麦克劳林级数分别展开得到：
 <span class="math display">\[
-\begin{aligned}
-e^{ix}&amp;=\sum_{i=0}^{\infty}\frac{(ix)^n}{n!}=1+ix-\frac{x^2}{2!}-i\frac{x^3}{3!}+\dots+i^n\frac{x^n}{n!}+\dots（\forall
+  \begin{aligned}
+  e^{ix}&amp;=\sum_{i=0}^{\infty}\frac{(ix)^n}{n!}=1+ix-\frac{x^2}{2!}-i\frac{x^3}{3!}+\dots+i^n\frac{x^n}{n!}+\dots（\forall
 x \in R）\\
-cos(x)&amp;=\sum_{i=0}^{\infty}\frac{(-1)^n}{n!}x^{2n}=1-\frac{x^2}{2!}+\frac{x^4}{4!}+\dots+\frac{(-1)^n}{(2n)!}x^{2n}+\dots（\forall
+  cos(x)&amp;=\sum_{i=0}^{\infty}\frac{(-1)^n}{n!}x^{2n}=1-\frac{x^2}{2!}+\frac{x^4}{4!}+\dots+\frac{(-1)^n}{(2n)!}x^{2n}+\dots（\forall
 x \in R）\\
-isin(x)&amp;=i\sum_{i=0}^{\infty}\frac{(-1)^n}{(2n+1)!}x^{2n+1}=ix-i\frac{x^3}{3!}+i\frac{x^5}{5!}+\dots+i\frac{(-1)^n}{(2n+1)!}x^{2n+1}+\dots（\forall
+  isin(x)&amp;=i\sum_{i=0}^{\infty}\frac{(-1)^n}{(2n+1)!}x^{2n+1}=ix-i\frac{x^3}{3!}+i\frac{x^5}{5!}+\dots+i\frac{(-1)^n}{(2n+1)!}x^{2n+1}+\dots（\forall
 x \in R）
-\end{aligned}
+  \end{aligned}
 \]</span>
 后两者的麦克劳林级数展开相加刚好等于前者的麦克劳林级数展开。在此只补充拉格朗日中值定理，具体证明过程较简单，不做详细展开。</p>
 <blockquote>
@@ -794,9 +793,8 @@ f(b)-f(a)=f^\prime(\xi)(b-a)
 <p>  若函数<span
 class="math inline">\(f(x)\)</span>的导数恒为零，则<span
 class="math inline">\(f(x)\)</span>为常值函数，即<span
-class="math inline">\(f(x)=C,C\inR\)</span>。</p>
-</blockquote></li>
-</ul>
+class="math inline">\(f(x)=C,C \in R\)</span>。</p>
+</blockquote>
 
     </div>
 
@@ -937,7 +935,7 @@ class="math inline">\(f(x)=C,C\inR\)</span>。</p>
 <div class="copyright">
   
   &copy; 
-  <span itemprop="copyrightYear">2024</span>
+  <span itemprop="copyrightYear">2025</span>
   <span class="with-love">
     <i class="fa fa-heart"></i>
   </span>
