@@ -176,26 +176,8 @@ P_{k}^-=AP_{k-1}A^T+Q
 x_k^{-})\]</span></p>
 <p><span class="math display">\[P_k=(I-K_kH)P_k^{-}\]</span></p>
 <figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">离散线性卡尔曼滤波器的递归计算过程如下图：</span><br></pre></td></tr></table></figure>
-<figure>
-<img src="1.jpg" alt="离散卡尔曼滤波的递归过程">
-<figcaption aria-hidden="true">离散卡尔曼滤波的递归过程</figcaption>
-</figure>
-<ul>
-<li><p>Time Update("Predict") &gt; First,initial estimates for <span class="math inline">\(\hat x_{k-1}\)</span> and <span class="math inline">\(P_{k-1}\)</span></p>
-<blockquote>
-<p>1.Project the state ahead <span class="math display">\[\hat
-x_k^{-}=A\hat x_{k-1}+Bu_{k-1}\]</span> 2.Project the error covariance
-ahead <span class="math display">\[P_k^{-} = AP_{k-1}A^T +
-Q\]</span></p>
-</blockquote></li>
-<li><p>Measurement Update("Correct") &gt; 3.Compute the kalman gain
-<span class="math display">\[K_k = P_k^-H^T(HP_K^-H^T +
-R)^{-1})\]</span> &gt; 4.Update estimate with measurement <span class="math inline">\(z_k\)</span> <span class="math display">\[ \hat
-x_k = \hat x_k^{-} + K_k(z_k-H \hat x_k^{-})\]</span> &gt; 5.Update the
-error covariance <span class="math display">\[P_k =
-(I-K_kH)P_k^-\]</span> &gt; 6.Start from the first step again.</p></li>
-</ul>
-<p>  时间更新方程将当前状态变量作为先验估计及时地向前投射到测量更新方程，测量更新方程校正先验估计以获得状态的后验估计。完成时间更新方程和测量更新方程的一轮更新之后，再次重复这个过程，将上一次计算得到的后验估计作为下一次计算的先验估计。</p>
+<p><img src="1.jpg" alt="离散卡尔曼滤波的递归过程">
+  时间更新方程将当前状态变量作为先验估计及时地向前投射到测量更新方程，测量更新方程校正先验估计以获得状态的后验估计。完成时间更新方程和测量更新方程的一轮更新之后，再次重复这个过程，将上一次计算得到的后验估计作为下一次计算的先验估计。</p>
 <h4 id="卡尔曼滤波器参数分析">卡尔曼滤波器参数分析</h4>
 <p>  在实现卡尔曼滤波器算法时，会涉及到很多参数，如下：</p>
 <blockquote>
