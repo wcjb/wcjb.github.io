@@ -29,6 +29,7 @@
 <meta property="og:site_name" content="老学庵">
 <meta property="og:description" content="奇异值分解（Singular Value Decomposition，SVD）是线性代数中一种重要的矩阵分解方法，区别于只适用于实对称矩阵的特征分解方法，奇异值分解可对任意实矩阵进行分解。">
 <meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://images2015.cnblogs.com/blog/1042406/201701/1042406-20170105140822191-1774139119.png">
 <meta property="article:published_time" content="2021-03-12T15:21:19.000Z">
 <meta property="article:modified_time" content="2025-02-14T09:00:22.174Z">
 <meta property="article:author" content="殉道者">
@@ -36,6 +37,7 @@
 <meta property="article:tag" content="特征分解">
 <meta property="article:tag" content="特征向量">
 <meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://images2015.cnblogs.com/blog/1042406/201701/1042406-20170105140822191-1774139119.png">
 
 <link rel="canonical" href="https://wcjb.github.io/posts/5a1d36e7/">
 
@@ -254,87 +256,41 @@ Decomposition，SVD）是线性代数中一种重要的矩阵分解方法，区�
 <p> 特征分解（eigendecomposition）又叫谱分解（Spectral
 decomposition），是把一个矩阵根据其特征值和特征向量分解的过程，只有可以正交化的矩阵才可以进行特征分解。</p>
 <blockquote>
-<p><span class="math inline">\(A\)</span>为<span
-class="math inline">\(n\)</span>阶方阵，若存在<span
-class="math inline">\(n\)</span>维非零向量<span
-class="math inline">\(x\)</span>使得： <span class="math display">\[
+<p><span class="math inline">\(A\)</span>为<span class="math inline">\(n\)</span>阶方阵，若存在<span class="math inline">\(n\)</span>维非零向量<span class="math inline">\(x\)</span>使得： <span class="math display">\[
 Ax = \lambda x
-\]</span> 则称<span class="math inline">\(\lambda\)</span>为矩阵<span
-class="math inline">\(A\)</span>的特征值，<span
-class="math inline">\(x\)</span>为<span
-class="math inline">\(A\)</span>属于<span
-class="math inline">\(\lambda\)</span>的特征向量（eigenvector）。</p>
+\]</span> 则称<span class="math inline">\(\lambda\)</span>为矩阵<span class="math inline">\(A\)</span>的特征值，<span class="math inline">\(x\)</span>为<span class="math inline">\(A\)</span>属于<span class="math inline">\(\lambda\)</span>的特征向量（eigenvector）。</p>
 </blockquote>
 <p>  有了上述定义，接下来讨论如何计算一个矩阵的特征值和特征向量。由定义可知：</p>
 <p><span class="math display">\[
 Ax-\lambda x=0 \Rightarrow (A-\lambda I)x=0
 \]</span></p>
-<p>  其中<span
-class="math inline">\(I\)</span>为单位矩阵，显然上式的推导结果是一个<span
-class="math inline">\(n\)</span>元<span
-class="math inline">\(n\)</span>次的齐次线性方程组，<span
-class="math inline">\(x\)</span>为该方程组的一个非零解，则有$r(A-I)=r
-&lt; n |A-I|=0 <span class="math inline">\(，其中\)</span>|A-I|=0<span
-class="math inline">\(称为\)</span>A<span
-class="math inline">\(的特征方程，\)</span>|A-I|<span
-class="math inline">\(称为\)</span>A$的特征多项式。基于此，可得到求解方阵A特征值和特征向量的步骤如下：</p>
+<p>  其中<span class="math inline">\(I\)</span>为单位矩阵，显然上式的推导结果是一个<span class="math inline">\(n\)</span>元<span class="math inline">\(n\)</span>次的齐次线性方程组，<span class="math inline">\(x\)</span>为该方程组的一个非零解，则有$r(A-I)=r
+&lt; n |A-I|=0 <span class="math inline">\(，其中\)</span>|A-I|=0<span class="math inline">\(称为\)</span>A<span class="math inline">\(的特征方程，\)</span>|A-I|<span class="math inline">\(称为\)</span>A$的特征多项式。基于此，可得到求解方阵A特征值和特征向量的步骤如下：</p>
 <blockquote>
 <p>1、计算方阵A的特征多项式<span class="math inline">\(|A-\lambda
 I|\)</span>；</p>
 <p>2、求出特征方程<span class="math inline">\(|A-\lambda
-I|=0\)</span>的所有根（包括复根和重根），这些根<span
-class="math inline">\(\lambda_1,\lambda_2,\cdots,\lambda_n\)</span>即为<span
-class="math inline">\(A\)</span>的所有特征值；</p>
-<p>3、对于<span class="math inline">\(A\)</span>的每一个特征值<span
-class="math inline">\(\lambda_i(1\leq i\leq
+I|=0\)</span>的所有根（包括复根和重根），这些根<span class="math inline">\(\lambda_1,\lambda_2,\cdots,\lambda_n\)</span>即为<span class="math inline">\(A\)</span>的所有特征值；</p>
+<p>3、对于<span class="math inline">\(A\)</span>的每一个特征值<span class="math inline">\(\lambda_i(1\leq i\leq
 n)\)</span>，求解齐次线性方程组<span class="math inline">\((A-\lambda_i
-I)x=0\)</span>，该方程组的每一个非零解都是<span
-class="math inline">\(A\)</span>属于特征值<span
-class="math inline">\(\lambda_i\)</span>的特征向量；</p>
+I)x=0\)</span>，该方程组的每一个非零解都是<span class="math inline">\(A\)</span>属于特征值<span class="math inline">\(\lambda_i\)</span>的特征向量；</p>
 </blockquote>
-<p>  求出矩阵<span
-class="math inline">\(A\)</span>的特征值和特征向量后，若矩阵<span
-class="math inline">\(A\)</span>有<span
-class="math inline">\(n\)</span>个线性独立的特征向量，那么 <span
-class="math inline">\(A\)</span>是可以正交化的，此时 <span
-class="math inline">\(A\)</span></p>
+<p>  求出矩阵<span class="math inline">\(A\)</span>的特征值和特征向量后，若矩阵<span class="math inline">\(A\)</span>有<span class="math inline">\(n\)</span>个线性独立的特征向量，那么 <span class="math inline">\(A\)</span>是可以正交化的，此时 <span class="math inline">\(A\)</span></p>
 <p><span class="math display">\[
 A = WDW^{-1}
 \]</span></p>
-<p>其中<span class="math inline">\(W\)</span>时<span
-class="math inline">\(n\)</span>个特征向量所组成的<span
-class="math inline">\(n \times n\)</span>维矩阵，<span
-class="math inline">\(D\)</span>为以这<span
-class="math inline">\(n\)</span>个特征值为主对角线元素的对角阵。</p>
+<p>其中<span class="math inline">\(W\)</span>时<span class="math inline">\(n\)</span>个特征向量所组成的<span class="math inline">\(n \times n\)</span>维矩阵，<span class="math inline">\(D\)</span>为以这<span class="math inline">\(n\)</span>个特征值为主对角线元素的对角阵。</p>
 <h1 id="奇异值分解">奇异值分解</h1>
 <ul>
 <li><p>定义</p>
 <blockquote>
-<p>若<span class="math inline">\(M\)</span>为一个<span
-class="math inline">\(m \times
+<p>若<span class="math inline">\(M\)</span>为一个<span class="math inline">\(m \times
 n\)</span>阶的矩阵，则存在一个分解，使得： <span class="math display">\[
 M = UDV^T
-\]</span> 其中<span class="math inline">\(U\)</span>为<span
-class="math inline">\(m\)</span>阶酉矩阵、<span
-class="math inline">\(V\)</span>为<span
-class="math inline">\(n\)</span>阶酉矩阵、<span
-class="math inline">\(D\)</span>为<span class="math inline">\(m\times
-n\)</span>的非负实对角矩阵。称此分解为奇异值分解，一般我们将<span
-class="math inline">\(V\)</span>中的每一个特征向量叫做<span
-class="math inline">\(M\)</span>的右奇异向量，将<span
-class="math inline">\(U\)</span>中的每个特征向量叫做左奇异向量，<span
-class="math inline">\(D\)</span>对角线上的元素称为<span
-class="math inline">\(M\)</span>的奇异值，当规定奇异值降序排列时，可唯一确定一个<span
-class="math inline">\(D\)</span>。</p>
+\]</span> 其中<span class="math inline">\(U\)</span>为<span class="math inline">\(m\)</span>阶酉矩阵、<span class="math inline">\(V\)</span>为<span class="math inline">\(n\)</span>阶酉矩阵、<span class="math inline">\(D\)</span>为<span class="math inline">\(m\times
+n\)</span>的非负实对角矩阵。称此分解为奇异值分解，一般我们将<span class="math inline">\(V\)</span>中的每一个特征向量叫做<span class="math inline">\(M\)</span>的右奇异向量，将<span class="math inline">\(U\)</span>中的每个特征向量叫做左奇异向量，<span class="math inline">\(D\)</span>对角线上的元素称为<span class="math inline">\(M\)</span>的奇异值，当规定奇异值降序排列时，可唯一确定一个<span class="math inline">\(D\)</span>。</p>
 </blockquote>
-<p>  有了定义，接下来需要确定奇异值分解的三个矩阵<span
-class="math inline">\(U、D、V\)</span>。比较直观的想法是通过<span
-class="math inline">\(M\)</span>来构造一个方阵来进行特征分解，间接计算<span
-class="math inline">\(U、D、V\)</span>，由于<span
-class="math inline">\(MM^T,M^TM\)</span>分别为<span
-class="math inline">\(m\times m\)</span>和<span
-class="math inline">\(n\times n\)</span>的方阵，则有： <span
-class="math display">\[
+<p>  有了定义，接下来需要确定奇异值分解的三个矩阵<span class="math inline">\(U、D、V\)</span>。比较直观的想法是通过<span class="math inline">\(M\)</span>来构造一个方阵来进行特征分解，间接计算<span class="math inline">\(U、D、V\)</span>，由于<span class="math inline">\(MM^T,M^TM\)</span>分别为<span class="math inline">\(m\times m\)</span>和<span class="math inline">\(n\times n\)</span>的方阵，则有： <span class="math display">\[
 \begin{equation}
 \begin{split}
 MM^T=UDV^T(UDV^T)^T=UDV^TVD^TU^T = UDD^TU^T=U\sum_1 U^T \\
@@ -344,30 +300,19 @@ M^TM = (UDV^T)^TUDV^T=VD^TU^TUDV^T=VDD^TV^T=V\sum_2 V^T
 \]</span> 注意到： <span class="math display">\[
 M = UDV^T \Rightarrow MV = UDV^TV \Rightarrow MV= UD \Rightarrow Mv_i =
 \delta_iu_i \Rightarrow \delta_i = \frac{Mv_i}{u_i}
-\]</span> 其中，<span class="math inline">\(v_i,u_i\)</span>分别为<span
-class="math inline">\(V,U\)</span>中第<span
-class="math inline">\(i\)</span>个特征向量。这个式子提供了一种计算奇异值的方法，另一种思路是结合式（5）：
+\]</span> 其中，<span class="math inline">\(v_i,u_i\)</span>分别为<span class="math inline">\(V,U\)</span>中第<span class="math inline">\(i\)</span>个特征向量。这个式子提供了一种计算奇异值的方法，另一种思路是结合式（5）：
 <span class="math display">\[
 \sum = DD^T=D^2 \Rightarrow \delta_i = \sqrt{\lambda_i}
-\]</span> 即，特征值矩阵为奇异值矩阵的平方，故可以通过计算<span
-class="math inline">\(M^TM\)</span>的特征值取平方根来计算奇异值。</p></li>
+\]</span> 即，特征值矩阵为奇异值矩阵的平方，故可以通过计算<span class="math inline">\(M^TM\)</span>的特征值取平方根来计算奇异值。</p></li>
 <li><p>SVD的计算步骤</p>
 <blockquote>
-<p>1.计算<span class="math inline">\(MM^T\)</span>和<span
-class="math inline">\(M^TM\)</span>；</p>
-<p>2.分别计算<span class="math inline">\(MM^T\)</span>和<span
-class="math inline">\(M^TM\)</span>的特征向量和特征值；</p>
-<p>3.<span class="math inline">\(MM^T\)</span>的特征向量组成<span
-class="math inline">\(U\)</span>，而<span
-class="math inline">\(M^TM\)</span>的特征向量组成<span
-class="math inline">\(V\)</span>；</p>
-<p>4.对<span class="math inline">\(MM^T\)</span>和<span
-class="math inline">\(M^TM\)</span>的非零特征值求平方根，对应上述特征向量的位置，填入对角阵<span
-class="math inline">\(D\)</span>的位置；</p>
+<p>1.计算<span class="math inline">\(MM^T\)</span>和<span class="math inline">\(M^TM\)</span>；</p>
+<p>2.分别计算<span class="math inline">\(MM^T\)</span>和<span class="math inline">\(M^TM\)</span>的特征向量和特征值；</p>
+<p>3.<span class="math inline">\(MM^T\)</span>的特征向量组成<span class="math inline">\(U\)</span>，而<span class="math inline">\(M^TM\)</span>的特征向量组成<span class="math inline">\(V\)</span>；</p>
+<p>4.对<span class="math inline">\(MM^T\)</span>和<span class="math inline">\(M^TM\)</span>的非零特征值求平方根，对应上述特征向量的位置，填入对角阵<span class="math inline">\(D\)</span>的位置；</p>
 </blockquote></li>
 <li><p>计算示例</p>
-<p>  接下来以计算矩阵<span
-class="math inline">\(A=\begin{pmatrix}0&amp;1 \\ 1&amp;  1
+<p>  接下来以计算矩阵<span class="math inline">\(A=\begin{pmatrix}0&amp;1 \\ 1&amp;  1
 \\1&amp;0\end{pmatrix}\)</span>的奇异值分解为例，来进一步熟悉：</p>
 <p>第一步，先计算<span class="math inline">\(A\)</span>的两个转置积：
 <span class="math display">\[
@@ -382,8 +327,7 @@ class="math inline">\(A=\begin{pmatrix}0&amp;1 \\ 1&amp;  1
 0 &amp; 1 &amp; 1\end{pmatrix}
 \end{split}
 \end{equation}
-\]</span> 第二步，分别计算两个转置积的特征值和特征向量： <span
-class="math display">\[
+\]</span> 第二步，分别计算两个转置积的特征值和特征向量： <span class="math display">\[
 \begin{equation}
 \begin{split}
 &amp;\color{#F00}{(A^TA-\lambda I)x = 0} \Rightarrow
@@ -396,9 +340,7 @@ class="math display">\[
 \end{vmatrix} = 0 \Rightarrow \lambda^2-4\lambda+3=0
 \end{split}
 \end{equation}
-\]</span> 容易得到式（9）中一元二次方程的根为<span
-class="math inline">\(\lambda_1 = 3,\lambda_2=1\)</span>，当<span
-class="math inline">\(\lambda=3\)</span>时，将特征根分别带入式（1）中，得到：
+\]</span> 容易得到式（9）中一元二次方程的根为<span class="math inline">\(\lambda_1 = 3,\lambda_2=1\)</span>，当<span class="math inline">\(\lambda=3\)</span>时，将特征根分别带入式（1）中，得到：
 <span class="math display">\[
 \begin{equation}
 \begin{split}
@@ -413,9 +355,7 @@ x_{\lambda=3} = \begin{pmatrix} \frac{1}{\sqrt{2}} \\
 \]</span> 同理得到： <span class="math display">\[
 x_{\lambda=1} = \begin{pmatrix} \frac{1}{\sqrt{2}} \\
 -\frac{1}{\sqrt{2}}\end{pmatrix}
-\]</span> 同理计算<span
-class="math inline">\(AA^T\)</span>的特征根和特征向量： <span
-class="math display">\[
+\]</span> 同理计算<span class="math inline">\(AA^T\)</span>的特征根和特征向量： <span class="math display">\[
 \begin{equation}
 \begin{split}
 &amp;\lambda_1=3，u_1=
@@ -433,8 +373,7 @@ class="math display">\[
 \end{split}
 \end{equation}
 \]</span></p>
-<p>第三步，使用两个转置积的单位特征向量构造<span
-class="math inline">\(U,V\)</span>矩阵： <span class="math display">\[
+<p>第三步，使用两个转置积的单位特征向量构造<span class="math inline">\(U,V\)</span>矩阵： <span class="math display">\[
 \begin{equation}
 \begin{split}
 &amp;U =(u_1,u_2,u_3)=
@@ -450,19 +389,15 @@ class="math inline">\(U,V\)</span>矩阵： <span class="math display">\[
 \end{pmatrix}
 \end{split}
 \end{equation}
-\]</span> 第四步，计算奇异值，直接使用<span
-class="math inline">\(\delta_i =
-\sqrt{\lambda_i}\)</span>计算奇异值并组成对角阵<span
-class="math inline">\(D\)</span>： <span class="math display">\[
+\]</span> 第四步，计算奇异值，直接使用<span class="math inline">\(\delta_i =
+\sqrt{\lambda_i}\)</span>计算奇异值并组成对角阵<span class="math inline">\(D\)</span>： <span class="math display">\[
 D =
 \begin{pmatrix}
 \sqrt{3} &amp; 0\\
 0 &amp; 1\\
 0 &amp; 0
 \end{pmatrix}
-\]</span> 最终得到矩阵<span
-class="math inline">\(A\)</span>的奇异值分解： <span
-class="math display">\[
+\]</span> 最终得到矩阵<span class="math inline">\(A\)</span>的奇异值分解： <span class="math display">\[
 A= UDV^T
 =\begin{pmatrix}
 \frac{1}{\sqrt{6}} &amp; \frac{1}{\sqrt{2}} &amp; \frac{1}{\sqrt{3}} \\
@@ -484,104 +419,58 @@ A= UDV^T
 <span class="math display">\[
 A_{m \times n} = U_{m \times m}D_{m \times n}V^T_{n \times n} \approx
 U_{m \times k} D_{k \times k} V^T_{k \times n}
-\]</span> 这样处理的好处是，我们可以用三个较小的矩阵<span
-class="math inline">\(U_{m \times k},D_{k \times k},V_{k \times
-n}^T\)</span>来表示一个大矩阵<span
-class="math inline">\(A\)</span>，如下图所示，使用三个灰色部分的小矩阵来表示大矩阵。</p>
+\]</span> 这样处理的好处是，我们可以用三个较小的矩阵<span class="math inline">\(U_{m \times k},D_{k \times k},V_{k \times
+n}^T\)</span>来表示一个大矩阵<span class="math inline">\(A\)</span>，如下图所示，使用三个灰色部分的小矩阵来表示大矩阵。</p>
 <figure>
-<img
-src="https://images2015.cnblogs.com/blog/1042406/201701/1042406-20170105140822191-1774139119.png"
-alt="图片来源于刘建平Pinard" />
-<figcaption aria-hidden="true">图片来源于<a
-target="_blank" rel="noopener" href="https://www.cnblogs.com/pinard/p/6251584.html">刘建平Pinard</a></figcaption>
+<img src="https://images2015.cnblogs.com/blog/1042406/201701/1042406-20170105140822191-1774139119.png" alt="图片来源于刘建平Pinard">
+<figcaption aria-hidden="true">图片来源于<a target="_blank" rel="noopener" href="https://www.cnblogs.com/pinard/p/6251584.html">刘建平Pinard</a></figcaption>
 </figure>
 <p>  由于这个重要的性质，SVD可以用于PCA降维，来做图片数据压缩和去噪。也可以用于推荐算法，将用户和喜好对应的矩阵做特征分解，进而得到隐含的用户需求来做推荐。同时也可以用于NLP中的算法，比如潜在语义索引（LSI）。</p>
 <blockquote>
 <p>Note：</p>
-<p>  需要注意的是，奇异值分解中特征值的求解是比较核心的地方，在工程应用中，往往需要进行奇异值分解都是大矩阵，对这类大矩阵，如果采用上面的方法求解特征值需要花费较多的时间和资源。对此，可以采用<a
-target="_blank" rel="noopener" href="https://liangjiandeng.github.io/teaching/Numer_Analy/Chap24.pdf">乘幂法</a>和<a
-target="_blank" rel="noopener" href="https://liangjiandeng.github.io/teaching/Numer_Analy/Chap24.pdf">反幂法</a>或者QR方法来近似求解矩阵的特征根，在此不做进一步展开，有兴趣的读者可以进一步了解一下。</p>
+<p>  需要注意的是，奇异值分解中特征值的求解是比较核心的地方，在工程应用中，往往需要进行奇异值分解都是大矩阵，对这类大矩阵，如果采用上面的方法求解特征值需要花费较多的时间和资源。对此，可以采用<a target="_blank" rel="noopener" href="https://liangjiandeng.github.io/teaching/Numer_Analy/Chap24.pdf">乘幂法</a>和<a target="_blank" rel="noopener" href="https://liangjiandeng.github.io/teaching/Numer_Analy/Chap24.pdf">反幂法</a>或者QR方法来近似求解矩阵的特征根，在此不做进一步展开，有兴趣的读者可以进一步了解一下。</p>
 </blockquote>
 <h1 id="基本概念说明">基本概念说明</h1>
 <ul>
 <li><p>矩阵的子式</p>
-<p>  设有<span class="math inline">\(m \times n\)</span>矩阵A，在<span
-class="math inline">\(A\)</span>中任意取定<span
-class="math inline">\(k\)</span>个行和<span
-class="math inline">\(k\)</span>个列（<span class="math inline">\(k \leq
-\min\{m,n\}\)</span>），位于这些行与列交叉处的元素按原来的相对顺序排成一个<span
-class="math inline">\(k\)</span>阶行列式，称它为矩阵<span
-class="math inline">\(A\)</span>的一个<span
-class="math inline">\(k\)</span>阶子式，特别地，<span
-class="math inline">\(A\)</span>中每一个元素就是<span
-class="math inline">\(A\)</span>的一阶子式。 　　对于确定的<span
-class="math inline">\(k\)</span>，在<span class="math inline">\(m \times
-n\)</span>矩阵<span class="math inline">\(A\)</span>中，总共有<span
-class="math inline">\(C_m^k \times C_n^k\)</span>个<span
-class="math inline">\(k\)</span>阶子式，这些子式的值有的可能是零，也可能不为零，把值不为零的子式称为非零子式。</p></li>
+<p>  设有<span class="math inline">\(m \times n\)</span>矩阵A，在<span class="math inline">\(A\)</span>中任意取定<span class="math inline">\(k\)</span>个行和<span class="math inline">\(k\)</span>个列（<span class="math inline">\(k \leq
+\min\{m,n\}\)</span>），位于这些行与列交叉处的元素按原来的相对顺序排成一个<span class="math inline">\(k\)</span>阶行列式，称它为矩阵<span class="math inline">\(A\)</span>的一个<span class="math inline">\(k\)</span>阶子式，特别地，<span class="math inline">\(A\)</span>中每一个元素就是<span class="math inline">\(A\)</span>的一阶子式。 　　对于确定的<span class="math inline">\(k\)</span>，在<span class="math inline">\(m \times
+n\)</span>矩阵<span class="math inline">\(A\)</span>中，总共有<span class="math inline">\(C_m^k \times C_n^k\)</span>个<span class="math inline">\(k\)</span>阶子式，这些子式的值有的可能是零，也可能不为零，把值不为零的子式称为非零子式。</p></li>
 <li><p>矩阵的秩</p>
-<p>  在<span class="math inline">\(m\times n\)</span>矩阵<span
-class="math inline">\(A\)</span>中，非零子式的最高阶数称为矩阵<span
-class="math inline">\(A\)</span>的秩，记为<span
-class="math inline">\(r(A)\)</span>或秩规定零矩<span
-class="math inline">\((A)\)</span>,规定零矩阵的秩为零。</p>
+<p>  在<span class="math inline">\(m\times n\)</span>矩阵<span class="math inline">\(A\)</span>中，非零子式的最高阶数称为矩阵<span class="math inline">\(A\)</span>的秩，记为<span class="math inline">\(r(A)\)</span>或秩规定零矩<span class="math inline">\((A)\)</span>,规定零矩阵的秩为零。</p>
 <blockquote>
 <p>推论1：</p>
 <p><span class="math inline">\(r(A)=r
-\Leftrightarrow  A\)</span>中所有<span
-class="math inline">\(r+1\)</span>阶子式（如果有的话）全为零，而<span
-class="math inline">\(A\)</span>中至少有一个<span
-class="math inline">\(r\)</span>阶子式非零。</p>
+\Leftrightarrow  A\)</span>中所有<span class="math inline">\(r+1\)</span>阶子式（如果有的话）全为零，而<span class="math inline">\(A\)</span>中至少有一个<span class="math inline">\(r\)</span>阶子式非零。</p>
 </blockquote></li>
 <li><p>矩阵的谱半径</p>
-<p>  <span class="math inline">\(A\)</span>为<span
-class="math inline">\(n\)</span>阶方阵，<span
-class="math inline">\(\lambda_i（1\leq i\leq
-n）\)</span>为其特征值，则<span
-class="math inline">\(A\)</span>的谱半径定义如下： <span
-class="math display">\[
+<p>  <span class="math inline">\(A\)</span>为<span class="math inline">\(n\)</span>阶方阵，<span class="math inline">\(\lambda_i（1\leq i\leq
+n）\)</span>为其特征值，则<span class="math inline">\(A\)</span>的谱半径定义如下： <span class="math display">\[
 \rho(r) = max\{|\lambda_1|,|\lambda_2|,\dots,|\lambda_n|\}
-\]</span> 即方阵<span class="math inline">\(A\)</span>的谱半径为<span
-class="math inline">\(A\)</span>特征值中绝对值最大的那个值。</p></li>
+\]</span> 即方阵<span class="math inline">\(A\)</span>的谱半径为<span class="math inline">\(A\)</span>特征值中绝对值最大的那个值。</p></li>
 <li><p>正定矩阵</p>
-<p>  如果对于所有的非零实系数向量 <span
-class="math inline">\(z\)</span>，都有 <span
-class="math inline">\(z^TAz&gt;0\)</span>，则称矩阵 <span
-class="math inline">\(A\)</span> 是正定的。正定矩阵的行列式必然大于0，
+<p>  如果对于所有的非零实系数向量 <span class="math inline">\(z\)</span>，都有 <span class="math inline">\(z^TAz&gt;0\)</span>，则称矩阵 <span class="math inline">\(A\)</span> 是正定的。正定矩阵的行列式必然大于0，
 所有特征值也必然大于0。相对应的，半正定矩阵的行列式必然 ≥ 0。</p></li>
 <li><p>正交矩阵</p>
 <p>  若一个方阵其行与列皆为正交的单位向量（即二者的内积为0），则该方阵为正交矩阵。</p></li>
 <li><p>酉矩阵</p>
-<p>  酉矩阵（unitary matrix）是一种特殊的方阵，它满足<span
-class="math inline">\(UU^H=U^HU=I_n\)</span>（<span
-class="math inline">\(U^H\)</span>为<span
-class="math inline">\(U\)</span>的共轭转置，其在转置的基础上，增加了复数的共轭）。酉矩阵实际上是推广的正交矩阵（orthogonal
-matrix）；当酉矩阵中的元素均为实数时，酉矩阵实际就是正交矩阵。另一方面，由于<span
-class="math inline">\(U^{-1}U=UU^{-1}=I_n\)</span>，所以酉矩阵 <span
-class="math inline">\(U\)</span>满足$
+<p>  酉矩阵（unitary matrix）是一种特殊的方阵，它满足<span class="math inline">\(UU^H=U^HU=I_n\)</span>（<span class="math inline">\(U^H\)</span>为<span class="math inline">\(U\)</span>的共轭转置，其在转置的基础上，增加了复数的共轭）。酉矩阵实际上是推广的正交矩阵（orthogonal
+matrix）；当酉矩阵中的元素均为实数时，酉矩阵实际就是正交矩阵。另一方面，由于<span class="math inline">\(U^{-1}U=UU^{-1}=I_n\)</span>，所以酉矩阵 <span class="math inline">\(U\)</span>满足$
 U<sup>{−1}=U</sup>H$；事实上，这是一个矩阵是酉矩阵的充分必要条件。</p></li>
 <li><p>正规矩阵</p>
 <p>  同酉矩阵一样，正规矩阵（normal
-matrix）也是一种特殊的方阵，它要求在矩阵乘法的意义下与它的共轭转置矩阵满足交换律，即<span
-class="math inline">\(MM^H=M^HM\)</span>。显然，复系数的酉矩阵和实系数的正交矩阵都是正规矩阵。</p></li>
+matrix）也是一种特殊的方阵，它要求在矩阵乘法的意义下与它的共轭转置矩阵满足交换律，即<span class="math inline">\(MM^H=M^HM\)</span>。显然，复系数的酉矩阵和实系数的正交矩阵都是正规矩阵。</p></li>
 <li><p>谱定理和谱矩阵</p>
 <p>  矩阵的对角化是线性代数中的一个重要命题。谱定理（spectral
-theorem）给出了方阵对角化的一个结论：若矩阵<span
-class="math inline">\(M\)</span>是一个正规矩阵，则存在酉矩阵 <span
-class="math inline">\(U\)</span>，以及对角矩阵 <span
-class="math inline">\(\sum\)</span>，使得<span
-class="math inline">\(M=U\sum
+theorem）给出了方阵对角化的一个结论：若矩阵<span class="math inline">\(M\)</span>是一个正规矩阵，则存在酉矩阵 <span class="math inline">\(U\)</span>，以及对角矩阵 <span class="math inline">\(\sum\)</span>，使得<span class="math inline">\(M=U\sum
 U^H\)</span>。也就是说，正规矩阵，可经由酉变换，分解为对角矩阵；这种矩阵分解的方式，称为谱分解（spectral
 decomposition）。</p>
-<hr />
+<hr>
 <h1 id="参考文章">参考文章</h1>
 <ul>
-<li><a
-target="_blank" rel="noopener" href="https://www.cnblogs.com/pinard/p/6251584.html">奇异值分解原理与在降维中的应用</a></li>
-<li><a
-target="_blank" rel="noopener" href="https://bainingchao.github.io/2018/10/11/%E4%B8%80%E6%AD%A5%E6%AD%A5%E6%95%99%E4%BD%A0%E8%BD%BB%E6%9D%BE%E5%AD%A6%E5%A5%87%E5%BC%82%E5%80%BC%E5%88%86%E8%A7%A3SVD%E9%99%8D%E7%BB%B4%E7%AE%97%E6%B3%95/">一步步教你轻松学奇异值分解SVD降维算法</a></li>
-<li><a
-target="_blank" rel="noopener" href="https://yanfei.site/docs/statscompbook/matrices.html#%E5%B9%82%E6%96%B9%E6%B3%95power-method">统计计算-奇异值分解</a></li>
+<li><a target="_blank" rel="noopener" href="https://www.cnblogs.com/pinard/p/6251584.html">奇异值分解原理与在降维中的应用</a></li>
+<li><a target="_blank" rel="noopener" href="https://bainingchao.github.io/2018/10/11/%E4%B8%80%E6%AD%A5%E6%AD%A5%E6%95%99%E4%BD%A0%E8%BD%BB%E6%9D%BE%E5%AD%A6%E5%A5%87%E5%BC%82%E5%80%BC%E5%88%86%E8%A7%A3SVD%E9%99%8D%E7%BB%B4%E7%AE%97%E6%B3%95/">一步步教你轻松学奇异值分解SVD降维算法</a></li>
+<li><a target="_blank" rel="noopener" href="https://yanfei.site/docs/statscompbook/matrices.html#%E5%B9%82%E6%96%B9%E6%B3%95power-method">统计计算-奇异值分解</a></li>
 </ul></li>
 </ul>
 
@@ -685,7 +574,7 @@ target="_blank" rel="noopener" href="https://yanfei.site/docs/statscompbook/matr
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">3</span>
+          <span class="site-state-item-count">4</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
@@ -719,6 +608,10 @@ target="_blank" rel="noopener" href="https://yanfei.site/docs/statscompbook/matr
           </div>
           <ul class="links-of-blogroll-list">
             
+            
+              <li class="recent_posts_li">
+                <a href="/" title="" target="_blank"></a>
+              </li>
             
               <li class="recent_posts_li">
                 <a href="/" title="" target="_blank"></a>
