@@ -29,14 +29,14 @@
 <meta property="og:site_name" content="老学庵">
 <meta property="og:description" content="卡尔曼滤波（Kalman filter）是一种高效率的递归滤波器（自回归滤波器），它能够从一系列的不完全及包含杂讯的测量中，估计动态系统的状态。卡尔曼滤波会根据各测量量在不同时间下的值，考虑各时间下的联合分布，再产生对未知变数的估计，因此会比只以单一测量量为基础的估计方式要准。卡尔曼滤波得名自主要贡献者之一的鲁道夫·卡尔曼，最早用于解决阿波罗计划的轨道预测问题。">
 <meta property="og:locale" content="zh_CN">
-<meta property="og:image" content="https://wcjb.github.io/.io//147042-98e4d1d9391712a7.jpg">
+<meta property="og:image" content="https://wcjb.github.io/posts/b654ab75/1.jpg">
 <meta property="article:published_time" content="2021-03-12T14:21:19.000Z">
-<meta property="article:modified_time" content="2025-02-17T06:04:13.802Z">
+<meta property="article:modified_time" content="2025-02-17T06:52:55.300Z">
 <meta property="article:author" content="殉道者">
 <meta property="article:tag" content="卡尔曼滤波">
 <meta property="article:tag" content="马尔可夫链">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:image" content="https://wcjb.github.io/.io//147042-98e4d1d9391712a7.jpg">
+<meta name="twitter:image" content="https://wcjb.github.io/posts/b654ab75/1.jpg">
 
 <link rel="canonical" href="https://wcjb.github.io/posts/b654ab75/">
 
@@ -238,7 +238,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2025-02-17 14:04:13" itemprop="dateModified" datetime="2025-02-17T14:04:13+08:00">2025-02-17</time>
+                <time title="修改时间：2025-02-17 14:52:55" itemprop="dateModified" datetime="2025-02-17T14:52:55+08:00">2025-02-17</time>
               </span>
 
           
@@ -282,9 +282,10 @@ T,X(t)\)</span>的所有可能取一切值的全体称为随机过程的<code>�
 </blockquote>
 <h4 id="马尔可夫过程">马尔可夫过程</h4>
 <p>  一个随机过程在时刻<span class="math inline">\(t_0\)</span>所处的状态为已知的条件下，随机过程在时刻<span class="math inline">\(t（t&gt;t_0)\)</span>所处的状态与其在时刻<span class="math inline">\(t_0\)</span>之前所处的状态无关。简而言之，就是“将来”仅依赖于”现在”与“过去”无关。我们称这种特性为<code>马尔可夫性</code>或无后效性。而这种具有马尔可夫性质的随机过程称之为<code>马尔可夫过程</code>，可以推出，泊松过程是时间连续状态离散的马尔可夫过程，而维纳过程则是时间状态都连续的马尔可夫过程。对于时间和状态都是离散的马尔可夫过程就是构成卡尔曼滤波的重要基石<code>马尔可夫链</code>：</p>
-<blockquote>
-<p>对于随机过程<span class="math inline">\(\{X_n,n=1,2,\cdots\}\)</span>,若其条件概率分布满足:<span class="math inline">\(P\{X_{n+1}=x_{n+1}|X_n=x_n,\cdots,X_1=x_1\}=P\{X_{n+1}=x_{n+1}|X_n=x+n\}\)</span>，则称此随机过程为马尔可夫链。</p>
-</blockquote>
+<p>  对于随机过程<span class="math inline">\({X_n,n=1,2,\cdots}\)</span>,若其条件概率分布满足:
+<span class="math display">\[
+P\{X_{n+1}=x_{n+1}|X_n=x_n,\cdots,X_1=x_1\}=P\{X_{n+1}=x_{n+1}|X_n=x_n\}
+\]</span>，则称此随机过程为马尔可夫链。</p>
 <h4 id="状态转移矩阵">状态转移矩阵</h4>
 <p>  在马尔可夫链中，从一个状态转移到另一个状态的概率称为状态转移概率，如果系统的可能状态是有限的，例如有<span class="math inline">\(K\)</span>个状态，则状态转移概率构成一个<span class="math inline">\(K\times K\)</span>的状态转移矩阵： <span class="math display">\[P=\left[ \begin{matrix}   p_{11} &amp; p_{12}
 &amp; \cdots &amp; p_{1K} \\ p_{21} &amp; p_{22} &amp; \cdots &amp;
@@ -425,7 +426,7 @@ x_k^{-})\]</span></p>
 <p><span class="math display">\[P_k=(I-K_kH)P_k^{-}\]</span></p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">离散线性卡尔曼滤波器的递归计算过程如下图：</span><br></pre></td></tr></table></figure>
 <figure>
-<img src="/.io//147042-98e4d1d9391712a7.jpg" alt="离散卡尔曼滤波的递归过程">
+<img src="1.jpg" alt="离散卡尔曼滤波的递归过程">
 <figcaption aria-hidden="true">离散卡尔曼滤波的递归过程</figcaption>
 </figure>
 <ul>
