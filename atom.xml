@@ -6,7 +6,7 @@
   <link href="https://wcjb.github.io/atom.xml" rel="self"/>
   
   <link href="https://wcjb.github.io/"/>
-  <updated>2025-02-17T01:44:19.482Z</updated>
+  <updated>2025-02-18T15:33:28.713Z</updated>
   <id>https://wcjb.github.io/</id>
   
   <author>
@@ -15,6 +15,27 @@
   </author>
   
   <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>机器视觉之基本概念</title>
+    <link href="https://wcjb.github.io/posts/781628f/"/>
+    <id>https://wcjb.github.io/posts/781628f/</id>
+    <published>2025-02-18T07:21:39.000Z</published>
+    <updated>2025-02-18T15:33:28.713Z</updated>
+    
+    
+    <summary type="html">&lt;p&gt;  主要记录机器视觉领域的一些基本概念及一些实践中的tricks。&lt;/p&gt;</summary>
+    
+    
+    
+    
+    <category term="相机" scheme="https://wcjb.github.io/tags/%E7%9B%B8%E6%9C%BA/"/>
+    
+    <category term="视觉" scheme="https://wcjb.github.io/tags/%E8%A7%86%E8%A7%89/"/>
+    
+    <category term="图像" scheme="https://wcjb.github.io/tags/%E5%9B%BE%E5%83%8F/"/>
+    
+  </entry>
   
   <entry>
     <title>初探Transformer架构</title>

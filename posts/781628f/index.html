@@ -23,17 +23,22 @@
     var CONFIG = {"hostname":"wcjb.github.io","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":true,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
   </script>
 
-  <meta property="og:type" content="article">
-<meta property="og:title" content="初探Transformer架构">
-<meta property="og:url" content="https://wcjb.github.io/posts/a65e2a56/index.html">
+  <meta name="description" content="主要记录机器视觉领域的一些基本概念及一些实践中的tricks。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="机器视觉之基本概念">
+<meta property="og:url" content="https://wcjb.github.io/posts/781628f/index.html">
 <meta property="og:site_name" content="老学庵">
+<meta property="og:description" content="主要记录机器视觉领域的一些基本概念及一些实践中的tricks。">
 <meta property="og:locale" content="zh_CN">
-<meta property="article:published_time" content="2025-02-17T01:29:32.000Z">
-<meta property="article:modified_time" content="2025-02-17T01:44:19.482Z">
+<meta property="article:published_time" content="2025-02-18T07:21:39.000Z">
+<meta property="article:modified_time" content="2025-02-18T15:33:28.713Z">
 <meta property="article:author" content="殉道者">
+<meta property="article:tag" content="相机">
+<meta property="article:tag" content="视觉">
+<meta property="article:tag" content="图像">
 <meta name="twitter:card" content="summary">
 
-<link rel="canonical" href="https://wcjb.github.io/posts/a65e2a56/">
+<link rel="canonical" href="https://wcjb.github.io/posts/781628f/">
 
 
 <script id="page-configurations">
@@ -46,7 +51,7 @@
   };
 </script>
 
-  <title>初探Transformer架构 | 老学庵</title>
+  <title>机器视觉之基本概念 | 老学庵</title>
   
 
 
@@ -202,7 +207,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://wcjb.github.io/posts/a65e2a56/">
+    <link itemprop="mainEntityOfPage" href="https://wcjb.github.io/posts/781628f/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/uploads/avatar.png">
@@ -215,7 +220,7 @@
     </span>
       <header class="post-header">
         <h1 class="post-title" itemprop="name headline">
-          初探Transformer架构
+          机器视觉之基本概念
         </h1>
 
         <div class="post-meta">
@@ -228,7 +233,7 @@
               <span class="post-meta-item-text">发表于</span>
               
 
-              <time title="创建时间：2025-02-17 09:29:32 / 修改时间：09:44:19" itemprop="dateCreated datePublished" datetime="2025-02-17T09:29:32+08:00">2025-02-17</time>
+              <time title="创建时间：2025-02-18 15:21:39 / 修改时间：23:33:28" itemprop="dateCreated datePublished" datetime="2025-02-18T15:21:39+08:00">2025-02-18</time>
             </span>
 
           
@@ -244,14 +249,14 @@
                 <i class="far fa-file-word"></i>
               </span>
                 <span class="post-meta-item-text">本文字数：</span>
-              <span>0</span>
+              <span>1.4k</span>
             </span>
             <span class="post-meta-item" title="阅读时长">
               <span class="post-meta-item-icon">
                 <i class="far fa-clock"></i>
               </span>
                 <span class="post-meta-item-text">阅读时长 &asymp;</span>
-              <span>1 分钟</span>
+              <span>5 分钟</span>
             </span>
 
         </div>
@@ -263,7 +268,130 @@
     <div class="post-body" itemprop="articleBody">
 
       
-        
+        <p>  主要记录机器视觉领域的一些基本概念及一些实践中的tricks。
+<span id="more"></span></p>
+<h2 id="ccd">CCD</h2>
+<p>  CCD（Charge-Coupled
+Device）即电荷耦合器件,通常称为CCD图像传感器，是一种半导体器件，当入射光线照射到CCD芯片上的感光单元（微小光敏物质，即像素（Pixel）），光子会被转为电子，这些电子在像素内累计形成电荷。一块CCD芯片上包含的感光单元越多，其成像分辨率也就越高。其成像过程如下：</p>
+<ul>
+<li><p>光电转换</p>
+<p>入射光线通过光电二极管转换为电荷</p></li>
+<li><p>电荷积累</p>
+<p>光敏元件根据光强的不同积累不同数量的电荷</p></li>
+<li><p>电荷转移</p>
+<p>通过电荷转移机制，逐行、逐列将电荷移至输出放大器</p></li>
+<li><p>电压转换</p>
+<p>输出放大器将电荷信号转为电压信号，并传递给模数转换器（ADC），生成数字图像数据</p></li>
+</ul>
+<h2 id="cmos">CMOS</h2>
+<p>  CMOS（Complementary Metal-Oxide
+Semiconductor，互补金属氧化物半导体）成像原理与CCD成像原理类似，但CMOS成像器件的电荷转移和电压转换过程在同一块硅片上完成，因此CMOS成像器件的结构更加简单，成本更低，功耗更低，适用于高分辨率、低功耗的成像应用。</p>
+<p>CCD与CMOS成像器件的对比如下：</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: center;">特性</th>
+<th style="text-align: center;">CCD</th>
+<th style="text-align: center;">CMOS</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;">图像质量</td>
+<td style="text-align: center;">高、噪声低，均匀性好</td>
+<td style="text-align: center;">略低，噪声高</td>
+</tr>
+<tr>
+<td style="text-align: center;">制造成本</td>
+<td style="text-align: center;">高</td>
+<td style="text-align: center;">低</td>
+</tr>
+<tr>
+<td style="text-align: center;">功耗</td>
+<td style="text-align: center;">高</td>
+<td style="text-align: center;">低</td>
+</tr>
+<tr>
+<td style="text-align: center;">读取速度</td>
+<td style="text-align: center;">较慢</td>
+<td style="text-align: center;">快</td>
+</tr>
+<tr>
+<td style="text-align: center;">动态范围</td>
+<td style="text-align: center;">宽</td>
+<td style="text-align: center;">较窄</td>
+</tr>
+<tr>
+<td style="text-align: center;">弱光性能</td>
+<td style="text-align: center;">优</td>
+<td style="text-align: center;">稍弱</td>
+</tr>
+</tbody>
+</table>
+<p>通常来说，CCD通常用于高端相机、科学研究和天文观测等对图像质量要求极高的领域，而CMOS则广泛应用于消费类设备（如智能手机摄像头）、监控设备和工业检测等场景，其成本低、功耗低和速度快更具优势。需要注意的是由于CCD采用全局曝光，而CMOS相机使用卷帘曝光，所以在拍摄运动目标时，优先考虑CCD传感器。</p>
+<blockquote>
+<p>Note 1.
+全局曝光是传感器上所有像素在同一时刻开启曝光并在同一时刻曝光结束，将物体某时刻的状态成像，对运动物体而言，类似于将物体冻结了，所以适合拍摄高速运动的物体。</p>
+</blockquote>
+<blockquote>
+<p>Note 2.
+卷帘曝光是逐行（hang）顺序开启曝光，不同行间曝光的开启时刻有个很小的延迟，所以不适合运动物体的拍摄。</p>
+</blockquote>
+<h2 id="像素">像素</h2>
+<p>  像素是构成数字图像的基本单位，相机靶面上的一个感光单元为一个像素，每个像素点都拥有色调和嫉恶调等色彩信息，规则排列的像素集合可以形成一张完整的图像。</p>
+<h2 id="像素直径">像素直径</h2>
+<p>  像素直径指每个CCD元件的大小，通常使用<span class="math inline">\(\mu
+m\)</span>作为单位，严谨的说，此处的大小中包含了感光单元和信号传输通路，其与像素间距（即某个像素的中心到邻近一个像素的中心的距离）相同。如果像素直径较小，则图像将通过较小的像素进行描绘，因此可以获得更加精细的图像，显然通过像素间距和有效像素数可以直接求出CCD元件中感光区域的大小（即CCD元件的总面积）</p>
+<h2 id="ccd的大小">CCD的大小</h2>
+<p>CCD感光元件的大小，一般分为采用英寸单位表示和采用APS-C大小等规格表示这2种方式。采用英寸表示时，该尺寸并不是拍摄的实际尺寸，而是相当于摄像管的对角长度。比如1/2英寸的CCD表示<strong>拥有相当于1/2英寸的摄像管的拍摄范围</strong>。z之所以会如此计算，是由于当初制造CCD的目的就是用于代替电视机、录像机的摄像管。而想要继续使用镜头等光学器件的需求比较强烈，由此诞生了这种奇怪的规格，主要的英寸规格如下表所示。</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: center;">尺寸(英寸)</th>
+<th style="text-align: center;">对角长度(mm)</th>
+<th style="text-align: center;">拍摄区域(wxh,mm)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;">2/3</td>
+<td style="text-align: center;">11</td>
+<td style="text-align: center;">8.8x6.6</td>
+</tr>
+<tr>
+<td style="text-align: center;">1/2</td>
+<td style="text-align: center;">8</td>
+<td style="text-align: center;">6.4x4.8</td>
+</tr>
+<tr>
+<td style="text-align: center;">1/3</td>
+<td style="text-align: center;">6</td>
+<td style="text-align: center;">4.8x3.6</td>
+</tr>
+<tr>
+<td style="text-align: center;">1/4</td>
+<td style="text-align: center;">4.5</td>
+<td style="text-align: center;">3.6x2.0</td>
+</tr>
+</tbody>
+</table>
+<h2 id="快门速度">快门速度</h2>
+<p>  快门速度在工业视觉中也称为曝光时间，表示CCD或CMOS感光元件中积累电荷的时间，单位为秒。快门速度越快，感光元件中积累电荷的时间越短，图像的亮度越低，图像的细节越少，图像的噪点越多。快门速度越慢，感光元件中积累电荷的时间越长，图像的亮度越高，图像的细节越多，图像的噪点越少。直观来看，快门速度可以用于调整光量。</p>
+<h2 id="曝光值">曝光值</h2>
+<p>  曝光值（EV，Exposure
+Value）是用于衡量图像整体亮度的一个综合指标，由一下三个主要因素决定：</p>
+<ul>
+<li><p>快门速度</p>
+<p>控制光线进入的时间，决定了运动模糊的程度，曝光时间过长，如果相机的感光元件在曝光期间，被拍摄的物体发生了运动，导致在单帧中记录下了物体的移动轨迹。</p></li>
+<li><p>光圈（F值）</p>
+<p>控制进入光线的量，决定了相机的景深</p></li>
+<li><p>感光度(ISO)</p>
+<p>控制感光元件对光线的灵敏度</p></li>
+</ul>
+<p>其定义公式如下： <span class="math display">\[
+E_v = \log_2 \frac{N^2}{t}
+\]</span></p>
+<h2 id="增益">增益</h2>
 
     </div>
 
@@ -272,6 +400,11 @@
     
 
       <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/%E7%9B%B8%E6%9C%BA/" rel="tag"> <i class="fa fa-tag"></i> 相机</a>
+              <a href="/tags/%E8%A7%86%E8%A7%89/" rel="tag"> <i class="fa fa-tag"></i> 视觉</a>
+              <a href="/tags/%E5%9B%BE%E5%83%8F/" rel="tag"> <i class="fa fa-tag"></i> 图像</a>
+          </div>
 
         
 
@@ -279,13 +412,10 @@
         
     <div class="post-nav">
       <div class="post-nav-item">
-    <a href="/posts/684f5543/" rel="prev" title="傅立叶变换">
-      <i class="fa fa-chevron-left"></i> 傅立叶变换
+    <a href="/posts/a65e2a56/" rel="prev" title="初探Transformer架构">
+      <i class="fa fa-chevron-left"></i> 初探Transformer架构
     </a></div>
-      <div class="post-nav-item">
-    <a href="/posts/781628f/" rel="next" title="机器视觉之基本概念">
-      机器视觉之基本概念 <i class="fa fa-chevron-right"></i>
-    </a></div>
+      <div class="post-nav-item"></div>
     </div>
       </footer>
     
@@ -345,6 +475,7 @@
 
       <!--noindex-->
       <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#ccd"><span class="nav-number">1.</span> <span class="nav-text">CCD</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#cmos"><span class="nav-number">2.</span> <span class="nav-text">CMOS</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%83%8F%E7%B4%A0"><span class="nav-number">3.</span> <span class="nav-text">像素</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%83%8F%E7%B4%A0%E7%9B%B4%E5%BE%84"><span class="nav-number">4.</span> <span class="nav-text">像素直径</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#ccd%E7%9A%84%E5%A4%A7%E5%B0%8F"><span class="nav-number">5.</span> <span class="nav-text">CCD的大小</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%BF%AB%E9%97%A8%E9%80%9F%E5%BA%A6"><span class="nav-number">6.</span> <span class="nav-text">快门速度</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%9B%9D%E5%85%89%E5%80%BC"><span class="nav-number">7.</span> <span class="nav-text">曝光值</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%A2%9E%E7%9B%8A"><span class="nav-number">8.</span> <span class="nav-text">增益</span></a></li></ol></div>
       </div>
       <!--/noindex-->
 
@@ -538,6 +669,61 @@
   
 
   
+      
+
+<script>
+  if (typeof MathJax === 'undefined') {
+    window.MathJax = {
+      loader: {
+          load: ['[tex]/mhchem'],
+        source: {
+          '[tex]/amsCd': '[tex]/amscd',
+          '[tex]/AMScd': '[tex]/amscd'
+        }
+      },
+      tex: {
+        inlineMath: {'[+]': [['$', '$']]},
+          packages: {'[+]': ['mhchem']},
+        tags: 'ams'
+      },
+      options: {
+        renderActions: {
+          findScript: [10, doc => {
+            document.querySelectorAll('script[type^="math/tex"]').forEach(node => {
+              const display = !!node.type.match(/; *mode=display/);
+              const math = new doc.options.MathItem(node.textContent, doc.inputJax[0], display);
+              const text = document.createTextNode('');
+              node.parentNode.replaceChild(text, node);
+              math.start = {node: text, delim: '', n: 0};
+              math.end = {node: text, delim: '', n: 0};
+              doc.math.push(math);
+            });
+          }, '', false],
+          insertedScript: [200, () => {
+            document.querySelectorAll('mjx-container').forEach(node => {
+              let target = node.parentNode;
+              if (target.nodeName.toLowerCase() === 'li') {
+                target.parentNode.classList.add('has-jax');
+              }
+            });
+          }, '', false]
+        }
+      }
+    };
+    (function () {
+      var script = document.createElement('script');
+      script.src = '//cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js';
+      script.defer = true;
+      document.head.appendChild(script);
+    })();
+  } else {
+    MathJax.startup.document.state(0);
+    MathJax.texReset();
+    MathJax.typeset();
+  }
+</script>
+
+    
 
   
 
@@ -552,7 +738,7 @@ NexT.utils.loadComments(document.querySelector('#gitalk-container'), () => {
       repo        : 'wcjb.github.io',
       owner       : 'wcjb',
       admin       : ['wcjb'],
-      id          : '883e4fee09475614700ff2d882c71693',
+      id          : '7891de11f13905b2dc76771b86bd6803',
         language: 'zh-CN',
       distractionFreeMode: true
     });
