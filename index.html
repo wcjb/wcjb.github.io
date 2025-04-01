@@ -200,6 +200,104 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://wcjb.github.io/posts/15775e35/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/uploads/avatar.png">
+      <meta itemprop="name" content="殉道者">
+      <meta itemprop="description" content="幼而学者,如日出之光；老而学者，如秉烛夜行，犹贤乎瞑目而无见者也！">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="老学庵">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/posts/15775e35/" class="post-title-link" itemprop="url">LLM之模型训练Tricks</a>
+        </h2>
+
+        <div class="post-meta">
+
+          
+            <i class="fa fa-thumb-tack"></i>
+            <font color=7D26CD>置顶</font>
+            <span class="post-meta-divider">|</span>
+          
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2025-03-31 17:11:09 / 修改时间：17:24:56" itemprop="dateCreated datePublished" datetime="2025-03-31T17:11:09+08:00">2025-03-31</time>
+            </span>
+
+          <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>310</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>1 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <ul>
+<li><p>为什么在LLM模型预训练时，计算交叉熵损失函数时需要loss mask</p>
+<p>  在自回归训练中，模型需要根据前<span class="math inline">\(n-1\)</span>个Token预测第<span class="math inline">\(n\)</span>个Token。此时，输入序列为<span class="math inline">\(X =
+[x_1,x_2,...,x_{n-1}]\)</span>，目标序列为<span class="math inline">\(Y=
+[y_1,y_2,...,y_m] \quad m \geq
+n\)</span>，掩码规则为仅对目标序列中与当前预测位置匹配的Token计算损失（如第<span class="math inline">\(i\)</span>个预测位置仅计算<span class="math inline">\(y_i\)</span>的损失,其他位置（包括填充Token）设为0，不参与损失计算.
+其主要作用如下：</p>
+<ul>
+<li>忽略无效Token</li>
+</ul>
+<p>  预训练数据通常包含填充（Padding）标记或特殊符号（如<eos>），这些位置的真实值对模型无意义。若不加掩码，模型会错误学习生成这些无效Token，导致训练效率下降。</eos></p>
+<ul>
+<li>聚焦有效生成</li>
+</ul>
+<p>  通过掩码选择性计算损失，模型仅关注实际需要生成的Token（如自回归任务中预测下一个Token），避免被无关信息干扰。</p>
+<ul>
+<li>保持损失归一化</li>
+</ul>
+<p>  掩码确保不同批次、不同长度序列的损失计算公平，避免填充Token拉低整体损失值</p></li>
+</ul>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
     <link itemprop="mainEntityOfPage" href="https://wcjb.github.io/posts/19c3723a/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -237,7 +335,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2025-03-31 17:05:23" itemprop="dateModified" datetime="2025-03-31T17:05:23+08:00">2025-03-31</time>
+                <time title="修改时间：2025-03-31 17:11:42" itemprop="dateModified" datetime="2025-03-31T17:11:42+08:00">2025-03-31</time>
               </span>
 
           <br>
@@ -268,71 +366,15 @@
           <p>  学习率这个概念在非线性优化中经常出现，在深度学习中模型在反向传播阶段严重依赖于损失函数梯度的链式传播，为了更好的控制参数更新的步长，引入了学习率的概念：
 <span class="math display">\[
 w_{new} = w_{old} - \eta \ \Delta J(w)
-\]</span>   其中的<span class="math inline">\(\eta\)</span>为学习率，直观来说，非线性优化的过程就像下山，学习率就是步长，步子迈的太大或太小都不太理想。当步子迈得的太大了，你可能就直接跨过山脚，对应到模型训练中，就是学习率太高，每次更新参数时，跳过了最小值，导致在最优值附近来回振荡，无法收敛;步子太小，则需要走很久，才能到达山脚，对应到模型训练中，就是学习率太低，模型收敛的速度很慢，需要较长时间的训练才能收敛到最优值。举这个经典的下山的例子是为了说明学习率在模型训练中的重要意义。
-  在深度学习的模型训练中学习率有很多使用策略，包括不限于：</p>
-<ul>
-<li>固定学习率</li>
-</ul>
-<p>  顾名思义就是在模型训练过程中使用固定学习率来进行模型训练，这样会难以平衡初期的收敛速度和后期的精细调整，一般很少使用，只在一些简单问题上应用。</p>
-<ul>
-<li>阶梯式衰减学习率（step decay）</li>
-</ul>
-<p>  指学习率在模型训练的特定步骤中衰减，会导致学习率变化不平滑，模型训练不稳定。</p>
-<ul>
-<li>指数衰减学习率（exponential decay）</li>
-</ul>
-<p>  指学习率在模型训练过程中按指数函数衰减，由于指数函数的高增长特性，前期往往能快速收敛，但是后期由于学习率衰减过快，导致训练停滞，收敛速度很慢。</p>
-<ul>
-<li>线性预热+线性衰减</li>
-</ul>
-<p>  指学习率在模型训练过程中先线性增加再线性较少，此方案在大语言模型的预训练被广泛使用，缺点在于是线性变化，变化不太平滑。</p>
-<ul>
-<li>余弦退火学习率（Cosine Annealing）</li>
-</ul>
-<p>  余弦退火学习率的公式如下： <span class="math display">\[
-\eta_{t} = \eta_{min} + \frac{1}{2}(\eta_{max} -
-\eta_{min})(1+\cos(\frac{t}{T}\pi))
-\]</span>   其中，<span class="math inline">\(\eta_{t}\)</span>是第<span class="math inline">\(t\)</span>步的学习率，<span class="math inline">\(\eta_{min}\)</span>是训练过程中能接受的最小学习率，<span class="math inline">\(\eta_{max}是最大学习率\)</span>，<span class="math inline">\(t\)</span>为当前的训练步树，<span class="math inline">\(T\)</span>该epoch中的总训练步数。从公式可以看出，在训练的开始阶段，学习率解决最大值，模型的收敛速度较快，到达一定训练步数后，学些率开始减少，模型会在更小的参数空间内搜索最优值，随着训练步数的增长，学习率逐渐逼近最小值，模型在最优值附近的参数空间内搜索。</p>
-<p>  同时学习率是按照余弦曲线的方式进行更新，变化平滑的同时，不会出现变化幅度不大。目前基于余弦退火学习率衍生出一些更精细的学习率调度算法，如：</p>
-<ul>
-<li><p>带热重启的余弦退火</p>
-<p>  学习率在训练过程中周期性回到最大值，然后再次降低，公式如下：</p>
-<p><span class="math display">\[
-  \eta_{t} = \eta_{min} + \frac{1}{2}(\eta_{max} -
-\eta_{min})(1+\cos(\frac{T_{cur}}{T_i}\pi))
-  \]</span>   其中，<span class="math inline">\(T_{cur}\)</span>是自上次热重启之后的训练步数，<span class="math inline">\(T_i\)</span>是当前周期的总步数。这种学习率调度方式有助于跳出局部最优解，探索更广阔的参数空间</p></li>
-<li><p>带预热的余弦退火</p>
-<p>  带预热的余弦退火通过两阶段学习率调整实现：</p>
-<ul>
-<li><p>​预热阶段</p>
-<p>训练初期学习率从较小值线性或非线性增长至预设的最大值，避免随机初始化权重下的大幅度参数更新引发振荡。</p></li>
-<li><p>余弦退火阶段</p>
-<p>  预热完成后，学习率按余弦函数周期性衰减，从最大值逐渐降至最小值，数学公式如下：
-<span class="math display">\[
-  \eta_{t}=
-  \begin{cases}
-  \eta_{start} + \dfrac{t}{T_{warmup}}(\eta_{max} -
-\eta_{start})    \qquad 0 \leq t &lt; T_{warmup} \\
-  \eta_{min} + \frac{1}{2}(\eta_{max} -
-\eta_{min})(1+cos(\frac{T_{cur}}{T_{cos}}\pi))  \qquad t \geq T_{warmup}
-  \end{cases}
-  \]</span> <span class="math inline">\(T_{warmup}\)</span>为预热步数，<span class="math inline">\(T_{cos}\)</span>为退火周期</p></li>
-</ul></li>
-<li><p>循环余弦退火（cyclical cosine annealing）</p>
-<p>  顾名思义，就是在模型训练过程中，学习率的变化在余弦退火的基础上存在多个余弦周期，通过重启（Restart）机制恢复学习率至最大值，形成多周期探索-利用循环，可以平衡梯度在参数空间的探索与利用，避免剧烈波动。</p></li>
-</ul>
-<p>  余弦退火学习率策略通过平滑地调整学习率，帮助模型在训练初期快速收敛，在训练后期精细调整参数，从而找到更好的局部最优解。它的提出和发展极大地推动了深度学习模型训练的稳定性和效率，已成为现代深度学习训练的标准配置之一。</p>
-<p>  虽然它不是万能的解决方案，但在大多数深度学习任务中，特别是大型语言模型的训练中，余弦退火都能提供显著的性能提升。通过理解其工作原理和适用边界，我们可以更好地利用这一强大工具，提高模型训练效果。</p>
-<blockquote>
-<p>编程实现</p>
-</blockquote>
-<ul>
-<li><p>demo 1 <figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">from torch.optim.lr_scheduler <span class="keyword">import</span> CosineAnnealingLR</span><br><span class="line"><span class="keyword">import</span> torch</span><br><span class="line"></span><br><span class="line"># 创建模型和优化器</span><br><span class="line">model = <span class="built_in">MyModel</span>()</span><br><span class="line">optimizer = torch.optim.<span class="built_in">Adam</span>(model.<span class="built_in">parameters</span>(), lr=<span class="number">0.001</span>)</span><br><span class="line"></span><br><span class="line"># 创建余弦退火调度器</span><br><span class="line"># T_max是半个周期的长度，通常设为总训练步数</span><br><span class="line"># eta_min是最小学习率</span><br><span class="line">scheduler = <span class="built_in">CosineAnnealingLR</span>(optimizer, T_max=<span class="number">1000</span>, eta_min=<span class="number">0.0001</span>)</span><br><span class="line"></span><br><span class="line"># 在训练循环中使用</span><br><span class="line"><span class="keyword">for</span> epoch in <span class="built_in">range</span>(num_epochs):</span><br><span class="line">    <span class="keyword">for</span> batch in data_loader:</span><br><span class="line">        # 训练步骤</span><br><span class="line">        optimizer.<span class="built_in">zero_grad</span>()</span><br><span class="line">        outputs = <span class="built_in">model</span>(inputs)</span><br><span class="line">        loss = <span class="built_in">criterion</span>(outputs, targets)</span><br><span class="line">        loss.<span class="built_in">backward</span>()</span><br><span class="line">        optimizer.<span class="built_in">step</span>()</span><br><span class="line">        </span><br><span class="line">        # 更新学习率</span><br><span class="line">        scheduler.<span class="built_in">step</span>()</span><br></pre></td></tr></table></figure></p></li>
-<li><p>demo 2 <figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">import</span> math</span></span><br><span class="line"><span class="function">def <span class="title">get_cosine_lr</span><span class="params">(current_step, total_steps, max_lr, min_lr)</span>:</span></span><br><span class="line"><span class="function">    <span class="string">&quot;&quot;</span><span class="string">&quot;计算当前步骤的余弦退火学习率&quot;</span><span class="string">&quot;&quot;</span></span></span><br><span class="line"><span class="function">    return min_lr + <span class="number">0.5</span> * (max_lr - min_lr) * (<span class="number">1</span> + math.cos(math.pi * current_step / total_steps))</span></span><br><span class="line"><span class="function"></span></span><br><span class="line"><span class="function"># 在训练循环中使用</span></span><br><span class="line"><span class="function">max_lr =</span> <span class="number">0.001</span></span><br><span class="line">min_lr = <span class="number">0.0001</span></span><br><span class="line">total_steps = <span class="number">1000</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">for</span> step in <span class="built_in">range</span>(total_steps):</span><br><span class="line">    # 计算当前学习率</span><br><span class="line">    current_lr = <span class="built_in">get_cosine_lr</span>(step, total_steps, max_lr, min_lr)</span><br><span class="line">    </span><br><span class="line">    # 更新优化器的学习率</span><br><span class="line">    <span class="keyword">for</span> param_group in optimizer.param_groups:</span><br><span class="line">        param_group[<span class="string">&#x27;lr&#x27;</span>] = current_lr</span><br><span class="line">    </span><br><span class="line">    # 正常的训练步骤</span><br><span class="line">    optimizer.<span class="built_in">zero_grad</span>()</span><br><span class="line">    outputs = <span class="built_in">model</span>(inputs)</span><br><span class="line">    loss = <span class="built_in">criterion</span>(outputs, targets)</span><br><span class="line">    loss.<span class="built_in">backward</span>()</span><br><span class="line">    optimizer.<span class="built_in">step</span>()</span><br></pre></td></tr></table></figure></p></li>
-<li><p>demo 3</p>
-<p><figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">from torch.optim.lr_scheduler <span class="keyword">import</span> CosineAnnealingWarmRestarts</span><br><span class="line"></span><br><span class="line"># 创建带热重启的余弦退火调度器</span><br><span class="line"># T_0是第一次重启前的迭代次数</span><br><span class="line"># T_mult是控制重启周期如何变化的因子</span><br><span class="line">scheduler = <span class="built_in">CosineAnnealingWarmRestarts</span>(</span><br><span class="line">    optimizer, </span><br><span class="line">    T_0=<span class="number">1000</span>,  # 第一个周期的长度</span><br><span class="line">    T_mult=<span class="number">2</span>,  # 每次重启后周期长度翻倍</span><br><span class="line">    eta_min=<span class="number">0.0001</span>  # 最小学习率</span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"># 在训练循环中使用</span><br><span class="line"><span class="keyword">for</span> epoch in <span class="built_in">range</span>(num_epochs):</span><br><span class="line">    <span class="keyword">for</span> batch in data_loader:</span><br><span class="line">        # 训练步骤</span><br><span class="line">        optimizer.<span class="built_in">zero_grad</span>()</span><br><span class="line">        outputs = <span class="built_in">model</span>(inputs)</span><br><span class="line">        loss = <span class="built_in">criterion</span>(outputs, targets)</span><br><span class="line">        loss.<span class="built_in">backward</span>()</span><br><span class="line">        optimizer.<span class="built_in">step</span>()</span><br><span class="line">        </span><br><span class="line">        # 更新学习率</span><br><span class="line">        scheduler.<span class="built_in">step</span>()</span><br></pre></td></tr></table></figure></p></li>
-</ul>
-
+\]</span></p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/posts/19c3723a/#more" rel="contents">
+                阅读全文 &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
       
     </div>
 
@@ -851,7 +893,7 @@ Decomposition，SVD）是线性代数中一种重要的矩阵分解方法，区�
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">6</span>
+          <span class="site-state-item-count">7</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
@@ -942,7 +984,7 @@ Decomposition，SVD）是线性代数中一种重要的矩阵分解方法，区�
     <span class="post-meta-item-icon">
       <i class="fa fa-coffee"></i>
     </span>
-    <span title="站点阅读时长">1:15</span>
+    <span title="站点阅读时长">1:16</span>
 </div>
 
 <!--

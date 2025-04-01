@@ -6,7 +6,7 @@
   <link href="https://wcjb.github.io/atom.xml" rel="self"/>
   
   <link href="https://wcjb.github.io/"/>
-  <updated>2025-02-19T02:03:52.610Z</updated>
+  <updated>2025-03-31T09:24:56.305Z</updated>
   <id>https://wcjb.github.io/</id>
   
   <author>
@@ -15,6 +15,33 @@
   </author>
   
   <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>LLM之模型训练Tricks</title>
+    <link href="https://wcjb.github.io/posts/15775e35/"/>
+    <id>https://wcjb.github.io/posts/15775e35/</id>
+    <published>2025-03-31T09:11:09.000Z</published>
+    <updated>2025-03-31T09:24:56.305Z</updated>
+    
+    
+      
+      
+        
+        
+    <summary type="html">&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;为什么在LLM模型预训练时，计算交叉熵损失函数时需要loss mask&lt;/p&gt;
+&lt;p&gt;  在自回归训练中，模型需要根据前&lt;span class=&quot;math inline&quot;&gt;&#92;(n-1&#92;)&lt;/span&gt;个Token预测第&lt;span class=&quot;math</summary>
+        
+      
+    
+    
+    
+    
+    <category term="LLM" scheme="https://wcjb.github.io/tags/LLM/"/>
+    
+    <category term="模型训练" scheme="https://wcjb.github.io/tags/%E6%A8%A1%E5%9E%8B%E8%AE%AD%E7%BB%83/"/>
+    
+  </entry>
   
   <entry>
     <title>机器视觉之基本概念</title>
@@ -64,18 +91,13 @@
     <link href="https://wcjb.github.io/posts/19c3723a/"/>
     <id>https://wcjb.github.io/posts/19c3723a/</id>
     <published>2023-02-15T06:06:09.000Z</published>
-    <updated>2025-03-31T09:05:23.246Z</updated>
+    <updated>2025-03-31T09:11:42.926Z</updated>
     
     
-      
-      
-        
-        
     <summary type="html">&lt;p&gt;  学习率这个概念在非线性优化中经常出现，在深度学习中模型在反向传播阶段严重依赖于损失函数梯度的链式传播，为了更好的控制参数更新的步长，引入了学习率的概念：
 &lt;span class=&quot;math display&quot;&gt;&#92;[
-w_{new} = w_{old} - &#92;eta &#92;</summary>
-        
-      
+w_{new} = w_{old} - &#92;eta &#92; &#92;Delta J(w)
+&#92;]&lt;/span&gt;&lt;/p&gt;</summary>
     
     
     
