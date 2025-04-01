@@ -229,10 +229,16 @@
                 <i class="far fa-calendar"></i>
               </span>
               <span class="post-meta-item-text">发表于</span>
-              
 
-              <time title="创建时间：2025-03-31 17:11:09 / 修改时间：17:24:56" itemprop="dateCreated datePublished" datetime="2025-03-31T17:11:09+08:00">2025-03-31</time>
+              <time title="创建时间：2025-03-31 17:11:09" itemprop="dateCreated datePublished" datetime="2025-03-31T17:11:09+08:00">2025-03-31</time>
             </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2025-04-01 22:49:38" itemprop="dateModified" datetime="2025-04-01T22:49:38+08:00">2025-04-01</time>
+              </span>
 
           <br>
             <span class="post-meta-item" title="本文字数">
@@ -240,14 +246,14 @@
                 <i class="far fa-file-word"></i>
               </span>
                 <span class="post-meta-item-text">本文字数：</span>
-              <span>310</span>
+              <span>1.1k</span>
             </span>
             <span class="post-meta-item" title="阅读时长">
               <span class="post-meta-item-icon">
                 <i class="far fa-clock"></i>
               </span>
                 <span class="post-meta-item-text">阅读时长 &asymp;</span>
-              <span>1 分钟</span>
+              <span>4 分钟</span>
             </span>
 
         </div>
@@ -278,6 +284,65 @@ n\)</span>，掩码规则为仅对目标序列中与当前预测位置匹配的T
 <li>保持损失归一化</li>
 </ul>
 <p>  掩码确保不同批次、不同长度序列的损失计算公平，避免填充Token拉低整体损失值</p></li>
+<li><p>深度学习中常用归一化技术</p>
+<p>  归一化技术在深度学习中常用于对输入数据进行标准化处理的方法，常见的归一化技术包括：</p>
+<ul>
+<li><p>Min-Max归一化</p>
+<p><span class="math display">\[\bar{x} = \dfrac{x-x_{min}}{x_{max} -
+x_{min}}\]</span></p></li>
+</ul>
+<p>  将数据缩放到<span class="math inline">\([0,1]\)</span>范围，适用于数据分布已知且无异常值的请况。</p>
+<ul>
+<li><p>Z-Score归一化</p>
+<p><span class="math display">\[\bar{x} = \dfrac{x -
+\mu}{\delta}\]</span></p></li>
+</ul>
+<p>  将数据转换为均值为0，标准差为1的分布，适用于数据服从正态分布的情况</p>
+<p>  在实际使用中，会针对性的做一些调整以适应不同任务，不同场景，主要有Batch
+Norm、Layer Norm、RMS Norm等：</p>
+<ul>
+<li><p>Batch Norm</p>
+<p>  对每个特征通道（如图像的RGB通道）在批量数据上计算均值和方差，通过标准化和平移/缩放参数调整分布，公式如下：
+<span class="math display">\[y = \gamma \cdot
+\dfrac{x-\mu}{\sqrt{\sigma^2 + \epsilon}} + \beta\]</span></p></li>
+<li><p>Layer Norm</p>
+<p>  对单个样本的所有特征维度（如序列模型的每个token向量）计算均值和方差，实现跨样本的归一化，公式同上，只是针对的输入不同</p></li>
+<li><p>RMS Norm</p>
+<p>  LayerNorm的变体，仅计算均方根（RMS）替代均值和方差，去除平移参数<span class="math inline">\(\beta\)</span>，简化计算，公式如下：</p>
+<p><span class="math display">\[y = \gamma \cdot
+\dfrac{x-\mu}{\sqrt{RMS(x)^2 + \epsilon}}\]</span></p>
+<p>其中 <span class="math display">\[RMS(x) = \sqrt{\frac{1}{N}\sum_{i =
+1}^Nx_i^2}\]</span></p></li>
+</ul>
+<p>在深度学习中归一化技术有如下意义：</p>
+<ul>
+<li><p>提高训练速度</p>
+<ul>
+<li>归一化可以使不同特征的数值范围相近，避免某些特征值过大或过小，影响梯度更新，导致训练过程缓慢。</li>
+<li>通过减少梯度下降的震荡，使优化过程更稳定，加快收敛速度。</li>
+</ul></li>
+<li><p>防止梯度消失或梯度爆炸</p>
+<ul>
+<li>归一化可以保持数据分布的稳定性，防止某些层的输入值过大或过小，从而避免梯度消失或梯度爆炸问题，尤其是在深层网络中。</li>
+</ul></li>
+<li><p>提高模型的泛化能力</p>
+<ul>
+<li>归一化可以减少特征对不同尺度的依赖，使模型对输入数据的变化更具鲁棒性，提高泛化能力，降低过拟合风险。</li>
+</ul></li>
+<li><p>减少不同特征之间的影响</p>
+<ul>
+<li>由于不同特征的尺度不同，模型可能会过度依赖某些大数值特征，导致训练过程不稳定。归一化后，各特征的权重分布更加均衡，提高模型的稳定性。</li>
+</ul></li>
+</ul>
+<p>三类归一化技术对比如下： | 方法 | 典型应用场景 | 核心优势 | 局限性 |
+|----------|---------------------------------|--------------------------------|--------------------------------|
+| BatchNorm | 图像分类（CNN）、小批量训练场景 |
+加速收敛、降低初始化敏感度 | 对批量大小敏感，无法处理序列数据（如NLP） |
+| LayerNorm | 自然语言处理（如BERT、GPT）、RNN、长序列模型 |
+适应动态批量、保持序列位置不变性 | 计算开销较大，对噪声敏感 | | RMSNorm
+| 超大规模语言模型（如LLaMA、DeepSeek）、高精度工业检测 |
+计算高效、数值稳定性强、减少梯度爆炸风险 |
+无法处理均值敏感任务（如某些CV任务） |</p></li>
 </ul>
 
       
@@ -335,7 +400,7 @@ n\)</span>，掩码规则为仅对目标序列中与当前预测位置匹配的T
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2025-03-31 17:11:42" itemprop="dateModified" datetime="2025-03-31T17:11:42+08:00">2025-03-31</time>
+                <time title="修改时间：2025-04-01 09:39:12" itemprop="dateModified" datetime="2025-04-01T09:39:12+08:00">2025-04-01</time>
               </span>
 
           <br>
@@ -979,12 +1044,12 @@ Decomposition，SVD）是线性代数中一种重要的矩阵分解方法，区�
     <span class="post-meta-item-icon">
       <i class="fa fa-chart-area"></i>
     </span>
-    <span title="站点总字数">21k</span>
+    <span title="站点总字数">22k</span>
     <span class="post-meta-divider">|</span>
     <span class="post-meta-item-icon">
       <i class="fa fa-coffee"></i>
     </span>
-    <span title="站点阅读时长">1:16</span>
+    <span title="站点阅读时长">1:19</span>
 </div>
 
 <!--

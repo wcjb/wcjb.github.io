@@ -6,7 +6,7 @@
   <link href="https://wcjb.github.io/atom.xml" rel="self"/>
   
   <link href="https://wcjb.github.io/"/>
-  <updated>2025-03-31T09:24:56.305Z</updated>
+  <updated>2025-04-01T14:49:38.099Z</updated>
   <id>https://wcjb.github.io/</id>
   
   <author>
@@ -21,7 +21,7 @@
     <link href="https://wcjb.github.io/posts/15775e35/"/>
     <id>https://wcjb.github.io/posts/15775e35/</id>
     <published>2025-03-31T09:11:09.000Z</published>
-    <updated>2025-03-31T09:24:56.305Z</updated>
+    <updated>2025-04-01T14:49:38.099Z</updated>
     
     
       
@@ -91,7 +91,7 @@
     <link href="https://wcjb.github.io/posts/19c3723a/"/>
     <id>https://wcjb.github.io/posts/19c3723a/</id>
     <published>2023-02-15T06:06:09.000Z</published>
-    <updated>2025-03-31T09:11:42.926Z</updated>
+    <updated>2025-04-01T01:39:12.811Z</updated>
     
     
     <summary type="html">&lt;p&gt;  学习率这个概念在非线性优化中经常出现，在深度学习中模型在反向传播阶段严重依赖于损失函数梯度的链式传播，为了更好的控制参数更新的步长，引入了学习率的概念：

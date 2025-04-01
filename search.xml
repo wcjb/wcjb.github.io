@@ -1,333 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <search>
   <entry>
-    <title>LLM之模型训练Tricks</title>
-    <url>/posts/15775e35/</url>
-    <content><![CDATA[<ul>
-<li><p>为什么在LLM模型预训练时，计算交叉熵损失函数时需要loss mask</p>
-<p>  在自回归训练中，模型需要根据前<span class="math inline">\(n-1\)</span>个Token预测第<span class="math inline">\(n\)</span>个Token。此时，输入序列为<span class="math inline">\(X =
-[x_1,x_2,...,x_{n-1}]\)</span>，目标序列为<span class="math inline">\(Y=
-[y_1,y_2,...,y_m] \quad m \geq
-n\)</span>，掩码规则为仅对目标序列中与当前预测位置匹配的Token计算损失（如第<span class="math inline">\(i\)</span>个预测位置仅计算<span class="math inline">\(y_i\)</span>的损失,其他位置（包括填充Token）设为0，不参与损失计算.
-其主要作用如下：</p>
-<ul>
-<li>忽略无效Token</li>
-</ul>
-<p>  预训练数据通常包含填充（Padding）标记或特殊符号（如<eos>），这些位置的真实值对模型无意义。若不加掩码，模型会错误学习生成这些无效Token，导致训练效率下降。</eos></p>
-<ul>
-<li>聚焦有效生成</li>
-</ul>
-<p>  通过掩码选择性计算损失，模型仅关注实际需要生成的Token（如自回归任务中预测下一个Token），避免被无关信息干扰。</p>
-<ul>
-<li>保持损失归一化</li>
-</ul>
-<p>  掩码确保不同批次、不同长度序列的损失计算公平，避免填充Token拉低整体损失值</p></li>
-</ul>
-]]></content>
-      <tags>
-        <tag>LLM</tag>
-        <tag>模型训练</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>LLM之余弦退火学习率</title>
-    <url>/posts/19c3723a/</url>
-    <content><![CDATA[<p>  学习率这个概念在非线性优化中经常出现，在深度学习中模型在反向传播阶段严重依赖于损失函数梯度的链式传播，为了更好的控制参数更新的步长，引入了学习率的概念：
-<span class="math display">\[
-w_{new} = w_{old} - \eta \ \Delta J(w)
-\]</span></p>
-<span id="more"></span>
-<p>  其中的<span class="math inline">\(\eta\)</span>为学习率，直观来说，非线性优化的过程就像下山，学习率就是步长，步子迈的太大或太小都不太理想。当步子迈得的太大了，你可能就直接跨过山脚，对应到模型训练中，就是学习率太高，每次更新参数时，跳过了最小值，导致在最优值附近来回振荡，无法收敛;步子太小，则需要走很久，才能到达山脚，对应到模型训练中，就是学习率太低，模型收敛的速度很慢，需要较长时间的训练才能收敛到最优值。举这个经典的下山的例子是为了说明学习率在模型训练中的重要意义。
-  在深度学习的模型训练中学习率有很多使用策略，包括不限于：</p>
-<ul>
-<li>固定学习率</li>
-</ul>
-<p>  顾名思义就是在模型训练过程中使用固定学习率来进行模型训练，这样会难以平衡初期的收敛速度和后期的精细调整，一般很少使用，只在一些简单问题上应用。</p>
-<ul>
-<li>阶梯式衰减学习率（step decay）</li>
-</ul>
-<p>  指学习率在模型训练的特定步骤中衰减，会导致学习率变化不平滑，模型训练不稳定。</p>
-<ul>
-<li>指数衰减学习率（exponential decay）</li>
-</ul>
-<p>  指学习率在模型训练过程中按指数函数衰减，由于指数函数的高增长特性，前期往往能快速收敛，但是后期由于学习率衰减过快，导致训练停滞，收敛速度很慢。</p>
-<ul>
-<li>线性预热+线性衰减</li>
-</ul>
-<p>  指学习率在模型训练过程中先线性增加再线性较少，此方案在大语言模型的预训练被广泛使用，缺点在于是线性变化，变化不太平滑。</p>
-<ul>
-<li>余弦退火学习率（Cosine Annealing）</li>
-</ul>
-<p>  余弦退火学习率的公式如下： <span class="math display">\[
-\eta_{t} = \eta_{min} + \frac{1}{2}(\eta_{max} -
-\eta_{min})(1+\cos(\frac{t}{T}\pi))
-\]</span>   其中，<span class="math inline">\(\eta_{t}\)</span>是第<span class="math inline">\(t\)</span>步的学习率，<span class="math inline">\(\eta_{min}\)</span>是训练过程中能接受的最小学习率，<span class="math inline">\(\eta_{max}是最大学习率\)</span>，<span class="math inline">\(t\)</span>为当前的训练步树，<span class="math inline">\(T\)</span>该epoch中的总训练步数。从公式可以看出，在训练的开始阶段，学习率解决最大值，模型的收敛速度较快，到达一定训练步数后，学些率开始减少，模型会在更小的参数空间内搜索最优值，随着训练步数的增长，学习率逐渐逼近最小值，模型在最优值附近的参数空间内搜索。</p>
-<p>  同时学习率是按照余弦曲线的方式进行更新，变化平滑的同时，不会出现变化幅度不大。目前基于余弦退火学习率衍生出一些更精细的学习率调度算法，如：</p>
-<ul>
-<li><p>带热重启的余弦退火</p>
-<p>  学习率在训练过程中周期性回到最大值，然后再次降低，公式如下：</p>
-<p><span class="math display">\[
-  \eta_{t} = \eta_{min} + \frac{1}{2}(\eta_{max} -
-\eta_{min})(1+\cos(\frac{T_{cur}}{T_i}\pi))
-  \]</span>   其中，<span class="math inline">\(T_{cur}\)</span>是自上次热重启之后的训练步数，<span class="math inline">\(T_i\)</span>是当前周期的总步数。这种学习率调度方式有助于跳出局部最优解，探索更广阔的参数空间</p></li>
-<li><p>带预热的余弦退火</p>
-<p>  带预热的余弦退火通过两阶段学习率调整实现：</p>
-<ul>
-<li><p>​预热阶段</p>
-<p>训练初期学习率从较小值线性或非线性增长至预设的最大值，避免随机初始化权重下的大幅度参数更新引发振荡。</p></li>
-<li><p>余弦退火阶段</p>
-<p>  预热完成后，学习率按余弦函数周期性衰减，从最大值逐渐降至最小值，数学公式如下：
-<span class="math display">\[
-  \eta_{t}=
-  \begin{cases}
-  \eta_{start} + \dfrac{t}{T_{warmup}}(\eta_{max} -
-\eta_{start})    \qquad 0 \leq t &lt; T_{warmup} \\
-  \eta_{min} + \frac{1}{2}(\eta_{max} -
-\eta_{min})(1+cos(\frac{T_{cur}}{T_{cos}}\pi))  \qquad t \geq T_{warmup}
-  \end{cases}
-  \]</span> <span class="math inline">\(T_{warmup}\)</span>为预热步数，<span class="math inline">\(T_{cos}\)</span>为退火周期</p></li>
-</ul></li>
-<li><p>循环余弦退火（cyclical cosine annealing）</p>
-<p>  顾名思义，就是在模型训练过程中，学习率的变化在余弦退火的基础上存在多个余弦周期，通过重启（Restart）机制恢复学习率至最大值，形成多周期探索-利用循环，可以平衡梯度在参数空间的探索与利用，避免剧烈波动。</p></li>
-</ul>
-<p>  余弦退火学习率策略通过平滑地调整学习率，帮助模型在训练初期快速收敛，在训练后期精细调整参数，从而找到更好的局部最优解。它的提出和发展极大地推动了深度学习模型训练的稳定性和效率，已成为现代深度学习训练的标准配置之一。</p>
-<p>  虽然它不是万能的解决方案，但在大多数深度学习任务中，特别是大型语言模型的训练中，余弦退火都能提供显著的性能提升。通过理解其工作原理和适用边界，我们可以更好地利用这一强大工具，提高模型训练效果。</p>
-<blockquote>
-<p>编程实现</p>
-</blockquote>
-<ul>
-<li><p>demo 1 <figure class="highlight c++"><table><tr><td class="code"><pre><span class="line">from torch.optim.lr_scheduler <span class="keyword">import</span> CosineAnnealingLR</span><br><span class="line"><span class="keyword">import</span> torch</span><br><span class="line"></span><br><span class="line"># 创建模型和优化器</span><br><span class="line">model = <span class="built_in">MyModel</span>()</span><br><span class="line">optimizer = torch.optim.<span class="built_in">Adam</span>(model.<span class="built_in">parameters</span>(), lr=<span class="number">0.001</span>)</span><br><span class="line"></span><br><span class="line"># 创建余弦退火调度器</span><br><span class="line"># T_max是半个周期的长度，通常设为总训练步数</span><br><span class="line"># eta_min是最小学习率</span><br><span class="line">scheduler = <span class="built_in">CosineAnnealingLR</span>(optimizer, T_max=<span class="number">1000</span>, eta_min=<span class="number">0.0001</span>)</span><br><span class="line"></span><br><span class="line"># 在训练循环中使用</span><br><span class="line"><span class="keyword">for</span> epoch in <span class="built_in">range</span>(num_epochs):</span><br><span class="line">    <span class="keyword">for</span> batch in data_loader:</span><br><span class="line">        # 训练步骤</span><br><span class="line">        optimizer.<span class="built_in">zero_grad</span>()</span><br><span class="line">        outputs = <span class="built_in">model</span>(inputs)</span><br><span class="line">        loss = <span class="built_in">criterion</span>(outputs, targets)</span><br><span class="line">        loss.<span class="built_in">backward</span>()</span><br><span class="line">        optimizer.<span class="built_in">step</span>()</span><br><span class="line">        </span><br><span class="line">        # 更新学习率</span><br><span class="line">        scheduler.<span class="built_in">step</span>()</span><br></pre></td></tr></table></figure></p></li>
-<li><p>demo 2 <figure class="highlight c++"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">import</span> math</span></span><br><span class="line"><span class="function">def <span class="title">get_cosine_lr</span><span class="params">(current_step, total_steps, max_lr, min_lr)</span>:</span></span><br><span class="line"><span class="function">    <span class="string">&quot;&quot;</span><span class="string">&quot;计算当前步骤的余弦退火学习率&quot;</span><span class="string">&quot;&quot;</span></span></span><br><span class="line"><span class="function">    return min_lr + <span class="number">0.5</span> * (max_lr - min_lr) * (<span class="number">1</span> + math.cos(math.pi * current_step / total_steps))</span></span><br><span class="line"><span class="function"></span></span><br><span class="line"><span class="function"># 在训练循环中使用</span></span><br><span class="line"><span class="function">max_lr =</span> <span class="number">0.001</span></span><br><span class="line">min_lr = <span class="number">0.0001</span></span><br><span class="line">total_steps = <span class="number">1000</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">for</span> step in <span class="built_in">range</span>(total_steps):</span><br><span class="line">    # 计算当前学习率</span><br><span class="line">    current_lr = <span class="built_in">get_cosine_lr</span>(step, total_steps, max_lr, min_lr)</span><br><span class="line">    </span><br><span class="line">    # 更新优化器的学习率</span><br><span class="line">    <span class="keyword">for</span> param_group in optimizer.param_groups:</span><br><span class="line">        param_group[<span class="string">&#x27;lr&#x27;</span>] = current_lr</span><br><span class="line">    </span><br><span class="line">    # 正常的训练步骤</span><br><span class="line">    optimizer.<span class="built_in">zero_grad</span>()</span><br><span class="line">    outputs = <span class="built_in">model</span>(inputs)</span><br><span class="line">    loss = <span class="built_in">criterion</span>(outputs, targets)</span><br><span class="line">    loss.<span class="built_in">backward</span>()</span><br><span class="line">    optimizer.<span class="built_in">step</span>()</span><br></pre></td></tr></table></figure></p></li>
-<li><p>demo 3</p>
-<p><figure class="highlight c++"><table><tr><td class="code"><pre><span class="line">from torch.optim.lr_scheduler <span class="keyword">import</span> CosineAnnealingWarmRestarts</span><br><span class="line"></span><br><span class="line"># 创建带热重启的余弦退火调度器</span><br><span class="line"># T_0是第一次重启前的迭代次数</span><br><span class="line"># T_mult是控制重启周期如何变化的因子</span><br><span class="line">scheduler = <span class="built_in">CosineAnnealingWarmRestarts</span>(</span><br><span class="line">    optimizer, </span><br><span class="line">    T_0=<span class="number">1000</span>,  # 第一个周期的长度</span><br><span class="line">    T_mult=<span class="number">2</span>,  # 每次重启后周期长度翻倍</span><br><span class="line">    eta_min=<span class="number">0.0001</span>  # 最小学习率</span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"># 在训练循环中使用</span><br><span class="line"><span class="keyword">for</span> epoch in <span class="built_in">range</span>(num_epochs):</span><br><span class="line">    <span class="keyword">for</span> batch in data_loader:</span><br><span class="line">        # 训练步骤</span><br><span class="line">        optimizer.<span class="built_in">zero_grad</span>()</span><br><span class="line">        outputs = <span class="built_in">model</span>(inputs)</span><br><span class="line">        loss = <span class="built_in">criterion</span>(outputs, targets)</span><br><span class="line">        loss.<span class="built_in">backward</span>()</span><br><span class="line">        optimizer.<span class="built_in">step</span>()</span><br><span class="line">        </span><br><span class="line">        # 更新学习率</span><br><span class="line">        scheduler.<span class="built_in">step</span>()</span><br></pre></td></tr></table></figure></p></li>
-</ul>
-]]></content>
-      <tags>
-        <tag>LLM</tag>
-        <tag>学习率</tag>
-        <tag>模型训练</tag>
-        <tag>余弦退火</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>卡尔曼滤波</title>
-    <url>/posts/b654ab75/</url>
-    <content><![CDATA[<p>  <strong>卡尔曼滤波</strong>（Kalman filter）是一种高效率的<a href="https://www.wikiwand.com/zh-hans/递归滤波器">递归滤波器</a>（<a href="https://www.wikiwand.com/zh-hans/自迴歸模型">自回归</a>滤波器），它能够从一系列的不完全及包含<a href="https://www.wikiwand.com/zh-hans/雜訊_(通訊學)">杂讯</a>的<a href="https://www.wikiwand.com/zh-hans/测量">测量</a>中，估计<a href="https://www.wikiwand.com/zh-hans/动态系统">动态系统</a>的状态。卡尔曼滤波会根据各测量量在不同时间下的值，考虑各时间下的<a href="https://www.wikiwand.com/zh-hans/联合分布">联合分布</a>，再产生对未知变数的估计，因此会比只以单一测量量为基础的估计方式要准。卡尔曼滤波得名自主要贡献者之一的<a href="https://www.wikiwand.com/zh-hans/鲁道夫·卡尔曼">鲁道夫·卡尔曼</a>，最早用于解决阿波罗计划的轨道预测问题。
-<span id="more"></span>
-  上面的定义摘自维基百科，是对卡尔曼滤波的专业阐述，为了便于理解通过下面两个例子来对卡尔曼滤波有个大致的了解。</p>
-<p>  航天器的发动机能够在足够高的温度下燃烧燃料，为航天器提供足够的动力，航天器发动机燃烧室在燃烧时温度可以达到数千摄氏度，过高的温度可能会损坏发动机的机械部件，导致火箭发射失败，因此需要密切关注火箭燃烧室的内部温度，显然在燃烧室内部放置温度传感器会直接被融化。此时，无法直接测量燃烧室的内部温度，基于这种情况，可以在燃烧室外放置一个温度传感器测量燃烧室的外部温度，使用卡尔曼滤波器利用外部温度来估算燃烧室的内部温度。</p>
-<p>  这是卡尔曼滤波器一种使用方式：</p>
-<blockquote>
-<p>  当系统的状态无法通过直接测量得到但是可以间接测量时，可以使用卡尔曼滤波通过间接测量值来估算系统的状态。
-总所周知，汽车的导航系统使用<code>车载传感器（Onboard sensors）</code>得到汽车的当前位置并导航到目的地。常用的车载传感器有：<code>惯性测量单元（Inertial measurement unit,IMU）</code>使用加速度计和陀螺仪来测量汽车的加速度和角速度；<code>里程表(Odometer)</code>测量汽车的相对行驶距离；<code>GPS接收器(GPS receiver)</code>接收来自GPS卫星的信号，来确定汽车在地球表面的位置。</p>
-</blockquote>
-<blockquote>
-<p>  IMU中的加速度计提供了汽车当前的加速度大小及方向，但是想要获得汽车的位置，需要对加速度进行两次积分（<span class="math inline">\(s =\iint
-a(t)dt\)</span>）得到汽车的位置，数值积分算法在计算位置时会存在微小的误差并且会随着时间的累积会不断，最终产生积分漂移，完全偏离汽车的正确位置；里程表容易受到轮胎压力和道路状况的影响；而GPS位置跟新速度慢，而且会存在一定噪声，最大问题还是在车辆通过隧道或车库时，信号很差，甚至无法接收到信号。三种车载传感器各自有各自的局限和优势，只用单独一种传感器进行定位效果都不尽如人意，此时可以使用卡尔曼滤波融合三种传感器得到汽车位置的最优估计值。</p>
-</blockquote>
-<p>  这是卡尔曼滤波的另一种使用方式：</p>
-<blockquote>
-<p>组合各种可能受到噪声影响的传感器测量值，得到一个最优的估计值。</p>
-</blockquote>
-<p>  卡尔曼滤波主要应用于高精度传感系统中，在时下大热的机器人、无人机、自动导航都有着应用，由于其递归的特性（即只要获知上一时刻状态的估计值以及当前状态的观测值就可以计算出当前状态的估计值），因此不需要记录观测或者估计的历史信息。与大多数滤波器不同之处，卡尔曼滤波器是一种纯粹的<a href="https://www.wikiwand.com/zh-hans/時域">时域</a>滤波器，它不需要像<a href="https://www.wikiwand.com/zh-hans/低通滤波器">低通滤波器</a>等<a href="https://www.wikiwand.com/zh-hans/频域">频域</a>滤波器那样，需要在频域设计再转换到时域实现。</p>
-<p>  其本质思想是采用信号与噪声的状态空间模型，利用前一时刻地估计值和现时刻的观测值来更新对状态变量的估计，求出现时刻的估计值，它适合于实时处理和计算机运算。下面我们一步步来解开卡尔曼滤波的神秘面纱。</p>
-<hr>
-<h3 id="隐马尔可夫">隐马尔可夫</h3>
-<h4 id="随机过程">随机过程</h4>
-<p>  随机过程被认为是概率论的“动力学”部分，其研究对象是随时间演变的随机现象。对于这种现象，已不能用随机变量或多维随机变量来合理表达，而需要一族（无限多个）随机变量来描述。高等教育出版社的《概率论和数理统计》第四版是这样定义随机过程：</p>
-<blockquote>
-<p>  设<span class="math inline">\(T\)</span>是一无限实数集，我们把依赖于参数<span class="math inline">\(t\in
-T\)</span>的一族随机变量称为<code>随机过程</code>，记为<span class="math inline">\(\{X(t),t\in T\}\)</span>,其中对<span class="math inline">\(\forall t \in T,X(t)\)</span>是一随机变量，<span class="math inline">\(T\)</span>叫做<code>参数集</code>。通常把<span class="math inline">\(t\)</span>看作时间，称<span class="math inline">\(X(t)\)</span>为时刻<span class="math inline">\(t\)</span>时过程的状态，而<span class="math inline">\(X(t_1)=x,x \in R\)</span>定义为<span class="math inline">\(t=t_1\)</span>时过程处于状态<span class="math inline">\(x\)</span>，对于<span class="math inline">\(\forall t\in
-T,X(t)\)</span>的所有可能取一切值的全体称为随机过程的<code>状态空间</code>，<code>泊松过程</code>和<code>维纳过程</code>都是典型的随机过程，篇幅有限这里不做进一步展开，有兴趣的读者可以自行Google。</p>
-</blockquote>
-<h4 id="马尔可夫过程">马尔可夫过程</h4>
-<p>  一个随机过程在时刻<span class="math inline">\(t_0\)</span>所处的状态为已知的条件下，随机过程在时刻<span class="math inline">\(t（t&gt;t_0)\)</span>所处的状态与其在时刻<span class="math inline">\(t_0\)</span>之前所处的状态无关。简而言之，就是“将来”仅依赖于”现在”与“过去”无关。我们称这种特性为<code>马尔可夫性</code>或无后效性。而这种具有马尔可夫性质的随机过程称之为<code>马尔可夫过程</code>，可以推出，泊松过程是时间连续状态离散的马尔可夫过程，而维纳过程则是时间状态都连续的马尔可夫过程。对于时间和状态都是离散的马尔可夫过程就是构成卡尔曼滤波的重要基石<code>马尔可夫链</code>：</p>
-<p>  对于随机过程<span class="math inline">\({X_n,n=1,2,\cdots}\)</span>,若其条件概率分布满足:
-<span class="math display">\[
-P\{X_{n+1}=x_{n+1}|X_n=x_n,\cdots,X_1=x_1\}=P\{X_{n+1}=x_{n+1}|X_n=x_n\}
-\]</span>，则称此随机过程为马尔可夫链。</p>
-<h4 id="状态转移矩阵">状态转移矩阵</h4>
-<p>  在马尔可夫链中，从一个状态转移到另一个状态的概率称为状态转移概率，如果系统的可能状态是有限的，例如有<span class="math inline">\(K\)</span>个状态，则状态转移概率构成一个<span class="math inline">\(K\times K\)</span>的状态转移矩阵： <span class="math display">\[P=\left[ \begin{matrix}   p_{11} &amp; p_{12}
-&amp; \cdots &amp; p_{1K} \\ p_{21} &amp; p_{22} &amp; \cdots &amp;
-p_{2K}\\ \cdots &amp; \cdots &amp; \cdots &amp;\cdots \\ p_{K1} &amp;
-p_{K2} &amp; \cdots &amp; p_{KK}\end{matrix}  \right]\]</span>
-其中矩阵的每一行的和为1，该矩阵是一个随机矩阵，任何一个随机矩阵都可以作为状态转移矩阵
-。</p>
-<h4 id="隐马尔可夫模型">隐马尔可夫模型</h4>
-<p>  在马尔可夫模型中，系统的状态是直接可见的，这样状态的转移概率就可以构成该系统的全部参数。但是，在实际生活中更多的情况是：系统状态并不是直接可见，我们往往只能观测到受状态影响的某些变量。显然对这些可观测到的变量使用马尔可夫模型对系统进行状态分析是不严谨的。为此，对于这种含有隐含未知参数的马尔可夫过程，数学家通过随机过程可观察的参数确定该过程的隐含参数，然后利用这些参数来作进一步分析，这也是大名鼎鼎的<code>隐马尔可夫模型（Hidden Markov model，HMM）</code>的本质，至于隐马尔可夫模型的更多详细内容，如果进行展开的话，需要花费大量篇幅，在此先不做展开。隐马尔可夫模型在语音识别和模式识别领域都有着应用，而卡尔曼滤波也是构建在隐马尔可夫模型之上的。</p>
-<h3 id="线性卡尔曼滤波">线性卡尔曼滤波</h3>
-<p>  <code>卡尔曼滤波是一个递归滤波器，其算法本质是通过动态系统的有限个观测值，估计动态系统的隐藏状态。</code>接下来，我们从动态系统的状态空间模型开始，一步步推导卡尔曼滤波算法。</p>
-<h4 id="状态空间模型">状态空间模型</h4>
-<p>  动态系统都具有一个基本特征：系统的状态，那么什么是系统的状态呢，其定义如下：</p>
-<blockquote>
-<p>  一个随机动态系统的状态被定义为最少量的信息，这些信息包含过去作用于该系统的输入的影响，并足以完全描述系统将来的行为。（该定义截取自机械工业出版社译制的《神经网络与机器学习》第三版
-第十四章 动态系统状态估计的贝叶斯滤波）</p>
-</blockquote>
-<p>  通常我们使用状态空间模型来描述动态系统状态对外部世界的影响，一般而言，状态空间模型分为两个部分：</p>
-<blockquote>
-<ul>
-<li><p>系统模型</p>
-<p>  系统模型使用时域函数来描述动态系统状态的演变，其数学表示为一阶马尔可夫链：<span class="math inline">\(x_{n+1}=\zeta_{n}(x_n,\omega_n)\)</span>，其中<span class="math inline">\(n\)</span>表示离散时间，向量<span class="math inline">\(x_n\)</span>表示动态系统当前的状态，向量<span class="math inline">\(x_{n+1}\)</span>表示下一状态的值，向量<span class="math inline">\(\omega_n\)</span>表示过程噪声，<span class="math inline">\(\zeta\)</span>为<span class="math inline">\(x_n,\omega_n\)</span>的向量函数，会随时间改变。</p></li>
-<li><p>测量模型</p>
-<p>  测量模型描述了动态系统状态对外部世界的影响，公式如下：<span class="math inline">\(y_n = \xi(x_n,v_n)\)</span>，其中向量<span class="math inline">\(y_n\)</span>表示外部世界对动态系统的一组观测值，向量<span class="math inline">\(v_n\)</span>是外部世界噪声的测量值，<span class="math inline">\(\xi\)</span>是<span class="math inline">\(x_n,v_n\)</span>的向量函数，会随时间改变。</p></li>
-</ul>
-</blockquote>
-<p>  对于状态空间模型，有着如下假设：</p>
-<blockquote>
-<ul>
-<li>动态系统的任意时刻<span class="math inline">\(k\)</span>,其过程噪声<span class="math inline">\(\omega_k\)</span>与初始状态<span class="math inline">\(x_0\)</span>无关；</li>
-<li>动态系统的过程噪声<span class="math inline">\(\omega_n\)</span>于测量噪声<span class="math inline">\(v_n\)</span>是统计独立，也就是说对<span class="math inline">\(\forall i,j\)</span>都有<span class="math inline">\(E[\omega_iv_j^T]=0\)</span>成立；</li>
-</ul>
-</blockquote>
-<p>  一般而言，跟状态与状态之间的是否为线性关系及过程噪声、测量噪声二者是否服从高斯分布将状态空间模型分为四大类：</p>
-<blockquote>
-<ul>
-<li>线性高斯模型</li>
-<li>线性非高斯模型</li>
-<li>非线性高斯模型</li>
-<li>非线性非高斯模型</li>
-</ul>
-</blockquote>
-<p>  显然不管是非线性还是非高斯或二者兼之的状态空间模型，其处理难度是远高于线性高斯模型的，我们先来处理最简单的状态空间模型——线性高斯模型。</p>
-<h4 id="线性卡尔曼滤波的理论推导">线性卡尔曼滤波的理论推导</h4>
-<p>对于线性高斯模型，其状态空间模型可设为如下形式：</p>
-<p><span class="math display">\[
-\begin{cases}
-x_{n}=A_{n}x_{n-1}+\omega_{n} \\
-y_n = H_nx_n+v_n
-\end{cases}
-\]</span>   其中<span class="math inline">\(\omega_n\sim N(0,Q),v_n\sim
-N(0,R)\)</span>，<span class="math inline">\(A_{n+1}\)</span>是动态系统从状态<span class="math inline">\(x_n\)</span>到<span class="math inline">\(x_{n+1}\)</span>的状态转移矩阵，<span class="math inline">\(H_n\)</span>是测量矩阵，表示系统状态<span class="math inline">\(x_n\)</span>对<span class="math inline">\(y_n\)</span>的增益，将系统状态映射到外部世界。</p>
-<p>  考虑到动态系统会受到系统中已知的控制器的控制信息的影响，需要在系统模型中加入这部分信息，修正后的状态空间模型如下：</p>
-<p><span class="math display">\[
-\begin{cases}
-x_{n}=A_{n}x_{n-1}+B_{n}\mu_{n}+\omega_{n} \\ y_n = H_nx_n+v_n
-\end{cases}
-\]</span> 其中<span class="math inline">\(\mu_n\)</span>是系统的控制器向量，<span class="math inline">\(B_n\)</span>是系统的控制向量。</p>
-<p>  为方便进行推导，定义<span class="math inline">\(\hat{x}^{-}_k \in
-R^n\)</span>（<span class="math inline">\(^-\)</span>代表先验,^代表估计）为在已知第<span class="math inline">\(k\)</span>步以前状态情况下第<span class="math inline">\(k\)</span>步的先验状态估计。定义<span class="math inline">\(\hat{x}_k\in R^n\)</span>为已知观测变量<span class="math inline">\(y_k\)</span>时，第<span class="math inline">\(k\)</span>步的后验估计状态，由此定义先验估计误差和后验估计误差：</p>
-<p><span class="math display">\[
-\begin{cases}
-  e_k^-\equiv{x_k-\hat{x}_k^-} \\ e_k\equiv{x_k-\hat{x}_k}
-\end{cases}
-\]</span> 先验估计误差的协方差为：</p>
-<p><span class="math display">\[
-P_k^-=E[e_k^-{e_k^-}^T]
-\]</span> 后验误差估计的协方差为： <span class="math display">\[
-P_k=E[e_ke_k^T]
-\]</span>   显然<span class="math inline">\(P_k^-\)</span>是真实值和预测值之间的协方差，<span class="math inline">\(P_k\)</span>是真实值和最优估计值之间的协方差。卡尔曼滤波的核心就是如何根据<span class="math inline">\(k-1\)</span>时刻的最优状态估计<span class="math inline">\(\hat{x}_{k-1}\)</span>和第<span class="math inline">\(k\)</span>时刻的观测值<span class="math inline">\(y_k\)</span>得到<span class="math inline">\(k\)</span>时刻的最优状态估计值<span class="math inline">\(\hat{x}_k\)</span>,显然根据定义<span class="math inline">\(P_k\)</span>越小，估计值越接近于真实值，此时，只需求解当前条件下使得<span class="math inline">\(P_k\)</span>最小的状态估计值即是当前时刻状态的最优估计值。利用上文修正后的状态空间模型的系统模型得到<span class="math inline">\(k\)</span>时刻状态的预测值<span class="math inline">\(\hat{x}_k^-=A\hat{x}_{k-1}+B\mu_k\)</span>，为了得到<span class="math inline">\(k\)</span>时刻的最小协方差<span class="math inline">\(P_k\)</span>，卡尔曼滤波定义参数卡尔曼增益<span class="math inline">\(K=\frac{\hat{x}_k-\hat{x}_k^-}{y_k-H\hat{x}_k^-}\)</span>，其中，观测向量及其预测之差<span class="math inline">\(y_k-H\hat{x}_k^-\)</span>被称为测量过程的新息或残余。新息反应了预测值和实际值之间的不一致程度，为零时表明二者完全吻合，推导过程如下。</p>
-<hr>
-<p>由卡尔曼增益的定义式变形得到:</p>
-<p><span class="math display">\[\hat{x}_k=\hat{x}_k^-+K(y_k-H\hat{x}_k^-)\]</span></p>
-<p>将状态空间模型的观测模型代入得到:</p>
-<p><span class="math display">\[\hat{x}_k=\hat{x}_k^-+K(Hx_k
-+v_k-H\hat{x}_k^-)\]</span></p>
-<p>进一步整理变换得到:</p>
-<p><span class="math display">\[\hat{x}_k-x_k=\hat{x}_k^—x_k+KH(x_k-\hat{x}_k^-)+Kv_k\]</span></p>
-<p>结合先验估计误差和后验估计误差的定义可知:</p>
-<p><span class="math display">\[e_k=(I-KH)e_k^-+Kv_k\]</span></p>
-<p>代入后验误差协方差的定义计算得到:</p>
-<p><span class="math display">\[P_k=E[e_ke_k^T]=
-E[[(I-KH)e_k^—Kv_k][(I-KH)e_k^—Kv_k]^T]\]</span></p>
-<p>展开可知:</p>
-<p><span class="math display">\[P_k=P^-_k-KHP^-_k-P^-_kH^TK^T+K(HP^-_kH^T+R)K^T=P(K)\]</span></p>
-<p>要求<span class="math inline">\(P_k\)</span>的最小值，结合上式对卡尔曼增益<span class="math inline">\(K\)</span>求偏导，得到：</p>
-<p><span class="math display">\[\frac{\partial{P_k}}{\partial{K}}=-2P^-_kH^T+2KHP_k^-H^T+2KR\]</span></p>
-<blockquote>
-<p>  需要注意的是，因为涉及到矩阵导数，与常规导数求导略有不同，有兴趣的读者，可以结合下面的矩阵求导规则进行求导：</p>
-<p>若<span class="math inline">\(Y=AX\)</span>,则<span class="math inline">\(\frac{d{Y}}{d{X}}=A^T\)</span>；</p>
-<p>若<span class="math inline">\(Y=XA\)</span>,则<span class="math inline">\(\frac{d{Y}}{d{X}}=A\)</span>；</p>
-<p>若<span class="math inline">\(Y=A^TXB\)</span>,则<span class="math inline">\(\frac{d{Y}}{d{X}}=AB^T\)</span>；</p>
-<p>若<span class="math inline">\(Y=A^TX^TB\)</span>,则<span class="math inline">\(\frac{d{Y}}{d{X}}=BA^T\)</span>；</p>
-<p>若<span class="math inline">\(Y=X^TX\)</span>,则<span class="math inline">\(\frac{d{Y}}{d{X}}=\)</span>X；</p>
-<p>若<span class="math inline">\(Y=AX^T\)</span>,则<span class="math inline">\(\frac{d{Y}}{d{X}}=A\)</span>；</p>
-<p>若<span class="math inline">\(Y=u(X)^Tv(X)\)</span>,则<span class="math inline">\(\frac{d{uv}}{d{X}}=\frac{du^T}{dX}v+\frac{dv^T}{X}u\)</span>；</p>
-</blockquote>
-<p>令<span class="math inline">\(\frac{\partial{P_k}}{\partial{K}}=0\)</span>，求解得到:</p>
-<p><span class="math display">\[K=\frac{P^-_kH^T}{HP^-_KH^T+R}\]</span></p>
-<blockquote>
-<p>直观来看，一方面：</p>
-<p><span class="math display">\[\lim\limits_{R\to0}K=\lim\limits_{R\to0}\frac{P_k^-H^T}{HP_k^-H^T+R}=H^{-1}\]</span></p>
-<p>即，随着观测噪声协方差 <span class="math inline">\(R\)</span>的减小，卡尔曼增益逐渐增大，当<span class="math inline">\(R=0\)</span>时，取得最大值<span class="math inline">\(H^{-1}\)</span>;</p>
-<p>另一方面：</p>
-<p><span class="math display">\[\lim\limits_{P_k^-\to0}K=0\]</span></p>
-<p>即，随着先验估计协方差<span class="math inline">\(P_k^-\)</span>的减小，卡尔曼增益随之减小，当<span class="math inline">\(P_k^-=0\)</span>时，取得最小值0；</p>
-<p>结合卡尔曼增益的定义可知，<code>卡尔曼增益实际上表征了状态最优估计过程中模型预测误差与量测误差的比重，随着观测噪声协方差趋近于零，模型中预测误差的比重越来越大，此时模型更信任模型中观测值的信息；另一方面，随着先验估计误差协方差趋近于零，模型中预测误差的比重越来越小，此时模型更信任模型中预测值的信息。</code></p>
-</blockquote>
-<p>代入矩阵函数<span class="math inline">\(P(K)\)</span>得到：</p>
-<p><span class="math display">\[P_k=(I-KH)P_k^-\]</span></p>
-<p>至此，我们已经得到了第<span class="math inline">\(k\)</span>时刻最优状态估计值为：</p>
-<p><span class="math display">\[\hat{x}_k
-=\hat{x}_k^-+K(y_k-H\hat{x}_k^-)\]</span></p>
-<p>  但是，到了这一步问题仍然没有得到解决，因为在计算<span class="math inline">\(k\)</span>时刻的卡尔曼增益时，仍有一个值未确定的：先验估计的协方差矩阵<span class="math inline">\(P_k^-\)</span>，在计算<span class="math inline">\(P_k^-\)</span>之前，需要先计算先验误差：</p>
-<p><span class="math display">\[
-e^-_k=x_k-\hat{x}_k^-=(Ax_{k-1}+B\mu_k+\omega_k)-(A\hat{x}_{k-1}+Bu_k)=Ae_{k-1}+\omega_k
-\]</span> 因为</p>
-<p><span class="math display">\[
-P_k^-=E[e_k^-{e_k^-}^T]=E[(Ae_{k-1}+\omega_k)(Ae_{k-1}+\omega_k)^T]=E[Ae_{k-1}e_{k-1}^TA^T]+E[\omega_k\omega_k^T]
-\]</span> 得到：</p>
-<p><span class="math display">\[P_k^-=AP_{k-1}A^T+Q\]</span></p>
-<p>到这步，卡尔曼滤波形成一个完整的理论闭环。</p>
-<h3 id="离散线性卡尔曼滤波算法">离散线性卡尔曼滤波算法</h3>
-<p>  卡尔曼滤波器采用反馈控制的方法来估计过程状态：滤波器估计过程某一时刻的状态，然后以（含噪声的）观测变量的方式获得反馈。因此卡尔曼滤波器可分为两个部分：</p>
-<h4 id="时间更新方程"><code>时间更新方程</code></h4>
-<p>  时间更新方程负责及时向前推算当前状态变量和误差协方差估计的值，以便为下一个时间状态构造先验估计，其数学表示如下：
-<span class="math display">\[
-\hat x_k^- = A \hat x_{k-1}+B\hat \mu_k+w_k \\
-P_{k}^-=AP_{k-1}A^T+Q
-\]</span></p>
-<h4 id="测量更新方程"><code>测量更新方程</code></h4>
-<p>  测量更新方程负责反馈——也就是说，它将先验估计
-和新的测量变量结合以构造改进的后验估计，其数学表示如下：</p>
-<p><span class="math display">\[K_k=P^-_kH^T(HP^-_kH^T+R)^{-1}\]</span></p>
-<p><span class="math display">\[Z_k=Hx_k+v_k\]</span></p>
-<p><span class="math display">\[\hat x = \hat x_k^{-}+K_k(Z_k-H\hat
-x_k^{-})\]</span></p>
-<p><span class="math display">\[P_k=(I-K_kH)P_k^{-}\]</span></p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">离散线性卡尔曼滤波器的递归计算过程如下图：</span><br></pre></td></tr></table></figure>
-<p><img src="1.jpg" alt="离散卡尔曼滤波的递归过程">
-  时间更新方程将当前状态变量作为先验估计及时地向前投射到测量更新方程，测量更新方程校正先验估计以获得状态的后验估计。完成时间更新方程和测量更新方程的一轮更新之后，再次重复这个过程，将上一次计算得到的后验估计作为下一次计算的先验估计。</p>
-<h4 id="卡尔曼滤波器参数分析">卡尔曼滤波器参数分析</h4>
-<p>  在实现卡尔曼滤波器算法时，会涉及到很多参数，如下：</p>
-<blockquote>
-<p><span class="math inline">\(x_0\)</span>：动态系统的初始状态变量<span class="math inline">\(x_0\)</span>一般直接取第一个测量值<span class="math inline">\(z_0\)</span>；</p>
-<p><span class="math inline">\(P_0\)</span>：系统初始状态变量<span class="math inline">\(x_0\)</span>的协方差，只要初始值不为零，初始协方差矩阵的取值对滤波效果影响很小，都能很快收敛；</p>
-<p><span class="math inline">\(A\)</span>：状态转移矩阵，是根据经验对下一个时间周期目标状态的
-一种预测。在某些情况下，这种预测是确定的，而另一些情况下
-这种预测是未知的；</p>
-<p><span class="math inline">\(B\)</span>：输入控制矩阵，作用在控制向量<span class="math inline">\(\mu_k\)</span>上的<span class="math inline">\(n\times1\)</span>输入控制矩阵，由于控制信息是已知的，一般很好确定；
-<span class="math inline">\(H\)</span>：<span class="math inline">\(m\times n\)</span>观测模型矩阵，
-负责将系统的真实状态映射到观测空间，根据动态系统很容易确定；</p>
-<p><span class="math inline">\(P ^-\)</span>：为<span class="math inline">\(n\times n\)</span>先验估计误差协方差矩阵，由<span class="math inline">\(P_0\)</span>递归即可得到；</p>
-<p><span class="math inline">\(P\)</span> ：为<span class="math inline">\(n×n\)</span>后验估计误差协方差矩阵，由<span class="math inline">\(P_0\)</span>递归即可得到；</p>
-<p><span class="math inline">\(Q\)</span>：<span class="math inline">\(n\times n\)</span>过程噪声<span class="math inline">\(\omega_n\)</span>是的协方差矩阵
-，当动态系统的状态转换过程确定时，<span class="math inline">\(Q\)</span>是一个确定的值，此时，可通过离线测试确定对于某个过程的最优<span class="math inline">\(Q\)</span>值，一般来说，当状态转换过程为已确定时，<span class="math inline">\(Q\)</span> 的取值越小越好。 当 <span class="math inline">\(Q\)</span>
-取值逐渐增大时，滤波收敛变慢，且状态变量的扰动变大。当系统的动态转换过程是不确定的，随时间变化，此时<span class="math inline">\(Q\)</span>不再是一个确定值，而是一个随时间变化的变量<span class="math inline">\(Q(k)\)</span>，此时的卡尔曼滤波为自适应卡尔曼滤波，关于自适应卡尔曼滤波的更详细内容请参考此文—<a href="http://read.pudn.com/downloads76/ebook/285147/Paper/pdf/y8576770004.pdf">自适应卡尔曼滤波技术</a>，在此不做进一步展开；</p>
-<p><span class="math inline">\(R\)</span>：<span class="math inline">\(m\times m\)</span>测量噪声<span class="math inline">\(v_n\)</span>协方差矩阵，
-跟系统外部环境的测量仪器相关，一般很难获得改值，根据平时的使用经历来看:</p>
-<blockquote>
-<p><span class="math inline">\(R\)</span>取值过小或过大都会使滤波效果变差；</p>
-<p><span class="math inline">\(R\)</span>取值越小收敛越快，反之收敛越慢；</p>
-<p>一般离线得到合适的<span class="math inline">\(R\)</span>值，再代入滤波器中；</p>
-</blockquote>
-<p><span class="math inline">\(I\)</span>：<span class="math inline">\(n\times n\)</span> 单位矩阵</p>
-<p><span class="math inline">\(K\)</span>:<span class="math inline">\(n×m\)</span>阶矩阵， 卡尔曼增益</p>
-</blockquote>
-<p>  关于卡尔曼滤波参数的更详细内容，由于篇幅有限，只做了简单的描述，但是卡尔曼滤波器参数的确定却是重中之重，直接影响到算法的效果，要进行实际应用的读者可结合<a href="http://file.elecfans.com/web1/M00/80/05/pIYBAFwnp8uAL-vDAAZFhhuu8y8385.pdf">卡尔曼滤波器参数分析与应用方法研究</a>一文，来做进一步讨论。</p>
-<h3 id="发散现象及平方根滤波">发散现象及平方根滤波</h3>
-<h4 id="发散现象">发散现象</h4>
-<p>  线性卡尔曼滤波基于线性高斯状态空间模型的假设推导的，但是在实际应用时动态系统不一定完全满足这些假定，这会儿导致卡尔曼滤波的不稳定，这也叫卡尔曼滤波的发散现象，另外在计算时如果数值不太精确也会产生发散现象。</p>
-<h4 id="平方根滤波">平方根滤波</h4>
-<p>  一个数学上优美且计算可行的，解决卡尔曼滤波发散问题的方法是使用平方根滤波，其本质思想是对卡尔曼滤波进行修正，在算法的每一次循环中使用数值稳定的正交变换。具体而言，就是使用乔里斯基分解将卡尔曼滤波的误差协方差矩阵转换为其平方根形式。理论推导部分可以参考机械工业出版社的《神经网络与机器学习》
-第十四章 动态系统状态估计的贝叶斯滤波
-中的平方根滤波部分，在此不做推导。</p>
-]]></content>
-      <tags>
-        <tag>卡尔曼滤波</tag>
-        <tag>马尔可夫链</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>傅立叶变换</title>
     <url>/posts/684f5543/</url>
     <content><![CDATA[<p>  希尔伯特空间是一个完备的内积空间，其标准正交函数系，直观来看就是向量空间中<code>基</code>的延伸。其为基于任意正交系上的多项式表示的傅立叶级数和傅立叶变换提供了一种有效的表述方式，而这也是泛函分析的核心概念之一。下文中我们将通过希尔伯特空间的标准正交函数系推导周期函数和有限区间上函数的傅立叶级数表示，并进一步推出傅里叶积分来表示无穷区间的非周期函数，最后引入复数形式的傅立叶积分，引出傅立叶变换。在这一系列推导中，鉴于篇幅，主动略去了一些比较关键的部分，比如<span class="math inline">\(f(x)\)</span>可积性及级数收敛性的讨论，有兴趣的读者可以在了解大致原理后，进行细致的理论推导以作补充。为了便于理解希尔伯特空间的概念，引用维基百科中的定义：
@@ -764,189 +437,228 @@ f(b)-f(a)=f^\prime(\xi)(b-a)
       </tags>
   </entry>
   <entry>
-    <title>机器视觉之基本概念</title>
-    <url>/posts/781628f/</url>
-    <content><![CDATA[<p>  主要记录机器视觉领域的一些基本概念及一些实践中的tricks。
-<span id="more"></span></p>
-<h2 id="ccd">CCD</h2>
-<p>  CCD（Charge-Coupled
-Device）即电荷耦合器件,通常称为CCD图像传感器，是一种半导体器件，当入射光线照射到CCD芯片上的感光单元（微小光敏物质，即像素（Pixel）），光子会被转为电子，这些电子在像素内累计形成电荷。一块CCD芯片上包含的感光单元越多，其成像分辨率也就越高。其成像过程如下：</p>
-<ul>
-<li><p>光电转换</p>
-<p>入射光线通过光电二极管转换为电荷</p></li>
-<li><p>电荷积累</p>
-<p>光敏元件根据光强的不同积累不同数量的电荷</p></li>
-<li><p>电荷转移</p>
-<p>通过电荷转移机制，逐行、逐列将电荷移至输出放大器</p></li>
-<li><p>电压转换</p>
-<p>输出放大器将电荷信号转为电压信号，并传递给模数转换器（ADC），生成数字图像数据</p></li>
-</ul>
-<h2 id="cmos">CMOS</h2>
-<p>  CMOS（Complementary Metal-Oxide
-Semiconductor，互补金属氧化物半导体）成像原理与CCD成像原理类似，但CMOS成像器件的电荷转移和电压转换过程在同一块硅片上完成，因此CMOS成像器件的结构更加简单，成本更低，功耗更低，适用于高分辨率、低功耗的成像应用。</p>
-<p>CCD与CMOS成像器件的对比如下：</p>
-<table>
-<thead>
-<tr>
-<th style="text-align: center;">特性</th>
-<th style="text-align: center;">CCD</th>
-<th style="text-align: center;">CMOS</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td style="text-align: center;">图像质量</td>
-<td style="text-align: center;">高、噪声低，均匀性好</td>
-<td style="text-align: center;">略低，噪声高</td>
-</tr>
-<tr>
-<td style="text-align: center;">制造成本</td>
-<td style="text-align: center;">高</td>
-<td style="text-align: center;">低</td>
-</tr>
-<tr>
-<td style="text-align: center;">功耗</td>
-<td style="text-align: center;">高</td>
-<td style="text-align: center;">低</td>
-</tr>
-<tr>
-<td style="text-align: center;">读取速度</td>
-<td style="text-align: center;">较慢</td>
-<td style="text-align: center;">快</td>
-</tr>
-<tr>
-<td style="text-align: center;">动态范围</td>
-<td style="text-align: center;">宽</td>
-<td style="text-align: center;">较窄</td>
-</tr>
-<tr>
-<td style="text-align: center;">弱光性能</td>
-<td style="text-align: center;">优</td>
-<td style="text-align: center;">稍弱</td>
-</tr>
-</tbody>
-</table>
-<p>通常来说，CCD通常用于高端相机、科学研究和天文观测等对图像质量要求极高的领域，而CMOS则广泛应用于消费类设备（如智能手机摄像头）、监控设备和工业检测等场景，其成本低、功耗低和速度快更具优势。需要注意的是由于CCD采用全局曝光，而CMOS相机使用卷帘曝光，所以在拍摄运动目标时，优先考虑CCD传感器。</p>
-<blockquote>
-<p>Note 1.
-全局曝光是传感器上所有像素在同一时刻开启曝光并在同一时刻曝光结束，将物体某时刻的状态成像，对运动物体而言，类似于将物体冻结了，所以适合拍摄高速运动的物体。</p>
-</blockquote>
-<blockquote>
-<p>Note 2.
-卷帘曝光是逐行（hang）顺序开启曝光，不同行间曝光的开启时刻有个很小的延迟，所以不适合运动物体的拍摄。</p>
-</blockquote>
-<h2 id="像素">像素</h2>
-<p>  像素是构成数字图像的基本单位，相机靶面上的一个感光单元为一个像素，每个像素点都拥有色调和嫉恶调等色彩信息，规则排列的像素集合可以形成一张完整的图像。</p>
-<h2 id="像素直径">像素直径</h2>
-<p>  像素直径，也称像元尺寸指每个CCD元件的大小，通常使用<span class="math inline">\(\mu
-m\)</span>作为单位，严谨的说，此处的大小中包含了感光单元和信号传输通路，其与像素间距（即某个像素的中心到邻近一个像素的中心的距离）相同。如果像素直径较小，则图像将通过较小的像素进行描绘，因此可以获得更加精细的图像，显然通过像素间距和有效像素数可以直接求出CCD元件中感光区域的大小（即CCD元件的总面积）</p>
-<h2 id="相机靶面尺寸">相机靶面尺寸</h2>
-<p>  相机靶面尺寸指用于接收光信号的传感器的尺寸，指的是传感器（工作区域为矩形）对角线长度。一般分为采用英寸单位表示和采用APS-C大小等规格表示这2种方式。采用英寸表示时，该尺寸并不是拍摄的实际尺寸，而是相当于摄像管的对角长度。比如1/2英寸的CCD表示<strong>拥有相当于1/2英寸的摄像管的拍摄范围</strong>。z之所以会如此计算，是由于当初制造CCD的目的就是用于代替电视机、录像机的摄像管。而想要继续使用镜头等光学器件的需求比较强烈，由此诞生了这种奇怪的规格，主要的英寸规格如下表所示。</p>
-<table>
-<thead>
-<tr>
-<th style="text-align: center;">尺寸(英寸)</th>
-<th style="text-align: center;">对角长度(mm)</th>
-<th style="text-align: center;">拍摄区域(wxh,mm)</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td style="text-align: center;">2/3</td>
-<td style="text-align: center;">11</td>
-<td style="text-align: center;">8.8x6.6</td>
-</tr>
-<tr>
-<td style="text-align: center;">1/2</td>
-<td style="text-align: center;">8</td>
-<td style="text-align: center;">6.4x4.8</td>
-</tr>
-<tr>
-<td style="text-align: center;">1/3</td>
-<td style="text-align: center;">6</td>
-<td style="text-align: center;">4.8x3.6</td>
-</tr>
-<tr>
-<td style="text-align: center;">1/4</td>
-<td style="text-align: center;">4.5</td>
-<td style="text-align: center;">3.6x2.0</td>
-</tr>
-</tbody>
-</table>
-<h2 id="快门速度">快门速度</h2>
-<p>  快门速度在工业视觉中也称为曝光时间，表示CCD或CMOS感光元件中积累电荷的时间，单位为秒。快门速度越快，感光元件中积累电荷的时间越短，图像的亮度越低，图像的细节越少，图像的噪点越多。快门速度越慢，感光元件中积累电荷的时间越长，图像的亮度越高，图像的细节越多，图像的噪点越少。直观来看，快门速度可以用于调整光量。</p>
-<h2 id="曝光值">曝光值</h2>
-<p>  曝光值（EV，Exposure
-Value）是用于衡量图像整体亮度的一个综合指标，由一下三个主要因素决定：</p>
-<ul>
-<li>快门速度</li>
-</ul>
-<p>  控制光线进入的时间，决定了运动模糊的程度，曝光时间过长，如果相机的感光元件在曝光期间，被拍摄的物体发生了运动，导致在单帧中记录下了物体的移动轨迹。</p>
-<ul>
-<li>光圈（F值）</li>
-</ul>
-<p>  控制进入光线的量，决定了相机的景深</p>
-<ul>
-<li>感光度(ISO)</li>
-</ul>
-<p>  控制感光元件对光线的灵敏度</p>
-<p>其定义公式如下： <span class="math display">\[
-E_v = \log_2 \frac{N^2}{t}
-\]</span></p>
-<h2 id="增益">增益</h2>
-<p>  增益，是指将图像信号进行电子增幅的过程，增益越大，图像的亮度越高，但噪声也会随之增加。在暗区拍摄图像时，往往通过增加增益来提高图像的亮度，但也会导致图像噪声的增加。因此，在拍摄图像时，需要根据实际情况合理选择增益值，以达到最佳的图像质量。</p>
-<h2 id="面阵相机">面阵相机</h2>
-<p>  面阵相机（Area Scan
-Camera）指感光单元（像素）按矩阵形式排列的相机，其一次拍摄即可捕获整个二维图像，常见视觉检测场景基本都是使用面阵相机，也常用于结构光三维重建。</p>
-<h2 id="线阵相机">线阵相机</h2>
-<p>  线阵相机（Line Scan
-Camera）指感光单元（像素）按线性形式排列的相机，其一次拍摄只能捕获一行图像，成像时，需要通过移动相机或被检测物体来获取整个二维图像。相较于面阵相机，其拥有更高的分辨率，成像质量更高，同时需要配合编码器来配合触发拍照，并使用线型光源，常用于纸张、纺织品、金属板等表面缺陷检测场景。</p>
-<h2 id="通讯方式">通讯方式</h2>
-<h3 id="usb接口">USB接口</h3>
-<p>  支持热插拔、标准统一，可连接多个设备，同时相机也可以通过USB线缆供电</p>
-<h3 id="gige千兆以太网接口">Gige千兆以太网接口</h3>
-<p>  可以简单方便的进行多相机设置，支持100米线材输出，是一种基于千兆以太网通信协议开发的相机接口标准</p>
-<h3 id="cameralink接口">Cameralink接口</h3>
-<p>  专门针对高速图像数据传输设计的通讯接口，是一种串行通讯协议，采用LVDS接口标准，传输速度快、抗干扰能力强、功耗低。</p>
-<h2 id="工作距离wd">工作距离（WD）</h2>
-<p>  指的是镜头的最下端到景物之间的距离。一般的镜头是可以看到无限远的，也就是说是没有上限的。</p>
-<figure>
-<img src="1.png" alt="相机成像结构">
-<figcaption aria-hidden="true">相机成像结构</figcaption>
-</figure>
-<h2 id="视场角fov">视场角（FOV）</h2>
-<p>  指镜头所能覆盖的范围。(相机实际拍摄到的区域尺寸)一个摄像机镜头能涵盖多大范围的景物，通常以角度来表示，这个角度就叫镜头的视角FOV。焦距越长，FOV越小，焦距越短，FOV越大</p>
-<h2 id="光圈">光圈</h2>
-<p>  光圈是一个用来控制光线透过镜头进入机身内感光面光量的装置。当光线不足时，我们把光圈调大，自然可以让更多光线进入相机，反之亦然。一般通过调整通光孔径大小来调节光圈，完整的光圈数值系列如下：F1，F1.4，F2，F2.8，F4，F5.6，F8，F11，F16，F22，F32，F44，F64。用F表示，以【镜头焦距f和通光孔径D的比值】(即，相对孔径的倒数，也就是“焦距÷有效孔径”)来衡量，每个镜头上都标有最大F值，例如：8mm/F1.4代表最大孔径D为5.7mm.
-&gt; F值越小、光圈越大、进光量越大；F值越大、光圈越小、进光量越小。</p>
-<h2 id="焦距">焦距</h2>
-<p>  焦距就是镜头到成像面的距离，比如：50mm镜头，8mm镜头还是75mm镜头等。这些就是镜头到成像面的距离，也就是焦距，单位是毫米。
-&gt;
-焦距的大小决定着视角大小，焦距越大，视角越小，观察范围越小；焦距越小，视角越大，观察范围也越大</p>
-<figure>
-<img src="2.png" alt="相机成像结构">
-<figcaption aria-hidden="true">相机成像结构</figcaption>
-</figure>
-<h2 id="景深">景深</h2>
-<p>  景深与视野相似，不同的是景深指的是纵深的范围，视野指的是横向的范围。在最小工作距离到最大工作距离之间的范围称为景深，景深内的物体都可以清晰成像。景深一般可以通过光圈调节，光圈越小，景深越大。景深与镜头使用光圈、镜头焦距、拍摄距离以及对像质的要求(表现为对容许弥散圆的大小)有关。在假定其它条件不变的情况下：</p>
-<ul>
-<li>光圈越大，景深越小；光圈越小，景深越大</li>
-<li>镜头焦距越长，景深越小；焦距越短，景深越大</li>
-<li>拍摄距离越远，景深越大；距离越近，景深越小</li>
-</ul>
-<p>  总而言之，对于对景深有要求的项目，尽可能使用小的光圈；在选择放大倍率的镜头时，在项目许可下尽可能选用低倍率镜头。如果项目要求比较苛刻时，倾向选择高景深的尖端镜头。</p>
-]]></content>
-      <tags>
-        <tag>相机</tag>
-        <tag>视觉</tag>
-        <tag>图像</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>初探Transformer架构</title>
     <url>/posts/a65e2a56/</url>
     <content><![CDATA[
 ]]></content>
+  </entry>
+  <entry>
+    <title>卡尔曼滤波</title>
+    <url>/posts/b654ab75/</url>
+    <content><![CDATA[<p>  <strong>卡尔曼滤波</strong>（Kalman filter）是一种高效率的<a href="https://www.wikiwand.com/zh-hans/递归滤波器">递归滤波器</a>（<a href="https://www.wikiwand.com/zh-hans/自迴歸模型">自回归</a>滤波器），它能够从一系列的不完全及包含<a href="https://www.wikiwand.com/zh-hans/雜訊_(通訊學)">杂讯</a>的<a href="https://www.wikiwand.com/zh-hans/测量">测量</a>中，估计<a href="https://www.wikiwand.com/zh-hans/动态系统">动态系统</a>的状态。卡尔曼滤波会根据各测量量在不同时间下的值，考虑各时间下的<a href="https://www.wikiwand.com/zh-hans/联合分布">联合分布</a>，再产生对未知变数的估计，因此会比只以单一测量量为基础的估计方式要准。卡尔曼滤波得名自主要贡献者之一的<a href="https://www.wikiwand.com/zh-hans/鲁道夫·卡尔曼">鲁道夫·卡尔曼</a>，最早用于解决阿波罗计划的轨道预测问题。
+<span id="more"></span>
+  上面的定义摘自维基百科，是对卡尔曼滤波的专业阐述，为了便于理解通过下面两个例子来对卡尔曼滤波有个大致的了解。</p>
+<p>  航天器的发动机能够在足够高的温度下燃烧燃料，为航天器提供足够的动力，航天器发动机燃烧室在燃烧时温度可以达到数千摄氏度，过高的温度可能会损坏发动机的机械部件，导致火箭发射失败，因此需要密切关注火箭燃烧室的内部温度，显然在燃烧室内部放置温度传感器会直接被融化。此时，无法直接测量燃烧室的内部温度，基于这种情况，可以在燃烧室外放置一个温度传感器测量燃烧室的外部温度，使用卡尔曼滤波器利用外部温度来估算燃烧室的内部温度。</p>
+<p>  这是卡尔曼滤波器一种使用方式：</p>
+<blockquote>
+<p>  当系统的状态无法通过直接测量得到但是可以间接测量时，可以使用卡尔曼滤波通过间接测量值来估算系统的状态。
+总所周知，汽车的导航系统使用<code>车载传感器（Onboard sensors）</code>得到汽车的当前位置并导航到目的地。常用的车载传感器有：<code>惯性测量单元（Inertial measurement unit,IMU）</code>使用加速度计和陀螺仪来测量汽车的加速度和角速度；<code>里程表(Odometer)</code>测量汽车的相对行驶距离；<code>GPS接收器(GPS receiver)</code>接收来自GPS卫星的信号，来确定汽车在地球表面的位置。</p>
+</blockquote>
+<blockquote>
+<p>  IMU中的加速度计提供了汽车当前的加速度大小及方向，但是想要获得汽车的位置，需要对加速度进行两次积分（<span class="math inline">\(s =\iint
+a(t)dt\)</span>）得到汽车的位置，数值积分算法在计算位置时会存在微小的误差并且会随着时间的累积会不断，最终产生积分漂移，完全偏离汽车的正确位置；里程表容易受到轮胎压力和道路状况的影响；而GPS位置跟新速度慢，而且会存在一定噪声，最大问题还是在车辆通过隧道或车库时，信号很差，甚至无法接收到信号。三种车载传感器各自有各自的局限和优势，只用单独一种传感器进行定位效果都不尽如人意，此时可以使用卡尔曼滤波融合三种传感器得到汽车位置的最优估计值。</p>
+</blockquote>
+<p>  这是卡尔曼滤波的另一种使用方式：</p>
+<blockquote>
+<p>组合各种可能受到噪声影响的传感器测量值，得到一个最优的估计值。</p>
+</blockquote>
+<p>  卡尔曼滤波主要应用于高精度传感系统中，在时下大热的机器人、无人机、自动导航都有着应用，由于其递归的特性（即只要获知上一时刻状态的估计值以及当前状态的观测值就可以计算出当前状态的估计值），因此不需要记录观测或者估计的历史信息。与大多数滤波器不同之处，卡尔曼滤波器是一种纯粹的<a href="https://www.wikiwand.com/zh-hans/時域">时域</a>滤波器，它不需要像<a href="https://www.wikiwand.com/zh-hans/低通滤波器">低通滤波器</a>等<a href="https://www.wikiwand.com/zh-hans/频域">频域</a>滤波器那样，需要在频域设计再转换到时域实现。</p>
+<p>  其本质思想是采用信号与噪声的状态空间模型，利用前一时刻地估计值和现时刻的观测值来更新对状态变量的估计，求出现时刻的估计值，它适合于实时处理和计算机运算。下面我们一步步来解开卡尔曼滤波的神秘面纱。</p>
+<hr>
+<h3 id="隐马尔可夫">隐马尔可夫</h3>
+<h4 id="随机过程">随机过程</h4>
+<p>  随机过程被认为是概率论的“动力学”部分，其研究对象是随时间演变的随机现象。对于这种现象，已不能用随机变量或多维随机变量来合理表达，而需要一族（无限多个）随机变量来描述。高等教育出版社的《概率论和数理统计》第四版是这样定义随机过程：</p>
+<blockquote>
+<p>  设<span class="math inline">\(T\)</span>是一无限实数集，我们把依赖于参数<span class="math inline">\(t\in
+T\)</span>的一族随机变量称为<code>随机过程</code>，记为<span class="math inline">\(\{X(t),t\in T\}\)</span>,其中对<span class="math inline">\(\forall t \in T,X(t)\)</span>是一随机变量，<span class="math inline">\(T\)</span>叫做<code>参数集</code>。通常把<span class="math inline">\(t\)</span>看作时间，称<span class="math inline">\(X(t)\)</span>为时刻<span class="math inline">\(t\)</span>时过程的状态，而<span class="math inline">\(X(t_1)=x,x \in R\)</span>定义为<span class="math inline">\(t=t_1\)</span>时过程处于状态<span class="math inline">\(x\)</span>，对于<span class="math inline">\(\forall t\in
+T,X(t)\)</span>的所有可能取一切值的全体称为随机过程的<code>状态空间</code>，<code>泊松过程</code>和<code>维纳过程</code>都是典型的随机过程，篇幅有限这里不做进一步展开，有兴趣的读者可以自行Google。</p>
+</blockquote>
+<h4 id="马尔可夫过程">马尔可夫过程</h4>
+<p>  一个随机过程在时刻<span class="math inline">\(t_0\)</span>所处的状态为已知的条件下，随机过程在时刻<span class="math inline">\(t（t&gt;t_0)\)</span>所处的状态与其在时刻<span class="math inline">\(t_0\)</span>之前所处的状态无关。简而言之，就是“将来”仅依赖于”现在”与“过去”无关。我们称这种特性为<code>马尔可夫性</code>或无后效性。而这种具有马尔可夫性质的随机过程称之为<code>马尔可夫过程</code>，可以推出，泊松过程是时间连续状态离散的马尔可夫过程，而维纳过程则是时间状态都连续的马尔可夫过程。对于时间和状态都是离散的马尔可夫过程就是构成卡尔曼滤波的重要基石<code>马尔可夫链</code>：</p>
+<p>  对于随机过程<span class="math inline">\({X_n,n=1,2,\cdots}\)</span>,若其条件概率分布满足:
+<span class="math display">\[
+P\{X_{n+1}=x_{n+1}|X_n=x_n,\cdots,X_1=x_1\}=P\{X_{n+1}=x_{n+1}|X_n=x_n\}
+\]</span>，则称此随机过程为马尔可夫链。</p>
+<h4 id="状态转移矩阵">状态转移矩阵</h4>
+<p>  在马尔可夫链中，从一个状态转移到另一个状态的概率称为状态转移概率，如果系统的可能状态是有限的，例如有<span class="math inline">\(K\)</span>个状态，则状态转移概率构成一个<span class="math inline">\(K\times K\)</span>的状态转移矩阵： <span class="math display">\[P=\left[ \begin{matrix}   p_{11} &amp; p_{12}
+&amp; \cdots &amp; p_{1K} \\ p_{21} &amp; p_{22} &amp; \cdots &amp;
+p_{2K}\\ \cdots &amp; \cdots &amp; \cdots &amp;\cdots \\ p_{K1} &amp;
+p_{K2} &amp; \cdots &amp; p_{KK}\end{matrix}  \right]\]</span>
+其中矩阵的每一行的和为1，该矩阵是一个随机矩阵，任何一个随机矩阵都可以作为状态转移矩阵
+。</p>
+<h4 id="隐马尔可夫模型">隐马尔可夫模型</h4>
+<p>  在马尔可夫模型中，系统的状态是直接可见的，这样状态的转移概率就可以构成该系统的全部参数。但是，在实际生活中更多的情况是：系统状态并不是直接可见，我们往往只能观测到受状态影响的某些变量。显然对这些可观测到的变量使用马尔可夫模型对系统进行状态分析是不严谨的。为此，对于这种含有隐含未知参数的马尔可夫过程，数学家通过随机过程可观察的参数确定该过程的隐含参数，然后利用这些参数来作进一步分析，这也是大名鼎鼎的<code>隐马尔可夫模型（Hidden Markov model，HMM）</code>的本质，至于隐马尔可夫模型的更多详细内容，如果进行展开的话，需要花费大量篇幅，在此先不做展开。隐马尔可夫模型在语音识别和模式识别领域都有着应用，而卡尔曼滤波也是构建在隐马尔可夫模型之上的。</p>
+<h3 id="线性卡尔曼滤波">线性卡尔曼滤波</h3>
+<p>  <code>卡尔曼滤波是一个递归滤波器，其算法本质是通过动态系统的有限个观测值，估计动态系统的隐藏状态。</code>接下来，我们从动态系统的状态空间模型开始，一步步推导卡尔曼滤波算法。</p>
+<h4 id="状态空间模型">状态空间模型</h4>
+<p>  动态系统都具有一个基本特征：系统的状态，那么什么是系统的状态呢，其定义如下：</p>
+<blockquote>
+<p>  一个随机动态系统的状态被定义为最少量的信息，这些信息包含过去作用于该系统的输入的影响，并足以完全描述系统将来的行为。（该定义截取自机械工业出版社译制的《神经网络与机器学习》第三版
+第十四章 动态系统状态估计的贝叶斯滤波）</p>
+</blockquote>
+<p>  通常我们使用状态空间模型来描述动态系统状态对外部世界的影响，一般而言，状态空间模型分为两个部分：</p>
+<blockquote>
+<ul>
+<li><p>系统模型</p>
+<p>  系统模型使用时域函数来描述动态系统状态的演变，其数学表示为一阶马尔可夫链：<span class="math inline">\(x_{n+1}=\zeta_{n}(x_n,\omega_n)\)</span>，其中<span class="math inline">\(n\)</span>表示离散时间，向量<span class="math inline">\(x_n\)</span>表示动态系统当前的状态，向量<span class="math inline">\(x_{n+1}\)</span>表示下一状态的值，向量<span class="math inline">\(\omega_n\)</span>表示过程噪声，<span class="math inline">\(\zeta\)</span>为<span class="math inline">\(x_n,\omega_n\)</span>的向量函数，会随时间改变。</p></li>
+<li><p>测量模型</p>
+<p>  测量模型描述了动态系统状态对外部世界的影响，公式如下：<span class="math inline">\(y_n = \xi(x_n,v_n)\)</span>，其中向量<span class="math inline">\(y_n\)</span>表示外部世界对动态系统的一组观测值，向量<span class="math inline">\(v_n\)</span>是外部世界噪声的测量值，<span class="math inline">\(\xi\)</span>是<span class="math inline">\(x_n,v_n\)</span>的向量函数，会随时间改变。</p></li>
+</ul>
+</blockquote>
+<p>  对于状态空间模型，有着如下假设：</p>
+<blockquote>
+<ul>
+<li>动态系统的任意时刻<span class="math inline">\(k\)</span>,其过程噪声<span class="math inline">\(\omega_k\)</span>与初始状态<span class="math inline">\(x_0\)</span>无关；</li>
+<li>动态系统的过程噪声<span class="math inline">\(\omega_n\)</span>于测量噪声<span class="math inline">\(v_n\)</span>是统计独立，也就是说对<span class="math inline">\(\forall i,j\)</span>都有<span class="math inline">\(E[\omega_iv_j^T]=0\)</span>成立；</li>
+</ul>
+</blockquote>
+<p>  一般而言，跟状态与状态之间的是否为线性关系及过程噪声、测量噪声二者是否服从高斯分布将状态空间模型分为四大类：</p>
+<blockquote>
+<ul>
+<li>线性高斯模型</li>
+<li>线性非高斯模型</li>
+<li>非线性高斯模型</li>
+<li>非线性非高斯模型</li>
+</ul>
+</blockquote>
+<p>  显然不管是非线性还是非高斯或二者兼之的状态空间模型，其处理难度是远高于线性高斯模型的，我们先来处理最简单的状态空间模型——线性高斯模型。</p>
+<h4 id="线性卡尔曼滤波的理论推导">线性卡尔曼滤波的理论推导</h4>
+<p>对于线性高斯模型，其状态空间模型可设为如下形式：</p>
+<p><span class="math display">\[
+\begin{cases}
+x_{n}=A_{n}x_{n-1}+\omega_{n} \\
+y_n = H_nx_n+v_n
+\end{cases}
+\]</span>   其中<span class="math inline">\(\omega_n\sim N(0,Q),v_n\sim
+N(0,R)\)</span>，<span class="math inline">\(A_{n+1}\)</span>是动态系统从状态<span class="math inline">\(x_n\)</span>到<span class="math inline">\(x_{n+1}\)</span>的状态转移矩阵，<span class="math inline">\(H_n\)</span>是测量矩阵，表示系统状态<span class="math inline">\(x_n\)</span>对<span class="math inline">\(y_n\)</span>的增益，将系统状态映射到外部世界。</p>
+<p>  考虑到动态系统会受到系统中已知的控制器的控制信息的影响，需要在系统模型中加入这部分信息，修正后的状态空间模型如下：</p>
+<p><span class="math display">\[
+\begin{cases}
+x_{n}=A_{n}x_{n-1}+B_{n}\mu_{n}+\omega_{n} \\ y_n = H_nx_n+v_n
+\end{cases}
+\]</span> 其中<span class="math inline">\(\mu_n\)</span>是系统的控制器向量，<span class="math inline">\(B_n\)</span>是系统的控制向量。</p>
+<p>  为方便进行推导，定义<span class="math inline">\(\hat{x}^{-}_k \in
+R^n\)</span>（<span class="math inline">\(^-\)</span>代表先验,^代表估计）为在已知第<span class="math inline">\(k\)</span>步以前状态情况下第<span class="math inline">\(k\)</span>步的先验状态估计。定义<span class="math inline">\(\hat{x}_k\in R^n\)</span>为已知观测变量<span class="math inline">\(y_k\)</span>时，第<span class="math inline">\(k\)</span>步的后验估计状态，由此定义先验估计误差和后验估计误差：</p>
+<p><span class="math display">\[
+\begin{cases}
+  e_k^-\equiv{x_k-\hat{x}_k^-} \\ e_k\equiv{x_k-\hat{x}_k}
+\end{cases}
+\]</span> 先验估计误差的协方差为：</p>
+<p><span class="math display">\[
+P_k^-=E[e_k^-{e_k^-}^T]
+\]</span> 后验误差估计的协方差为： <span class="math display">\[
+P_k=E[e_ke_k^T]
+\]</span>   显然<span class="math inline">\(P_k^-\)</span>是真实值和预测值之间的协方差，<span class="math inline">\(P_k\)</span>是真实值和最优估计值之间的协方差。卡尔曼滤波的核心就是如何根据<span class="math inline">\(k-1\)</span>时刻的最优状态估计<span class="math inline">\(\hat{x}_{k-1}\)</span>和第<span class="math inline">\(k\)</span>时刻的观测值<span class="math inline">\(y_k\)</span>得到<span class="math inline">\(k\)</span>时刻的最优状态估计值<span class="math inline">\(\hat{x}_k\)</span>,显然根据定义<span class="math inline">\(P_k\)</span>越小，估计值越接近于真实值，此时，只需求解当前条件下使得<span class="math inline">\(P_k\)</span>最小的状态估计值即是当前时刻状态的最优估计值。利用上文修正后的状态空间模型的系统模型得到<span class="math inline">\(k\)</span>时刻状态的预测值<span class="math inline">\(\hat{x}_k^-=A\hat{x}_{k-1}+B\mu_k\)</span>，为了得到<span class="math inline">\(k\)</span>时刻的最小协方差<span class="math inline">\(P_k\)</span>，卡尔曼滤波定义参数卡尔曼增益<span class="math inline">\(K=\frac{\hat{x}_k-\hat{x}_k^-}{y_k-H\hat{x}_k^-}\)</span>，其中，观测向量及其预测之差<span class="math inline">\(y_k-H\hat{x}_k^-\)</span>被称为测量过程的新息或残余。新息反应了预测值和实际值之间的不一致程度，为零时表明二者完全吻合，推导过程如下。</p>
+<hr>
+<p>由卡尔曼增益的定义式变形得到:</p>
+<p><span class="math display">\[\hat{x}_k=\hat{x}_k^-+K(y_k-H\hat{x}_k^-)\]</span></p>
+<p>将状态空间模型的观测模型代入得到:</p>
+<p><span class="math display">\[\hat{x}_k=\hat{x}_k^-+K(Hx_k
++v_k-H\hat{x}_k^-)\]</span></p>
+<p>进一步整理变换得到:</p>
+<p><span class="math display">\[\hat{x}_k-x_k=\hat{x}_k^—x_k+KH(x_k-\hat{x}_k^-)+Kv_k\]</span></p>
+<p>结合先验估计误差和后验估计误差的定义可知:</p>
+<p><span class="math display">\[e_k=(I-KH)e_k^-+Kv_k\]</span></p>
+<p>代入后验误差协方差的定义计算得到:</p>
+<p><span class="math display">\[P_k=E[e_ke_k^T]=
+E[[(I-KH)e_k^—Kv_k][(I-KH)e_k^—Kv_k]^T]\]</span></p>
+<p>展开可知:</p>
+<p><span class="math display">\[P_k=P^-_k-KHP^-_k-P^-_kH^TK^T+K(HP^-_kH^T+R)K^T=P(K)\]</span></p>
+<p>要求<span class="math inline">\(P_k\)</span>的最小值，结合上式对卡尔曼增益<span class="math inline">\(K\)</span>求偏导，得到：</p>
+<p><span class="math display">\[\frac{\partial{P_k}}{\partial{K}}=-2P^-_kH^T+2KHP_k^-H^T+2KR\]</span></p>
+<blockquote>
+<p>  需要注意的是，因为涉及到矩阵导数，与常规导数求导略有不同，有兴趣的读者，可以结合下面的矩阵求导规则进行求导：</p>
+<p>若<span class="math inline">\(Y=AX\)</span>,则<span class="math inline">\(\frac{d{Y}}{d{X}}=A^T\)</span>；</p>
+<p>若<span class="math inline">\(Y=XA\)</span>,则<span class="math inline">\(\frac{d{Y}}{d{X}}=A\)</span>；</p>
+<p>若<span class="math inline">\(Y=A^TXB\)</span>,则<span class="math inline">\(\frac{d{Y}}{d{X}}=AB^T\)</span>；</p>
+<p>若<span class="math inline">\(Y=A^TX^TB\)</span>,则<span class="math inline">\(\frac{d{Y}}{d{X}}=BA^T\)</span>；</p>
+<p>若<span class="math inline">\(Y=X^TX\)</span>,则<span class="math inline">\(\frac{d{Y}}{d{X}}=\)</span>X；</p>
+<p>若<span class="math inline">\(Y=AX^T\)</span>,则<span class="math inline">\(\frac{d{Y}}{d{X}}=A\)</span>；</p>
+<p>若<span class="math inline">\(Y=u(X)^Tv(X)\)</span>,则<span class="math inline">\(\frac{d{uv}}{d{X}}=\frac{du^T}{dX}v+\frac{dv^T}{X}u\)</span>；</p>
+</blockquote>
+<p>令<span class="math inline">\(\frac{\partial{P_k}}{\partial{K}}=0\)</span>，求解得到:</p>
+<p><span class="math display">\[K=\frac{P^-_kH^T}{HP^-_KH^T+R}\]</span></p>
+<blockquote>
+<p>直观来看，一方面：</p>
+<p><span class="math display">\[\lim\limits_{R\to0}K=\lim\limits_{R\to0}\frac{P_k^-H^T}{HP_k^-H^T+R}=H^{-1}\]</span></p>
+<p>即，随着观测噪声协方差 <span class="math inline">\(R\)</span>的减小，卡尔曼增益逐渐增大，当<span class="math inline">\(R=0\)</span>时，取得最大值<span class="math inline">\(H^{-1}\)</span>;</p>
+<p>另一方面：</p>
+<p><span class="math display">\[\lim\limits_{P_k^-\to0}K=0\]</span></p>
+<p>即，随着先验估计协方差<span class="math inline">\(P_k^-\)</span>的减小，卡尔曼增益随之减小，当<span class="math inline">\(P_k^-=0\)</span>时，取得最小值0；</p>
+<p>结合卡尔曼增益的定义可知，<code>卡尔曼增益实际上表征了状态最优估计过程中模型预测误差与量测误差的比重，随着观测噪声协方差趋近于零，模型中预测误差的比重越来越大，此时模型更信任模型中观测值的信息；另一方面，随着先验估计误差协方差趋近于零，模型中预测误差的比重越来越小，此时模型更信任模型中预测值的信息。</code></p>
+</blockquote>
+<p>代入矩阵函数<span class="math inline">\(P(K)\)</span>得到：</p>
+<p><span class="math display">\[P_k=(I-KH)P_k^-\]</span></p>
+<p>至此，我们已经得到了第<span class="math inline">\(k\)</span>时刻最优状态估计值为：</p>
+<p><span class="math display">\[\hat{x}_k
+=\hat{x}_k^-+K(y_k-H\hat{x}_k^-)\]</span></p>
+<p>  但是，到了这一步问题仍然没有得到解决，因为在计算<span class="math inline">\(k\)</span>时刻的卡尔曼增益时，仍有一个值未确定的：先验估计的协方差矩阵<span class="math inline">\(P_k^-\)</span>，在计算<span class="math inline">\(P_k^-\)</span>之前，需要先计算先验误差：</p>
+<p><span class="math display">\[
+e^-_k=x_k-\hat{x}_k^-=(Ax_{k-1}+B\mu_k+\omega_k)-(A\hat{x}_{k-1}+Bu_k)=Ae_{k-1}+\omega_k
+\]</span> 因为</p>
+<p><span class="math display">\[
+P_k^-=E[e_k^-{e_k^-}^T]=E[(Ae_{k-1}+\omega_k)(Ae_{k-1}+\omega_k)^T]=E[Ae_{k-1}e_{k-1}^TA^T]+E[\omega_k\omega_k^T]
+\]</span> 得到：</p>
+<p><span class="math display">\[P_k^-=AP_{k-1}A^T+Q\]</span></p>
+<p>到这步，卡尔曼滤波形成一个完整的理论闭环。</p>
+<h3 id="离散线性卡尔曼滤波算法">离散线性卡尔曼滤波算法</h3>
+<p>  卡尔曼滤波器采用反馈控制的方法来估计过程状态：滤波器估计过程某一时刻的状态，然后以（含噪声的）观测变量的方式获得反馈。因此卡尔曼滤波器可分为两个部分：</p>
+<h4 id="时间更新方程"><code>时间更新方程</code></h4>
+<p>  时间更新方程负责及时向前推算当前状态变量和误差协方差估计的值，以便为下一个时间状态构造先验估计，其数学表示如下：
+<span class="math display">\[
+\hat x_k^- = A \hat x_{k-1}+B\hat \mu_k+w_k \\
+P_{k}^-=AP_{k-1}A^T+Q
+\]</span></p>
+<h4 id="测量更新方程"><code>测量更新方程</code></h4>
+<p>  测量更新方程负责反馈——也就是说，它将先验估计
+和新的测量变量结合以构造改进的后验估计，其数学表示如下：</p>
+<p><span class="math display">\[K_k=P^-_kH^T(HP^-_kH^T+R)^{-1}\]</span></p>
+<p><span class="math display">\[Z_k=Hx_k+v_k\]</span></p>
+<p><span class="math display">\[\hat x = \hat x_k^{-}+K_k(Z_k-H\hat
+x_k^{-})\]</span></p>
+<p><span class="math display">\[P_k=(I-K_kH)P_k^{-}\]</span></p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">离散线性卡尔曼滤波器的递归计算过程如下图：</span><br></pre></td></tr></table></figure>
+<p><img src="1.jpg" alt="离散卡尔曼滤波的递归过程">
+  时间更新方程将当前状态变量作为先验估计及时地向前投射到测量更新方程，测量更新方程校正先验估计以获得状态的后验估计。完成时间更新方程和测量更新方程的一轮更新之后，再次重复这个过程，将上一次计算得到的后验估计作为下一次计算的先验估计。</p>
+<h4 id="卡尔曼滤波器参数分析">卡尔曼滤波器参数分析</h4>
+<p>  在实现卡尔曼滤波器算法时，会涉及到很多参数，如下：</p>
+<blockquote>
+<p><span class="math inline">\(x_0\)</span>：动态系统的初始状态变量<span class="math inline">\(x_0\)</span>一般直接取第一个测量值<span class="math inline">\(z_0\)</span>；</p>
+<p><span class="math inline">\(P_0\)</span>：系统初始状态变量<span class="math inline">\(x_0\)</span>的协方差，只要初始值不为零，初始协方差矩阵的取值对滤波效果影响很小，都能很快收敛；</p>
+<p><span class="math inline">\(A\)</span>：状态转移矩阵，是根据经验对下一个时间周期目标状态的
+一种预测。在某些情况下，这种预测是确定的，而另一些情况下
+这种预测是未知的；</p>
+<p><span class="math inline">\(B\)</span>：输入控制矩阵，作用在控制向量<span class="math inline">\(\mu_k\)</span>上的<span class="math inline">\(n\times1\)</span>输入控制矩阵，由于控制信息是已知的，一般很好确定；
+<span class="math inline">\(H\)</span>：<span class="math inline">\(m\times n\)</span>观测模型矩阵，
+负责将系统的真实状态映射到观测空间，根据动态系统很容易确定；</p>
+<p><span class="math inline">\(P ^-\)</span>：为<span class="math inline">\(n\times n\)</span>先验估计误差协方差矩阵，由<span class="math inline">\(P_0\)</span>递归即可得到；</p>
+<p><span class="math inline">\(P\)</span> ：为<span class="math inline">\(n×n\)</span>后验估计误差协方差矩阵，由<span class="math inline">\(P_0\)</span>递归即可得到；</p>
+<p><span class="math inline">\(Q\)</span>：<span class="math inline">\(n\times n\)</span>过程噪声<span class="math inline">\(\omega_n\)</span>是的协方差矩阵
+，当动态系统的状态转换过程确定时，<span class="math inline">\(Q\)</span>是一个确定的值，此时，可通过离线测试确定对于某个过程的最优<span class="math inline">\(Q\)</span>值，一般来说，当状态转换过程为已确定时，<span class="math inline">\(Q\)</span> 的取值越小越好。 当 <span class="math inline">\(Q\)</span>
+取值逐渐增大时，滤波收敛变慢，且状态变量的扰动变大。当系统的动态转换过程是不确定的，随时间变化，此时<span class="math inline">\(Q\)</span>不再是一个确定值，而是一个随时间变化的变量<span class="math inline">\(Q(k)\)</span>，此时的卡尔曼滤波为自适应卡尔曼滤波，关于自适应卡尔曼滤波的更详细内容请参考此文—<a href="http://read.pudn.com/downloads76/ebook/285147/Paper/pdf/y8576770004.pdf">自适应卡尔曼滤波技术</a>，在此不做进一步展开；</p>
+<p><span class="math inline">\(R\)</span>：<span class="math inline">\(m\times m\)</span>测量噪声<span class="math inline">\(v_n\)</span>协方差矩阵，
+跟系统外部环境的测量仪器相关，一般很难获得改值，根据平时的使用经历来看:</p>
+<blockquote>
+<p><span class="math inline">\(R\)</span>取值过小或过大都会使滤波效果变差；</p>
+<p><span class="math inline">\(R\)</span>取值越小收敛越快，反之收敛越慢；</p>
+<p>一般离线得到合适的<span class="math inline">\(R\)</span>值，再代入滤波器中；</p>
+</blockquote>
+<p><span class="math inline">\(I\)</span>：<span class="math inline">\(n\times n\)</span> 单位矩阵</p>
+<p><span class="math inline">\(K\)</span>:<span class="math inline">\(n×m\)</span>阶矩阵， 卡尔曼增益</p>
+</blockquote>
+<p>  关于卡尔曼滤波参数的更详细内容，由于篇幅有限，只做了简单的描述，但是卡尔曼滤波器参数的确定却是重中之重，直接影响到算法的效果，要进行实际应用的读者可结合<a href="http://file.elecfans.com/web1/M00/80/05/pIYBAFwnp8uAL-vDAAZFhhuu8y8385.pdf">卡尔曼滤波器参数分析与应用方法研究</a>一文，来做进一步讨论。</p>
+<h3 id="发散现象及平方根滤波">发散现象及平方根滤波</h3>
+<h4 id="发散现象">发散现象</h4>
+<p>  线性卡尔曼滤波基于线性高斯状态空间模型的假设推导的，但是在实际应用时动态系统不一定完全满足这些假定，这会儿导致卡尔曼滤波的不稳定，这也叫卡尔曼滤波的发散现象，另外在计算时如果数值不太精确也会产生发散现象。</p>
+<h4 id="平方根滤波">平方根滤波</h4>
+<p>  一个数学上优美且计算可行的，解决卡尔曼滤波发散问题的方法是使用平方根滤波，其本质思想是对卡尔曼滤波进行修正，在算法的每一次循环中使用数值稳定的正交变换。具体而言，就是使用乔里斯基分解将卡尔曼滤波的误差协方差矩阵转换为其平方根形式。理论推导部分可以参考机械工业出版社的《神经网络与机器学习》
+第十四章 动态系统状态估计的贝叶斯滤波
+中的平方根滤波部分，在此不做推导。</p>
+]]></content>
+      <tags>
+        <tag>卡尔曼滤波</tag>
+        <tag>马尔可夫链</tag>
+      </tags>
   </entry>
   <entry>
     <title>奇异值分解</title>
@@ -1180,6 +892,353 @@ decomposition）。</p>
         <tag>svd</tag>
         <tag>特征分解</tag>
         <tag>特征向量</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>机器视觉之基本概念</title>
+    <url>/posts/781628f/</url>
+    <content><![CDATA[<p>  主要记录机器视觉领域的一些基本概念及一些实践中的tricks。
+<span id="more"></span></p>
+<h2 id="ccd">CCD</h2>
+<p>  CCD（Charge-Coupled
+Device）即电荷耦合器件,通常称为CCD图像传感器，是一种半导体器件，当入射光线照射到CCD芯片上的感光单元（微小光敏物质，即像素（Pixel）），光子会被转为电子，这些电子在像素内累计形成电荷。一块CCD芯片上包含的感光单元越多，其成像分辨率也就越高。其成像过程如下：</p>
+<ul>
+<li><p>光电转换</p>
+<p>入射光线通过光电二极管转换为电荷</p></li>
+<li><p>电荷积累</p>
+<p>光敏元件根据光强的不同积累不同数量的电荷</p></li>
+<li><p>电荷转移</p>
+<p>通过电荷转移机制，逐行、逐列将电荷移至输出放大器</p></li>
+<li><p>电压转换</p>
+<p>输出放大器将电荷信号转为电压信号，并传递给模数转换器（ADC），生成数字图像数据</p></li>
+</ul>
+<h2 id="cmos">CMOS</h2>
+<p>  CMOS（Complementary Metal-Oxide
+Semiconductor，互补金属氧化物半导体）成像原理与CCD成像原理类似，但CMOS成像器件的电荷转移和电压转换过程在同一块硅片上完成，因此CMOS成像器件的结构更加简单，成本更低，功耗更低，适用于高分辨率、低功耗的成像应用。</p>
+<p>CCD与CMOS成像器件的对比如下：</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: center;">特性</th>
+<th style="text-align: center;">CCD</th>
+<th style="text-align: center;">CMOS</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;">图像质量</td>
+<td style="text-align: center;">高、噪声低，均匀性好</td>
+<td style="text-align: center;">略低，噪声高</td>
+</tr>
+<tr>
+<td style="text-align: center;">制造成本</td>
+<td style="text-align: center;">高</td>
+<td style="text-align: center;">低</td>
+</tr>
+<tr>
+<td style="text-align: center;">功耗</td>
+<td style="text-align: center;">高</td>
+<td style="text-align: center;">低</td>
+</tr>
+<tr>
+<td style="text-align: center;">读取速度</td>
+<td style="text-align: center;">较慢</td>
+<td style="text-align: center;">快</td>
+</tr>
+<tr>
+<td style="text-align: center;">动态范围</td>
+<td style="text-align: center;">宽</td>
+<td style="text-align: center;">较窄</td>
+</tr>
+<tr>
+<td style="text-align: center;">弱光性能</td>
+<td style="text-align: center;">优</td>
+<td style="text-align: center;">稍弱</td>
+</tr>
+</tbody>
+</table>
+<p>通常来说，CCD通常用于高端相机、科学研究和天文观测等对图像质量要求极高的领域，而CMOS则广泛应用于消费类设备（如智能手机摄像头）、监控设备和工业检测等场景，其成本低、功耗低和速度快更具优势。需要注意的是由于CCD采用全局曝光，而CMOS相机使用卷帘曝光，所以在拍摄运动目标时，优先考虑CCD传感器。</p>
+<blockquote>
+<p>Note 1.
+全局曝光是传感器上所有像素在同一时刻开启曝光并在同一时刻曝光结束，将物体某时刻的状态成像，对运动物体而言，类似于将物体冻结了，所以适合拍摄高速运动的物体。</p>
+</blockquote>
+<blockquote>
+<p>Note 2.
+卷帘曝光是逐行（hang）顺序开启曝光，不同行间曝光的开启时刻有个很小的延迟，所以不适合运动物体的拍摄。</p>
+</blockquote>
+<h2 id="像素">像素</h2>
+<p>  像素是构成数字图像的基本单位，相机靶面上的一个感光单元为一个像素，每个像素点都拥有色调和嫉恶调等色彩信息，规则排列的像素集合可以形成一张完整的图像。</p>
+<h2 id="像素直径">像素直径</h2>
+<p>  像素直径，也称像元尺寸指每个CCD元件的大小，通常使用<span class="math inline">\(\mu
+m\)</span>作为单位，严谨的说，此处的大小中包含了感光单元和信号传输通路，其与像素间距（即某个像素的中心到邻近一个像素的中心的距离）相同。如果像素直径较小，则图像将通过较小的像素进行描绘，因此可以获得更加精细的图像，显然通过像素间距和有效像素数可以直接求出CCD元件中感光区域的大小（即CCD元件的总面积）</p>
+<h2 id="相机靶面尺寸">相机靶面尺寸</h2>
+<p>  相机靶面尺寸指用于接收光信号的传感器的尺寸，指的是传感器（工作区域为矩形）对角线长度。一般分为采用英寸单位表示和采用APS-C大小等规格表示这2种方式。采用英寸表示时，该尺寸并不是拍摄的实际尺寸，而是相当于摄像管的对角长度。比如1/2英寸的CCD表示<strong>拥有相当于1/2英寸的摄像管的拍摄范围</strong>。z之所以会如此计算，是由于当初制造CCD的目的就是用于代替电视机、录像机的摄像管。而想要继续使用镜头等光学器件的需求比较强烈，由此诞生了这种奇怪的规格，主要的英寸规格如下表所示。</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: center;">尺寸(英寸)</th>
+<th style="text-align: center;">对角长度(mm)</th>
+<th style="text-align: center;">拍摄区域(wxh,mm)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;">2/3</td>
+<td style="text-align: center;">11</td>
+<td style="text-align: center;">8.8x6.6</td>
+</tr>
+<tr>
+<td style="text-align: center;">1/2</td>
+<td style="text-align: center;">8</td>
+<td style="text-align: center;">6.4x4.8</td>
+</tr>
+<tr>
+<td style="text-align: center;">1/3</td>
+<td style="text-align: center;">6</td>
+<td style="text-align: center;">4.8x3.6</td>
+</tr>
+<tr>
+<td style="text-align: center;">1/4</td>
+<td style="text-align: center;">4.5</td>
+<td style="text-align: center;">3.6x2.0</td>
+</tr>
+</tbody>
+</table>
+<h2 id="快门速度">快门速度</h2>
+<p>  快门速度在工业视觉中也称为曝光时间，表示CCD或CMOS感光元件中积累电荷的时间，单位为秒。快门速度越快，感光元件中积累电荷的时间越短，图像的亮度越低，图像的细节越少，图像的噪点越多。快门速度越慢，感光元件中积累电荷的时间越长，图像的亮度越高，图像的细节越多，图像的噪点越少。直观来看，快门速度可以用于调整光量。</p>
+<h2 id="曝光值">曝光值</h2>
+<p>  曝光值（EV，Exposure
+Value）是用于衡量图像整体亮度的一个综合指标，由一下三个主要因素决定：</p>
+<ul>
+<li>快门速度</li>
+</ul>
+<p>  控制光线进入的时间，决定了运动模糊的程度，曝光时间过长，如果相机的感光元件在曝光期间，被拍摄的物体发生了运动，导致在单帧中记录下了物体的移动轨迹。</p>
+<ul>
+<li>光圈（F值）</li>
+</ul>
+<p>  控制进入光线的量，决定了相机的景深</p>
+<ul>
+<li>感光度(ISO)</li>
+</ul>
+<p>  控制感光元件对光线的灵敏度</p>
+<p>其定义公式如下： <span class="math display">\[
+E_v = \log_2 \frac{N^2}{t}
+\]</span></p>
+<h2 id="增益">增益</h2>
+<p>  增益，是指将图像信号进行电子增幅的过程，增益越大，图像的亮度越高，但噪声也会随之增加。在暗区拍摄图像时，往往通过增加增益来提高图像的亮度，但也会导致图像噪声的增加。因此，在拍摄图像时，需要根据实际情况合理选择增益值，以达到最佳的图像质量。</p>
+<h2 id="面阵相机">面阵相机</h2>
+<p>  面阵相机（Area Scan
+Camera）指感光单元（像素）按矩阵形式排列的相机，其一次拍摄即可捕获整个二维图像，常见视觉检测场景基本都是使用面阵相机，也常用于结构光三维重建。</p>
+<h2 id="线阵相机">线阵相机</h2>
+<p>  线阵相机（Line Scan
+Camera）指感光单元（像素）按线性形式排列的相机，其一次拍摄只能捕获一行图像，成像时，需要通过移动相机或被检测物体来获取整个二维图像。相较于面阵相机，其拥有更高的分辨率，成像质量更高，同时需要配合编码器来配合触发拍照，并使用线型光源，常用于纸张、纺织品、金属板等表面缺陷检测场景。</p>
+<h2 id="通讯方式">通讯方式</h2>
+<h3 id="usb接口">USB接口</h3>
+<p>  支持热插拔、标准统一，可连接多个设备，同时相机也可以通过USB线缆供电</p>
+<h3 id="gige千兆以太网接口">Gige千兆以太网接口</h3>
+<p>  可以简单方便的进行多相机设置，支持100米线材输出，是一种基于千兆以太网通信协议开发的相机接口标准</p>
+<h3 id="cameralink接口">Cameralink接口</h3>
+<p>  专门针对高速图像数据传输设计的通讯接口，是一种串行通讯协议，采用LVDS接口标准，传输速度快、抗干扰能力强、功耗低。</p>
+<h2 id="工作距离wd">工作距离（WD）</h2>
+<p>  指的是镜头的最下端到景物之间的距离。一般的镜头是可以看到无限远的，也就是说是没有上限的。</p>
+<figure>
+<img src="1.png" alt="相机成像结构">
+<figcaption aria-hidden="true">相机成像结构</figcaption>
+</figure>
+<h2 id="视场角fov">视场角（FOV）</h2>
+<p>  指镜头所能覆盖的范围。(相机实际拍摄到的区域尺寸)一个摄像机镜头能涵盖多大范围的景物，通常以角度来表示，这个角度就叫镜头的视角FOV。焦距越长，FOV越小，焦距越短，FOV越大</p>
+<h2 id="光圈">光圈</h2>
+<p>  光圈是一个用来控制光线透过镜头进入机身内感光面光量的装置。当光线不足时，我们把光圈调大，自然可以让更多光线进入相机，反之亦然。一般通过调整通光孔径大小来调节光圈，完整的光圈数值系列如下：F1，F1.4，F2，F2.8，F4，F5.6，F8，F11，F16，F22，F32，F44，F64。用F表示，以【镜头焦距f和通光孔径D的比值】(即，相对孔径的倒数，也就是“焦距÷有效孔径”)来衡量，每个镜头上都标有最大F值，例如：8mm/F1.4代表最大孔径D为5.7mm.
+&gt; F值越小、光圈越大、进光量越大；F值越大、光圈越小、进光量越小。</p>
+<h2 id="焦距">焦距</h2>
+<p>  焦距就是镜头到成像面的距离，比如：50mm镜头，8mm镜头还是75mm镜头等。这些就是镜头到成像面的距离，也就是焦距，单位是毫米。
+&gt;
+焦距的大小决定着视角大小，焦距越大，视角越小，观察范围越小；焦距越小，视角越大，观察范围也越大</p>
+<figure>
+<img src="2.png" alt="相机成像结构">
+<figcaption aria-hidden="true">相机成像结构</figcaption>
+</figure>
+<h2 id="景深">景深</h2>
+<p>  景深与视野相似，不同的是景深指的是纵深的范围，视野指的是横向的范围。在最小工作距离到最大工作距离之间的范围称为景深，景深内的物体都可以清晰成像。景深一般可以通过光圈调节，光圈越小，景深越大。景深与镜头使用光圈、镜头焦距、拍摄距离以及对像质的要求(表现为对容许弥散圆的大小)有关。在假定其它条件不变的情况下：</p>
+<ul>
+<li>光圈越大，景深越小；光圈越小，景深越大</li>
+<li>镜头焦距越长，景深越小；焦距越短，景深越大</li>
+<li>拍摄距离越远，景深越大；距离越近，景深越小</li>
+</ul>
+<p>  总而言之，对于对景深有要求的项目，尽可能使用小的光圈；在选择放大倍率的镜头时，在项目许可下尽可能选用低倍率镜头。如果项目要求比较苛刻时，倾向选择高景深的尖端镜头。</p>
+]]></content>
+      <tags>
+        <tag>相机</tag>
+        <tag>视觉</tag>
+        <tag>图像</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>LLM之余弦退火学习率</title>
+    <url>/posts/19c3723a/</url>
+    <content><![CDATA[<p>  学习率这个概念在非线性优化中经常出现，在深度学习中模型在反向传播阶段严重依赖于损失函数梯度的链式传播，为了更好的控制参数更新的步长，引入了学习率的概念：
+<span class="math display">\[
+w_{new} = w_{old} - \eta \ \Delta J(w)
+\]</span></p>
+<span id="more"></span>
+<p>  其中的<span class="math inline">\(\eta\)</span>为学习率，直观来说，非线性优化的过程就像下山，学习率就是步长，步子迈的太大或太小都不太理想。当步子迈得的太大了，你可能就直接跨过山脚，对应到模型训练中，就是学习率太高，每次更新参数时，跳过了最小值，导致在最优值附近来回振荡，无法收敛;步子太小，则需要走很久，才能到达山脚，对应到模型训练中，就是学习率太低，模型收敛的速度很慢，需要较长时间的训练才能收敛到最优值。举这个经典的下山的例子是为了说明学习率在模型训练中的重要意义。
+  在深度学习的模型训练中学习率有很多使用策略，包括不限于：</p>
+<ul>
+<li>固定学习率</li>
+</ul>
+<p>  顾名思义就是在模型训练过程中使用固定学习率来进行模型训练，这样会难以平衡初期的收敛速度和后期的精细调整，一般很少使用，只在一些简单问题上应用。</p>
+<ul>
+<li>阶梯式衰减学习率（step decay）</li>
+</ul>
+<p>  指学习率在模型训练的特定步骤中衰减，会导致学习率变化不平滑，模型训练不稳定。</p>
+<ul>
+<li>指数衰减学习率（exponential decay）</li>
+</ul>
+<p>  指学习率在模型训练过程中按指数函数衰减，由于指数函数的高增长特性，前期往往能快速收敛，但是后期由于学习率衰减过快，导致训练停滞，收敛速度很慢。</p>
+<ul>
+<li>线性预热+线性衰减</li>
+</ul>
+<p>  指学习率在模型训练过程中先线性增加再线性较少，此方案在大语言模型的预训练被广泛使用，缺点在于是线性变化，变化不太平滑。</p>
+<ul>
+<li>余弦退火学习率（Cosine Annealing）</li>
+</ul>
+<p>  余弦退火学习率的公式如下： <span class="math display">\[
+\eta_{t} = \eta_{min} + \frac{1}{2}(\eta_{max} -
+\eta_{min})(1+\cos(\frac{t}{T}\pi))
+\]</span>   其中，<span class="math inline">\(\eta_{t}\)</span>是第<span class="math inline">\(t\)</span>步的学习率，<span class="math inline">\(\eta_{min}\)</span>是训练过程中能接受的最小学习率，<span class="math inline">\(\eta_{max}是最大学习率\)</span>，<span class="math inline">\(t\)</span>为当前的训练步树，<span class="math inline">\(T\)</span>该epoch中的总训练步数。从公式可以看出，在训练的开始阶段，学习率解决最大值，模型的收敛速度较快，到达一定训练步数后，学些率开始减少，模型会在更小的参数空间内搜索最优值，随着训练步数的增长，学习率逐渐逼近最小值，模型在最优值附近的参数空间内搜索。</p>
+<p>  同时学习率是按照余弦曲线的方式进行更新，变化平滑的同时，不会出现变化幅度不大。目前基于余弦退火学习率衍生出一些更精细的学习率调度算法，如：</p>
+<ul>
+<li><p>带热重启的余弦退火</p>
+<p>  学习率在训练过程中周期性回到最大值，然后再次降低，公式如下：</p>
+<p><span class="math display">\[
+  \eta_{t} = \eta_{min} + \frac{1}{2}(\eta_{max} -
+\eta_{min})(1+\cos(\frac{T_{cur}}{T_i}\pi))
+  \]</span>   其中，<span class="math inline">\(T_{cur}\)</span>是自上次热重启之后的训练步数，<span class="math inline">\(T_i\)</span>是当前周期的总步数。这种学习率调度方式有助于跳出局部最优解，探索更广阔的参数空间</p></li>
+<li><p>带预热的余弦退火</p>
+<p>  带预热的余弦退火通过两阶段学习率调整实现：</p>
+<ul>
+<li><p>​预热阶段</p>
+<p>训练初期学习率从较小值线性或非线性增长至预设的最大值，避免随机初始化权重下的大幅度参数更新引发振荡。</p></li>
+<li><p>余弦退火阶段</p>
+<p>  预热完成后，学习率按余弦函数周期性衰减，从最大值逐渐降至最小值，数学公式如下：
+<span class="math display">\[
+  \eta_{t}=
+  \begin{cases}
+  \eta_{start} + \dfrac{t}{T_{warmup}}(\eta_{max} -
+\eta_{start})    \qquad 0 \leq t &lt; T_{warmup} \\
+  \eta_{max} + \frac{1}{2}(\eta_{max} -
+\eta_{min})(1+cos(\frac{t}{T_{cos}}\pi))  \qquad t \geq T_{warmup}
+  \end{cases}
+  \]</span> <span class="math inline">\(T_{warmup}\)</span>为预热步数，<span class="math inline">\(T_{cos}\)</span>为退火周期</p></li>
+</ul></li>
+<li><p>循环余弦退火（cyclical cosine annealing）</p>
+<p>  顾名思义，就是在模型训练过程中，学习率的变化在余弦退火的基础上存在多个余弦周期，通过重启（Restart）机制恢复学习率至最大值，形成多周期探索-利用循环，可以平衡梯度在参数空间的探索与利用，避免剧烈波动。</p></li>
+</ul>
+<p>  余弦退火学习率策略通过平滑地调整学习率，帮助模型在训练初期快速收敛，在训练后期精细调整参数，从而找到更好的局部最优解。它的提出和发展极大地推动了深度学习模型训练的稳定性和效率，已成为现代深度学习训练的标准配置之一。</p>
+<p>  虽然它不是万能的解决方案，但在大多数深度学习任务中，特别是大型语言模型的训练中，余弦退火都能提供显著的性能提升。通过理解其工作原理和适用边界，我们可以更好地利用这一强大工具，提高模型训练效果。</p>
+<blockquote>
+<p>编程实现</p>
+</blockquote>
+<ul>
+<li><p>demo 1 <figure class="highlight c++"><table><tr><td class="code"><pre><span class="line">from torch.optim.lr_scheduler <span class="keyword">import</span> CosineAnnealingLR</span><br><span class="line"><span class="keyword">import</span> torch</span><br><span class="line"></span><br><span class="line"># 创建模型和优化器</span><br><span class="line">model = <span class="built_in">MyModel</span>()</span><br><span class="line">optimizer = torch.optim.<span class="built_in">Adam</span>(model.<span class="built_in">parameters</span>(), lr=<span class="number">0.001</span>)</span><br><span class="line"></span><br><span class="line"># 创建余弦退火调度器</span><br><span class="line"># T_max是半个周期的长度，通常设为总训练步数</span><br><span class="line"># eta_min是最小学习率</span><br><span class="line">scheduler = <span class="built_in">CosineAnnealingLR</span>(optimizer, T_max=<span class="number">1000</span>, eta_min=<span class="number">0.0001</span>)</span><br><span class="line"></span><br><span class="line"># 在训练循环中使用</span><br><span class="line"><span class="keyword">for</span> epoch in <span class="built_in">range</span>(num_epochs):</span><br><span class="line">    <span class="keyword">for</span> batch in data_loader:</span><br><span class="line">        # 训练步骤</span><br><span class="line">        optimizer.<span class="built_in">zero_grad</span>()</span><br><span class="line">        outputs = <span class="built_in">model</span>(inputs)</span><br><span class="line">        loss = <span class="built_in">criterion</span>(outputs, targets)</span><br><span class="line">        loss.<span class="built_in">backward</span>()</span><br><span class="line">        optimizer.<span class="built_in">step</span>()</span><br><span class="line">        </span><br><span class="line">        # 更新学习率</span><br><span class="line">        scheduler.<span class="built_in">step</span>()</span><br></pre></td></tr></table></figure></p></li>
+<li><p>demo 2 <figure class="highlight c++"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">import</span> math</span></span><br><span class="line"><span class="function">def <span class="title">get_cosine_lr</span><span class="params">(current_step, total_steps, max_lr, min_lr)</span>:</span></span><br><span class="line"><span class="function">    <span class="string">&quot;&quot;</span><span class="string">&quot;计算当前步骤的余弦退火学习率&quot;</span><span class="string">&quot;&quot;</span></span></span><br><span class="line"><span class="function">    return min_lr + <span class="number">0.5</span> * (max_lr - min_lr) * (<span class="number">1</span> + math.cos(math.pi * current_step / total_steps))</span></span><br><span class="line"><span class="function"></span></span><br><span class="line"><span class="function"># 在训练循环中使用</span></span><br><span class="line"><span class="function">max_lr =</span> <span class="number">0.001</span></span><br><span class="line">min_lr = <span class="number">0.0001</span></span><br><span class="line">total_steps = <span class="number">1000</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">for</span> step in <span class="built_in">range</span>(total_steps):</span><br><span class="line">    # 计算当前学习率</span><br><span class="line">    current_lr = <span class="built_in">get_cosine_lr</span>(step, total_steps, max_lr, min_lr)</span><br><span class="line">    </span><br><span class="line">    # 更新优化器的学习率</span><br><span class="line">    <span class="keyword">for</span> param_group in optimizer.param_groups:</span><br><span class="line">        param_group[<span class="string">&#x27;lr&#x27;</span>] = current_lr</span><br><span class="line">    </span><br><span class="line">    # 正常的训练步骤</span><br><span class="line">    optimizer.<span class="built_in">zero_grad</span>()</span><br><span class="line">    outputs = <span class="built_in">model</span>(inputs)</span><br><span class="line">    loss = <span class="built_in">criterion</span>(outputs, targets)</span><br><span class="line">    loss.<span class="built_in">backward</span>()</span><br><span class="line">    optimizer.<span class="built_in">step</span>()</span><br></pre></td></tr></table></figure></p></li>
+<li><p>demo 3</p>
+<p><figure class="highlight c++"><table><tr><td class="code"><pre><span class="line">from torch.optim.lr_scheduler <span class="keyword">import</span> CosineAnnealingWarmRestarts</span><br><span class="line"></span><br><span class="line"># 创建带热重启的余弦退火调度器</span><br><span class="line"># T_0是第一次重启前的迭代次数</span><br><span class="line"># T_mult是控制重启周期如何变化的因子</span><br><span class="line">scheduler = <span class="built_in">CosineAnnealingWarmRestarts</span>(</span><br><span class="line">    optimizer, </span><br><span class="line">    T_0=<span class="number">1000</span>,  # 第一个周期的长度</span><br><span class="line">    T_mult=<span class="number">2</span>,  # 每次重启后周期长度翻倍</span><br><span class="line">    eta_min=<span class="number">0.0001</span>  # 最小学习率</span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"># 在训练循环中使用</span><br><span class="line"><span class="keyword">for</span> epoch in <span class="built_in">range</span>(num_epochs):</span><br><span class="line">    <span class="keyword">for</span> batch in data_loader:</span><br><span class="line">        # 训练步骤</span><br><span class="line">        optimizer.<span class="built_in">zero_grad</span>()</span><br><span class="line">        outputs = <span class="built_in">model</span>(inputs)</span><br><span class="line">        loss = <span class="built_in">criterion</span>(outputs, targets)</span><br><span class="line">        loss.<span class="built_in">backward</span>()</span><br><span class="line">        optimizer.<span class="built_in">step</span>()</span><br><span class="line">        </span><br><span class="line">        # 更新学习率</span><br><span class="line">        scheduler.<span class="built_in">step</span>()</span><br></pre></td></tr></table></figure></p></li>
+</ul>
+]]></content>
+      <tags>
+        <tag>LLM</tag>
+        <tag>学习率</tag>
+        <tag>模型训练</tag>
+        <tag>余弦退火</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>LLM之模型训练Tricks</title>
+    <url>/posts/15775e35/</url>
+    <content><![CDATA[<ul>
+<li><p>为什么在LLM模型预训练时，计算交叉熵损失函数时需要loss mask</p>
+<p>  在自回归训练中，模型需要根据前<span class="math inline">\(n-1\)</span>个Token预测第<span class="math inline">\(n\)</span>个Token。此时，输入序列为<span class="math inline">\(X =
+[x_1,x_2,...,x_{n-1}]\)</span>，目标序列为<span class="math inline">\(Y=
+[y_1,y_2,...,y_m] \quad m \geq
+n\)</span>，掩码规则为仅对目标序列中与当前预测位置匹配的Token计算损失（如第<span class="math inline">\(i\)</span>个预测位置仅计算<span class="math inline">\(y_i\)</span>的损失,其他位置（包括填充Token）设为0，不参与损失计算.
+其主要作用如下：</p>
+<ul>
+<li>忽略无效Token</li>
+</ul>
+<p>  预训练数据通常包含填充（Padding）标记或特殊符号（如<eos>），这些位置的真实值对模型无意义。若不加掩码，模型会错误学习生成这些无效Token，导致训练效率下降。</eos></p>
+<ul>
+<li>聚焦有效生成</li>
+</ul>
+<p>  通过掩码选择性计算损失，模型仅关注实际需要生成的Token（如自回归任务中预测下一个Token），避免被无关信息干扰。</p>
+<ul>
+<li>保持损失归一化</li>
+</ul>
+<p>  掩码确保不同批次、不同长度序列的损失计算公平，避免填充Token拉低整体损失值</p></li>
+<li><p>深度学习中常用归一化技术</p>
+<p>  归一化技术在深度学习中常用于对输入数据进行标准化处理的方法，常见的归一化技术包括：</p>
+<ul>
+<li><p>Min-Max归一化</p>
+<p><span class="math display">\[\bar{x} = \dfrac{x-x_{min}}{x_{max} -
+x_{min}}\]</span></p></li>
+</ul>
+<p>  将数据缩放到<span class="math inline">\([0,1]\)</span>范围，适用于数据分布已知且无异常值的请况。</p>
+<ul>
+<li><p>Z-Score归一化</p>
+<p><span class="math display">\[\bar{x} = \dfrac{x -
+\mu}{\delta}\]</span></p></li>
+</ul>
+<p>  将数据转换为均值为0，标准差为1的分布，适用于数据服从正态分布的情况</p>
+<p>  在实际使用中，会针对性的做一些调整以适应不同任务，不同场景，主要有Batch
+Norm、Layer Norm、RMS Norm等：</p>
+<ul>
+<li><p>Batch Norm</p>
+<p>  对每个特征通道（如图像的RGB通道）在批量数据上计算均值和方差，通过标准化和平移/缩放参数调整分布，公式如下：
+<span class="math display">\[y = \gamma \cdot
+\dfrac{x-\mu}{\sqrt{\sigma^2 + \epsilon}} + \beta\]</span></p></li>
+<li><p>Layer Norm</p>
+<p>  对单个样本的所有特征维度（如序列模型的每个token向量）计算均值和方差，实现跨样本的归一化，公式同上，只是针对的输入不同</p></li>
+<li><p>RMS Norm</p>
+<p>  LayerNorm的变体，仅计算均方根（RMS）替代均值和方差，去除平移参数<span class="math inline">\(\beta\)</span>，简化计算，公式如下：</p>
+<p><span class="math display">\[y = \gamma \cdot
+\dfrac{x-\mu}{\sqrt{RMS(x)^2 + \epsilon}}\]</span></p>
+<p>其中 <span class="math display">\[RMS(x) = \sqrt{\frac{1}{N}\sum_{i =
+1}^Nx_i^2}\]</span></p></li>
+</ul>
+<p>在深度学习中归一化技术有如下意义：</p>
+<ul>
+<li><p>提高训练速度</p>
+<ul>
+<li>归一化可以使不同特征的数值范围相近，避免某些特征值过大或过小，影响梯度更新，导致训练过程缓慢。</li>
+<li>通过减少梯度下降的震荡，使优化过程更稳定，加快收敛速度。</li>
+</ul></li>
+<li><p>防止梯度消失或梯度爆炸</p>
+<ul>
+<li>归一化可以保持数据分布的稳定性，防止某些层的输入值过大或过小，从而避免梯度消失或梯度爆炸问题，尤其是在深层网络中。</li>
+</ul></li>
+<li><p>提高模型的泛化能力</p>
+<ul>
+<li>归一化可以减少特征对不同尺度的依赖，使模型对输入数据的变化更具鲁棒性，提高泛化能力，降低过拟合风险。</li>
+</ul></li>
+<li><p>减少不同特征之间的影响</p>
+<ul>
+<li>由于不同特征的尺度不同，模型可能会过度依赖某些大数值特征，导致训练过程不稳定。归一化后，各特征的权重分布更加均衡，提高模型的稳定性。</li>
+</ul></li>
+</ul>
+<p>三类归一化技术对比如下： | 方法 | 典型应用场景 | 核心优势 | 局限性 |
+|----------|---------------------------------|--------------------------------|--------------------------------|
+| BatchNorm | 图像分类（CNN）、小批量训练场景 |
+加速收敛、降低初始化敏感度 | 对批量大小敏感，无法处理序列数据（如NLP） |
+| LayerNorm | 自然语言处理（如BERT、GPT）、RNN、长序列模型 |
+适应动态批量、保持序列位置不变性 | 计算开销较大，对噪声敏感 | | RMSNorm
+| 超大规模语言模型（如LLaMA、DeepSeek）、高精度工业检测 |
+计算高效、数值稳定性强、减少梯度爆炸风险 |
+无法处理均值敏感任务（如某些CV任务） |</p></li>
+</ul>
+]]></content>
+      <tags>
+        <tag>LLM</tag>
+        <tag>模型训练</tag>
       </tags>
   </entry>
 </search>
