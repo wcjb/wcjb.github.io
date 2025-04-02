@@ -6,7 +6,7 @@
   <link href="https://wcjb.github.io/atom.xml" rel="self"/>
   
   <link href="https://wcjb.github.io/"/>
-  <updated>2025-04-02T00:31:30.818Z</updated>
+  <updated>2025-04-02T03:32:10.484Z</updated>
   <id>https://wcjb.github.io/</id>
   
   <author>
@@ -21,16 +21,17 @@
     <link href="https://wcjb.github.io/posts/15775e35/"/>
     <id>https://wcjb.github.io/posts/15775e35/</id>
     <published>2025-03-31T09:11:09.000Z</published>
-    <updated>2025-04-02T00:31:30.818Z</updated>
+    <updated>2025-04-02T03:32:10.484Z</updated>
     
     
       
       
         
         
-    <summary type="html">&lt;ul&gt;
+    <summary type="html">&lt;span id=&quot;more&quot;&gt;&lt;/span&gt;
+&lt;ul&gt;
 &lt;li&gt;&lt;p&gt;为什么在LLM模型预训练时，计算交叉熵损失函数时需要loss mask&lt;/p&gt;
-&lt;p&gt;  在自回归训练中，模型需要根据前&lt;span class=&quot;math inline&quot;&gt;&#92;(n-1&#92;)&lt;/span&gt;个Token预测第&lt;span class=&quot;math</summary>
+&lt;p&gt;  在自回归训练中，模型需要根据前&lt;span class=&quot;math</summary>
         
       
     
