@@ -6,7 +6,7 @@
   <link href="https://wcjb.github.io/atom.xml" rel="self"/>
   
   <link href="https://wcjb.github.io/"/>
-  <updated>2025-04-02T03:32:10.484Z</updated>
+  <updated>2025-04-02T08:49:05.391Z</updated>
   <id>https://wcjb.github.io/</id>
   
   <author>
@@ -21,7 +21,7 @@
     <link href="https://wcjb.github.io/posts/15775e35/"/>
     <id>https://wcjb.github.io/posts/15775e35/</id>
     <published>2025-03-31T09:11:09.000Z</published>
-    <updated>2025-04-02T03:32:10.484Z</updated>
+    <updated>2025-04-02T08:49:05.391Z</updated>
     
     
       
@@ -29,9 +29,7 @@
         
         
     <summary type="html">&lt;span id=&quot;more&quot;&gt;&lt;/span&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;p&gt;为什么在LLM模型预训练时，计算交叉熵损失函数时需要loss mask&lt;/p&gt;
-&lt;p&gt;  在自回归训练中，模型需要根据前&lt;span class=&quot;math</summary>
+&lt;h2</summary>
         
       
     
@@ -41,6 +39,25 @@
     <category term="LLM" scheme="https://wcjb.github.io/tags/LLM/"/>
     
     <category term="模型训练" scheme="https://wcjb.github.io/tags/%E6%A8%A1%E5%9E%8B%E8%AE%AD%E7%BB%83/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>LLM之位置编码</title>
+    <link href="https://wcjb.github.io/posts/1.5775e+40/"/>
+    <id>https://wcjb.github.io/posts/1.5775e+40/</id>
+    <published>2025-03-31T09:11:09.000Z</published>
+    <updated>2025-04-02T07:40:29.586Z</updated>
+    
+    
+    <summary type="html">&lt;p&gt;  在自然语言处理的任务中，位置编码是帮助模型理解序列中每个单词或词片（token）在序列中的位置的一种机制。这是因为像
+Transformer
+这样的架构本质上是无序的，它们通过注意力机制处理整个序列中的所有元素，但并不能直接感知这些元素在序列中的顺序。因此，我们需要将序列的位置信息编码进模型的输入，编码的方式有绝对位置编码和相对位置编码。&lt;/p&gt;</summary>
+    
+    
+    
+    
+    <category term="— 位置编码 - LLM - 模型训练" scheme="https://wcjb.github.io/tags/%E2%80%94-%E4%BD%8D%E7%BD%AE%E7%BC%96%E7%A0%81-LLM-%E6%A8%A1%E5%9E%8B%E8%AE%AD%E7%BB%83/"/>
     
   </entry>
   

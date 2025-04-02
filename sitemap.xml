@@ -11,6 +11,15 @@
   </url>
   
   <url>
+    <loc>https://wcjb.github.io/posts/1.5775e+40/</loc>
+    
+    <lastmod>2025-04-02</lastmod>
+    
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  
+  <url>
     <loc>https://wcjb.github.io/posts/19c3723a/</loc>
     
     <lastmod>2025-04-01</lastmod>
@@ -200,6 +209,13 @@
   
   <url>
     <loc>https://wcjb.github.io/tags/%E4%BD%99%E5%BC%A6%E9%80%80%E7%81%AB/</loc>
+    <lastmod>2025-04-02</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.2</priority>
+  </url>
+  
+  <url>
+    <loc>https://wcjb.github.io/tags/%E2%80%94-%E4%BD%8D%E7%BD%AE%E7%BC%96%E7%A0%81-LLM-%E6%A8%A1%E5%9E%8B%E8%AE%AD%E7%BB%83/</loc>
     <lastmod>2025-04-02</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
