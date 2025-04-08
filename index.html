@@ -200,6 +200,100 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://wcjb.github.io/posts/1.5775e+40/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/uploads/avatar.png">
+      <meta itemprop="name" content="殉道者">
+      <meta itemprop="description" content="幼而学者,如日出之光；老而学者，如秉烛夜行，犹贤乎瞑目而无见者也！">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="老学庵">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/posts/1.5775e+40/" class="post-title-link" itemprop="url">LLM之位置编码</a>
+        </h2>
+
+        <div class="post-meta">
+
+          
+            <i class="fa fa-thumb-tack"></i>
+            <font color=7D26CD>置顶</font>
+            <span class="post-meta-divider">|</span>
+          
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2025-03-31 17:11:09" itemprop="dateCreated datePublished" datetime="2025-03-31T17:11:09+08:00">2025-03-31</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2025-04-08 11:44:22" itemprop="dateModified" datetime="2025-04-08T11:44:22+08:00">2025-04-08</time>
+              </span>
+
+          <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>1.1k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>4 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>  在自然语言处理的任务中，位置编码是帮助模型理解序列中每个单词或词片（token）在序列中的位置的一种机制。这是因为像
+Transformer
+这样的架构本质上是无序的，它们通过注意力机制处理整个序列中的所有元素，但并不能直接感知这些元素在序列中的顺序。因此，我们需要将序列的位置信息编码进模型的输入，编码的方式有绝对位置编码和相对位置编码。</p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/posts/1.5775e+40/#more" rel="contents">
+                阅读全文 &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
     <link itemprop="mainEntityOfPage" href="https://wcjb.github.io/posts/15775e35/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -237,7 +331,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2025-04-02 16:49:05" itemprop="dateModified" datetime="2025-04-02T16:49:05+08:00">2025-04-02</time>
+                <time title="修改时间：2025-04-08 11:38:37" itemprop="dateModified" datetime="2025-04-08T11:38:37+08:00">2025-04-08</time>
               </span>
 
           <br>
@@ -268,19 +362,19 @@
           <span id="more"></span>
 <h2 id="为什么在llm模型预训练时计算交叉熵损失函数时需要loss-mask">为什么在LLM模型预训练时，计算交叉熵损失函数时需要loss
 mask</h2>
-<pre><code>&amp;emsp;&amp;emsp;在自回归训练中，模型需要根据前$n-1$个Token预测第$n$个Token。此时，输入序列为$X = [x_1,x_2,...,x_&#123;n-1&#125;]$，目标序列为$Y= [y_1,y_2,...,y_m] \quad m \geq n$，掩码规则为仅对目标序列中与当前预测位置匹配的Token计算损失（如第$i$个预测位置仅计算$y_i$的损失,其他位置（包括填充Token）设为0，不参与损失计算.
-其主要作用如下：
-+ 忽略无效Token
-
-&amp;emsp;&amp;emsp;预训练数据通常包含填充（Padding）标记或特殊符号（如&lt;eos&gt;），这些位置的真实值对模型无意义。若不加掩码，模型会错误学习生成这些无效Token，导致训练效率下降。
-
-+ 聚焦有效生成
-
-&amp;emsp;&amp;emsp;通过掩码选择性计算损失，模型仅关注实际需要生成的Token（如自回归任务中预测下一个Token），避免被无关信息干扰。
-
-+ 保持损失归一化
-
-&amp;emsp;&amp;emsp;掩码确保不同批次、不同长度序列的损失计算公平，避免填充Token拉低整体损失值</code></pre>
+<p>  在自回归训练中，模型需要根据前<span class="math inline">\(n-1\)</span>个Token预测第<span class="math inline">\(n\)</span>个Token。此时，输入序列为<span class="math inline">\(X =
+[x_1,x_2,...,x_{n-1}]\)</span>，目标序列为<span class="math inline">\(Y=
+[y_1,y_2,...,y_m] \quad m \geq
+n\)</span>，掩码规则为仅对目标序列中与当前预测位置匹配的Token计算损失（如第<span class="math inline">\(i\)</span>个预测位置仅计算<span class="math inline">\(y_i\)</span>的损失,其他位置（包括填充Token）设为0，不参与损失计算.
+其主要作用如下：</p>
+<ul>
+<li><p>忽略无效Token</p>
+<p>  预训练数据通常包含填充（Padding）标记或特殊符号（如<eos>），这些位置的真实值对模型无意义。若不加掩码，模型会错误学习生成这些无效Token，导致训练效率下降。</eos></p></li>
+<li><p>聚焦有效生成</p>
+<p>  通过掩码选择性计算损失，模型仅关注实际需要生成的Token（如自回归任务中预测下一个Token），避免被无关信息干扰。</p></li>
+<li><p>保持损失归一化</p>
+<p>  掩码确保不同批次、不同长度序列的损失计算公平，避免填充Token拉低整体损失值</p></li>
+</ul>
 <h2 id="深度学习中常用归一化技术">深度学习中常用归一化技术</h2>
 <p>  归一化技术在深度学习中常用于对输入数据进行标准化处理的方法，归一化技术本质上是将输入空间映射到一个规范化空间的过程，此映射的常见形式如下：</p>
 <ul>
@@ -441,100 +535,6 @@ Qwen1.5技术报告大模型综述：A Survey of Large Language
 Models</a></p></li>
 </ul>
 
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://wcjb.github.io/posts/1.5775e+40/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/uploads/avatar.png">
-      <meta itemprop="name" content="殉道者">
-      <meta itemprop="description" content="幼而学者,如日出之光；老而学者，如秉烛夜行，犹贤乎瞑目而无见者也！">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="老学庵">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/posts/1.5775e+40/" class="post-title-link" itemprop="url">LLM之位置编码</a>
-        </h2>
-
-        <div class="post-meta">
-
-          
-            <i class="fa fa-thumb-tack"></i>
-            <font color=7D26CD>置顶</font>
-            <span class="post-meta-divider">|</span>
-          
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2025-03-31 17:11:09" itemprop="dateCreated datePublished" datetime="2025-03-31T17:11:09+08:00">2025-03-31</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2025-04-02 15:40:29" itemprop="dateModified" datetime="2025-04-02T15:40:29+08:00">2025-04-02</time>
-              </span>
-
-          <br>
-            <span class="post-meta-item" title="本文字数">
-              <span class="post-meta-item-icon">
-                <i class="far fa-file-word"></i>
-              </span>
-                <span class="post-meta-item-text">本文字数：</span>
-              <span>699</span>
-            </span>
-            <span class="post-meta-item" title="阅读时长">
-              <span class="post-meta-item-icon">
-                <i class="far fa-clock"></i>
-              </span>
-                <span class="post-meta-item-text">阅读时长 &asymp;</span>
-              <span>3 分钟</span>
-            </span>
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>  在自然语言处理的任务中，位置编码是帮助模型理解序列中每个单词或词片（token）在序列中的位置的一种机制。这是因为像
-Transformer
-这样的架构本质上是无序的，它们通过注意力机制处理整个序列中的所有元素，但并不能直接感知这些元素在序列中的顺序。因此，我们需要将序列的位置信息编码进模型的输入，编码的方式有绝对位置编码和相对位置编码。</p>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/posts/1.5775e+40/#more" rel="contents">
-                阅读全文 &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
       
     </div>
 
@@ -1234,12 +1234,12 @@ Decomposition，SVD）是线性代数中一种重要的矩阵分解方法，区�
     <span class="post-meta-item-icon">
       <i class="fa fa-chart-area"></i>
     </span>
-    <span title="站点总字数">23k</span>
+    <span title="站点总字数">24k</span>
     <span class="post-meta-divider">|</span>
     <span class="post-meta-item-icon">
       <i class="fa fa-coffee"></i>
     </span>
-    <span title="站点阅读时长">1:25</span>
+    <span title="站点阅读时长">1:26</span>
 </div>
 
 <!--
