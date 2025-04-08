@@ -32,7 +32,7 @@
 <meta property="og:locale" content="zh_CN">
 <meta property="og:image" content="https://wcjb.github.io/posts/15775ef36/RoPE.png">
 <meta property="article:published_time" content="2025-03-31T09:11:09.000Z">
-<meta property="article:modified_time" content="2025-04-08T06:03:00.752Z">
+<meta property="article:modified_time" content="2025-04-08T06:06:17.590Z">
 <meta property="article:author" content="殉道者">
 <meta property="article:tag" content="— 位置编码 - LLM - 模型训练">
 <meta name="twitter:card" content="summary">
@@ -243,7 +243,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2025-04-08 14:03:00" itemprop="dateModified" datetime="2025-04-08T14:03:00+08:00">2025-04-08</time>
+                <time title="修改时间：2025-04-08 14:06:17" itemprop="dateModified" datetime="2025-04-08T14:06:17+08:00">2025-04-08</time>
               </span>
 
           
@@ -259,14 +259,14 @@
                 <i class="far fa-file-word"></i>
               </span>
                 <span class="post-meta-item-text">本文字数：</span>
-              <span>1.1k</span>
+              <span>1.4k</span>
             </span>
             <span class="post-meta-item" title="阅读时长">
               <span class="post-meta-item-icon">
                 <i class="far fa-clock"></i>
               </span>
                 <span class="post-meta-item-text">阅读时长 &asymp;</span>
-              <span>4 分钟</span>
+              <span>5 分钟</span>
             </span>
 
         </div>
@@ -307,6 +307,7 @@ token 位置都计算对应的旋转位置编码，接着对每个 token 位置�
 向量的元素按照 两两一组 应用旋转变换，最后再计算 query 和 key
 之间的内积得到 self-attention 的计算结果。总体流程如下图：</p>
 <p><img src="RoPE.png"></p>
+<p>RoPE的代码实现如下： <figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="comment"># 预计算旋转位置编码（Positional Cis）</span></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">precompute_pos_cis</span>(<span class="params">dim: <span class="built_in">int</span>, end: <span class="built_in">int</span> = <span class="built_in">int</span>(<span class="params"><span class="number">32</span> * <span class="number">1024</span></span>), theta: <span class="built_in">float</span> = <span class="number">1e6</span></span>):</span><br><span class="line"></span><br><span class="line">    <span class="comment"># 计算词向量元素两两分组之后，每组词向量的旋转角度</span></span><br><span class="line">    freqs = <span class="number">1.0</span> / (theta ** (torch.arange(<span class="number">0</span>, dim, <span class="number">2</span>)[: (dim // <span class="number">2</span>)].<span class="built_in">float</span>() / dim))</span><br><span class="line"></span><br><span class="line">    <span class="comment"># 生成 token 序列索引 t = [0, 1,..., seq_len-1]</span></span><br><span class="line">    t = torch.arange(end, device=freqs.device)  <span class="comment"># type: ignore</span></span><br><span class="line"></span><br><span class="line">    <span class="comment"># freqs.shape = [seq_len, dim // 2] </span></span><br><span class="line">    freqs = torch.outer(t, freqs).<span class="built_in">float</span>()  <span class="comment"># type: ignore</span></span><br><span class="line">    pos_cis = torch.polar(torch.ones_like(freqs), freqs)  <span class="comment"># 构造复数</span></span><br><span class="line">    <span class="keyword">return</span> pos_cis</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">apply_rotary_emb</span>(<span class="params">xq, xk, pos_cis</span>):</span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">unite_shape</span>(<span class="params">pos_cis, x</span>):</span><br><span class="line">        ndim = x.ndim</span><br><span class="line">        <span class="keyword">assert</span> <span class="number">0</span> &lt;= <span class="number">1</span> &lt; ndim</span><br><span class="line">        <span class="keyword">assert</span> pos_cis.shape == (x.shape[<span class="number">1</span>], x.shape[-<span class="number">1</span>])</span><br><span class="line">        shape = [d <span class="keyword">if</span> i == <span class="number">1</span> <span class="keyword">or</span> i == ndim - <span class="number">1</span> <span class="keyword">else</span> <span class="number">1</span> <span class="keyword">for</span> i, d <span class="keyword">in</span> <span class="built_in">enumerate</span>(x.shape)]</span><br><span class="line">        <span class="keyword">return</span> pos_cis.view(*shape)</span><br><span class="line"></span><br><span class="line">    <span class="comment"># xq的原始维度为[batch_size,sep_len,n_heads,head_dim],为进行RoPE计算，head_dim需为偶数</span></span><br><span class="line"></span><br><span class="line">    <span class="comment"># xq.shape = [batch_size, seq_len, dim]</span></span><br><span class="line">    <span class="comment"># xq_.shape = [batch_size, seq_len, dim // 2, 2]</span></span><br><span class="line"></span><br><span class="line">    <span class="comment"># 构造为复数</span></span><br><span class="line">    xq_ = torch.view_as_complex(xq.<span class="built_in">float</span>().reshape(*xq.shape[:-<span class="number">1</span>], -<span class="number">1</span>, <span class="number">2</span>))</span><br><span class="line">    xk_ = torch.view_as_complex(xk.<span class="built_in">float</span>().reshape(*xk.shape[:-<span class="number">1</span>], -<span class="number">1</span>, <span class="number">2</span>))</span><br><span class="line"></span><br><span class="line">    <span class="comment"># 维度对齐</span></span><br><span class="line">    pos_cis = unite_shape(pos_cis, xq_)</span><br><span class="line"></span><br><span class="line">    <span class="comment"># 复数乘法进行旋转变换</span></span><br><span class="line">    xq_out = torch.view_as_real(xq_ * pos_cis).flatten(<span class="number">3</span>)   <span class="comment"># 执行复数乘法做旋转变换，使用flatten(3)，将最后的两个维度合并，恢复原始张量维度结构</span></span><br><span class="line">    xk_out = torch.view_as_real(xk_ * pos_cis).flatten(<span class="number">3</span>)</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">return</span> xq_out.type_as(xq), xk_out.type_as(xk)</span><br><span class="line"></span><br></pre></td></tr></table></figure></p>
 <hr>
 <h2 id="参考文献">参考文献</h2>
 <p><a target="_blank" rel="noopener" href="https://kexue.fm/archives/8265">[1]
@@ -503,7 +504,7 @@ Transformer with Rotary Position Embedding</a></p>
     <span class="post-meta-item-icon">
       <i class="fa fa-coffee"></i>
     </span>
-    <span title="站点阅读时长">1:26</span>
+    <span title="站点阅读时长">1:27</span>
 </div>
 
 <!--
