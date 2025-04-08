@@ -200,7 +200,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://wcjb.github.io/posts/1.5775e+40/">
+    <link itemprop="mainEntityOfPage" href="https://wcjb.github.io/posts/15775ef36/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/uploads/avatar.png">
@@ -214,7 +214,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/posts/1.5775e+40/" class="post-title-link" itemprop="url">LLM之位置编码</a>
+            <a href="/posts/15775ef36/" class="post-title-link" itemprop="url">LLM之位置编码</a>
         </h2>
 
         <div class="post-meta">
@@ -237,7 +237,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2025-04-08 11:44:22" itemprop="dateModified" datetime="2025-04-08T11:44:22+08:00">2025-04-08</time>
+                <time title="修改时间：2025-04-08 14:03:00" itemprop="dateModified" datetime="2025-04-08T14:03:00+08:00">2025-04-08</time>
               </span>
 
           <br>
@@ -270,7 +270,7 @@ Transformer
 这样的架构本质上是无序的，它们通过注意力机制处理整个序列中的所有元素，但并不能直接感知这些元素在序列中的顺序。因此，我们需要将序列的位置信息编码进模型的输入，编码的方式有绝对位置编码和相对位置编码。</p>
           <!--noindex-->
             <div class="post-button">
-              <a class="btn" href="/posts/1.5775e+40/#more" rel="contents">
+              <a class="btn" href="/posts/15775ef36/#more" rel="contents">
                 阅读全文 &raquo;
               </a>
             </div>
@@ -294,7 +294,7 @@ Transformer
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://wcjb.github.io/posts/15775e35/">
+    <link itemprop="mainEntityOfPage" href="https://wcjb.github.io/posts/15775ef35/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/uploads/avatar.png">
@@ -308,7 +308,7 @@ Transformer
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/posts/15775e35/" class="post-title-link" itemprop="url">LLM之模型训练Tricks</a>
+            <a href="/posts/15775ef35/" class="post-title-link" itemprop="url">LLM之模型训练Tricks</a>
         </h2>
 
         <div class="post-meta">
@@ -331,7 +331,7 @@ Transformer
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2025-04-08 11:38:37" itemprop="dateModified" datetime="2025-04-08T11:38:37+08:00">2025-04-08</time>
+                <time title="修改时间：2025-04-08 14:00:55" itemprop="dateModified" datetime="2025-04-08T14:00:55+08:00">2025-04-08</time>
               </span>
 
           <br>
@@ -347,7 +347,7 @@ Transformer
                 <i class="far fa-clock"></i>
               </span>
                 <span class="post-meta-item-text">阅读时长 &asymp;</span>
-              <span>7 分钟</span>
+              <span>8 分钟</span>
             </span>
 
         </div>
@@ -359,182 +359,15 @@ Transformer
     <div class="post-body" itemprop="articleBody">
 
       
-          <span id="more"></span>
-<h2 id="为什么在llm模型预训练时计算交叉熵损失函数时需要loss-mask">为什么在LLM模型预训练时，计算交叉熵损失函数时需要loss
-mask</h2>
-<p>  在自回归训练中，模型需要根据前<span class="math inline">\(n-1\)</span>个Token预测第<span class="math inline">\(n\)</span>个Token。此时，输入序列为<span class="math inline">\(X =
-[x_1,x_2,...,x_{n-1}]\)</span>，目标序列为<span class="math inline">\(Y=
-[y_1,y_2,...,y_m] \quad m \geq
-n\)</span>，掩码规则为仅对目标序列中与当前预测位置匹配的Token计算损失（如第<span class="math inline">\(i\)</span>个预测位置仅计算<span class="math inline">\(y_i\)</span>的损失,其他位置（包括填充Token）设为0，不参与损失计算.
-其主要作用如下：</p>
-<ul>
-<li><p>忽略无效Token</p>
-<p>  预训练数据通常包含填充（Padding）标记或特殊符号（如<eos>），这些位置的真实值对模型无意义。若不加掩码，模型会错误学习生成这些无效Token，导致训练效率下降。</eos></p></li>
-<li><p>聚焦有效生成</p>
-<p>  通过掩码选择性计算损失，模型仅关注实际需要生成的Token（如自回归任务中预测下一个Token），避免被无关信息干扰。</p></li>
-<li><p>保持损失归一化</p>
-<p>  掩码确保不同批次、不同长度序列的损失计算公平，避免填充Token拉低整体损失值</p></li>
-</ul>
-<h2 id="深度学习中常用归一化技术">深度学习中常用归一化技术</h2>
-<p>  归一化技术在深度学习中常用于对输入数据进行标准化处理的方法，归一化技术本质上是将输入空间映射到一个规范化空间的过程，此映射的常见形式如下：</p>
-<ul>
-<li><p>Min-Max</p>
-<p><span class="math display">\[\bar{x} = \dfrac{x-x_{min}}{x_{max} -
-x_{min}}\]</span></p></li>
-</ul>
-<p>  将数据缩放到<span class="math inline">\([0,1]\)</span>范围，适用于数据分布已知且无异常值的请况。</p>
-<ul>
-<li><p>Z-Score</p>
-<p><span class="math display">\[\bar{x} = \dfrac{x -
-\mu}{\delta}\]</span></p></li>
-</ul>
-<p><span class="math display">\[\mu = \frac{1}{m} \sum_{i=1}^{m} x_i,
-\quad \sigma^2 = \frac{1}{m} \sum_{i=1}^{m} (x_i - \mu)^2\]</span>
-  将数据转换为均值为0，标准差为1的分布，适用于数据服从正态分布的情况</p>
-<p>  在实际使用中，会针对性的做一些调整以适应不同任务，不同场景，主要有Batch
-Norm、Layer Norm、RMS Norm等：</p>
-<figure>
-<img src="norm.png" alt="Norm">
-<figcaption aria-hidden="true">Norm</figcaption>
-</figure>
-<ul>
-<li><p>Batch Norm</p>
-<p>  对每个特征通道（如图像的RGB通道）在批量数据上计算均值和方差，通过标准化和平移/缩放参数调整分布，公式如下：
-<span class="math display">\[y = \gamma \cdot
-\dfrac{x-\mu}{\sqrt{\sigma^2 + \epsilon}} + \beta\]</span></p></li>
-<li><p>Layer Norm</p>
-<p>  对单个样本的所有特征维度（如序列模型的每个token向量）计算均值和方差，实现跨样本的归一化，公式同上，只是针对的输入不同</p></li>
-<li><p>RMS Norm</p>
-<p>  LayerNorm的变体，仅计算均方根（RMS）替代均值和方差，去除平移参数<span class="math inline">\(\beta\)</span>，简化计算，公式如下：</p>
-<p><span class="math display">\[y = \gamma \cdot
-\dfrac{x-\mu}{\sqrt{RMS(x)^2 + \epsilon}}\]</span></p>
-<p>其中 <span class="math display">\[RMS(x) = \sqrt{\frac{1}{N}\sum_{i =
-1}^Nx_i^2}\]</span></p></li>
-</ul>
-<p>在深度学习中归一化技术有如下意义：</p>
-<ul>
-<li><p>提高训练速度</p>
-<ul>
-<li>归一化可以使不同特征的数值范围相近，避免某些特征值过大或过小，影响梯度更新，导致训练过程缓慢。</li>
-<li>通过减少梯度下降的震荡，使优化过程更稳定，加快收敛速度。</li>
-</ul></li>
-<li><p>防止梯度消失或梯度爆炸</p>
-<ul>
-<li>归一化可以保持数据分布的稳定性，防止某些层的输入值过大或过小，从而避免梯度消失或梯度爆炸问题，尤其是在深层网络中。</li>
-</ul></li>
-<li><p>提高模型的泛化能力</p>
-<ul>
-<li>归一化可以减少特征对不同尺度的依赖，使模型对输入数据的变化更具鲁棒性，提高泛化能力，降低过拟合风险。</li>
-</ul></li>
-<li><p>减少不同特征之间的影响</p>
-<ul>
-<li>由于不同特征的尺度不同，模型可能会过度依赖某些大数值特征，导致训练过程不稳定。归一化后，各特征的权重分布更加均衡，提高模型的稳定性。</li>
-</ul></li>
-</ul>
-<p>归一化技术对比如下：</p>
-<table>
-<colgroup>
-<col style="width: 9%">
-<col style="width: 30%">
-<col style="width: 29%">
-<col style="width: 29%">
-</colgroup>
-<thead>
-<tr>
-<th>方法</th>
-<th>典型应用场景</th>
-<th>核心优势</th>
-<th>局限性</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>Batch Norm</td>
-<td>图像分类（CNN）、小批量训练场景</td>
-<td>加速收敛、降低初始化敏感度</td>
-<td>对批量大小敏感，无法处理序列数据（如NLP）</td>
-</tr>
-<tr>
-<td>Layer Norm</td>
-<td>自然语言处理（如BERT、GPT）、RNN、长序列模型</td>
-<td>适应动态批量、保持序列位置不变性</td>
-<td>计算开销较大，对噪声敏感</td>
-</tr>
-<tr>
-<td>RMS Norm</td>
-<td>超大规模语言模型（如LLaMA、DeepSeek）、高精度工业检测</td>
-<td>计算高效、数值稳定性强、减少梯度爆炸风险</td>
-<td>无法处理均值敏感任务（如某些CV任务）</td>
-</tr>
-</tbody>
-</table>
-<p>  需要注意的是，在训练和推理阶段，Batch
-Norm的处理方式是截然不同的。</p>
-<ul>
-<li><p>训练阶段</p>
-<p>  在训练阶段，BN会计算每个批次的均值和方差，同时维护全局均值和全局方差，并使用滑动平均来进行更新：</p>
-<p><span class="math display">\[
-\begin{cases}\mu_g = \alpha \mu_g + (1 - \alpha)\mu_{b} \\ \delta_g^2 =
-\alpha \delta_g^2 + (1-\alpha)\delta_b^2
-\end{cases}\]</span> 其中<span class="math inline">\(\alpha\)</span>为平滑系数。</p></li>
-<li><p>推理阶段</p>
-<p>  在推理阶段，会直接使用训练阶段得到的全局均值<span class="math inline">\(\mu_g\)</span>，全局方差<span class="math inline">\(\delta_g^2\)</span>进行数据归一化，确保输入数据特征分布的一致性，同时保证模型在推理阶段的稳定性。</p></li>
-</ul>
-<blockquote>
-<p>  因此在进行模型推理时，若使用原生pytorch，在推理前，需调用模型的eval()方法，将模型设置为推理模式，以确保在使用BN的模型推理场景，能正确使用训练阶段的全局均值和方差。对于使用非BN标准化方法的场景，如LN，RN，IN，GN等在训练和推理时都是采用各自当前的均值和方差，但是也要在推理前将模型设置为推理模式，因为Dropout算法在训练和推理阶段也是完全不同的，在推理阶段，Dropout是静默的，随机冻结参数的比例为0。若使用第三方推理框架，如OnnxRuntime、TensorRT等，在使用torch到处模型参数前，也需要将模型设置为推理模式。</p>
-</blockquote>
-<h2 id="大模型构建流程">大模型构建流程</h2>
-<p>  根据OpenAI联合创始人Andrej Karpathy在微软Build
-2023大会上公开的信息，OpenAI使用的大模型构建流程如下图所示，主要包括以下四个阶段：
-<img src="LLmbuild.png"></p>
-<ul>
-<li><p>预训练</p>
-<p>  预训练阶段使用的主要模型结构是自回归（Autoregressive）模型GPT[1]，此外还有自编码（Autoencoding）模型BERT[2]、编码器-解码器模型BART[3]，以及融合上述三种方法的自回归填空（Autoregressive
-Blank Infiling）模型GLM（General Language Model）[3]。</p></li>
-<li><p>有监督微调（SFT）</p>
-<p>  有监督微调分为全参数微调和轻量级参数微调。而常用的轻量级微调方法有LORA[4]、AdaLoRA[5]、QLoRA[6]等。</p></li>
-<li><p>Reward Model</p>
-<p>  练Reward
-Model的目标是构建一个文本质量对比模型，用于对两个结果之间的优劣进行对比。Reward
-Model主要用于下阶段的强化学习，强化学习会使最终生成的回答获得更高的Reward。InstructGPT中给出了如何构建Reward
-Model[7]，可以阅读原论文。</p></li>
-<li><p>人工反馈强化学习</p>
-<p>  强化学习阶段根据数十万用户给的prompt，利用前一阶段训练的Reward
-Model，使用近段策略优化PPO[8]对语言模型继续进行微调，使得模型更好的学习人类偏好。</p></li>
-<li><p>参考文献</p>
-<p><a href="https://link.zhihu.com/?target=https%3A//www.cs.ubc.ca/~amuham01/LING530/papers/radford2018improving.pdf">[1]
-GPT-1技术报告 Improving Language Understanding by Generative
-Pre-Training</a></p>
-<p><a href="https://link.zhihu.com/?target=https%3A//cdn.openai.com/better-language-models/language_models_are_unsupervised_multitask_learners.pdf">[2]
-GPT-2技术报告：Language Models are Unsupervised Multitask
-Learners</a></p>
-<p><a href="https://link.zhihu.com/?target=https%3A//arxiv.org/pdf/2005.14165.pdf">[3]
-GPT-3技术报告：Language Models are Few-Shot Learners</a></p>
-<p><a href="https://link.zhihu.com/?target=https%3A//arxiv.org/pdf/2203.02155.pdf">[4]
-Instruct GPT技术报告：Training language models to follow instructions
-with human feedback</a></p>
-<p><a href="https://link.zhihu.com/?target=https%3A//cdn.openai.com/papers/gpt-4.pdf">[5]
-GPT-4技术报告：GPT-4 Technical Report</a></p>
-<p><a href="https://link.zhihu.com/?target=https%3A//arxiv.org/pdf/2302.13971.pdf">[6]
-Llama-1技术报告：LLaMA: Open and Efficient Foundation Language
-Models</a></p>
-<p><a href="https://link.zhihu.com/?target=https%3A//arxiv.org/pdf/2307.09288.pdf">[7]
-Llama-2技术报告：Llama 2: Open Foundation and Fine-Tuned Chat
-Models</a></p>
-<p><a href="https://link.zhihu.com/?target=https%3A//arxiv.org/pdf/2309.10305.pdf">[8]
-Baichuan-2技术报告：Baichuan 2: Open Large-scale Language Models</a></p>
-<p><a href="https://link.zhihu.com/?target=https%3A//arxiv.org/pdf/2103.10360.pdf">[9]
-GLM技术报告：GLM: General Language Model Pretraining with Autoregressive
-Blank</a></p>
-<p><a href="https://link.zhihu.com/?target=https%3A//arxiv.org/pdf/2403.04652.pdf">[10]
-InfillingYi-34B技术报告：Yi: Open Foundation Models by 01.AI</a></p>
-<p><a href="https://link.zhihu.com/?target=https%3A//qianwen-res.oss-cn-beijing.aliyuncs.com/QWEN_TECHNICAL_REPORT.pdf">[11]
-Qwen-1技术报告：QWEN TECHNICAL REPORT</a></p>
-<p><a href="https://link.zhihu.com/?target=https%3A//qwenlm.github.io/blog/qwen1.5/">[12]
-Qwen1.5技术报告大模型综述：A Survey of Large Language
-Models</a></p></li>
-</ul>
-
+          <p>  学习LLM过程中的经典策略记录。</p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/posts/15775ef35/#more" rel="contents">
+                阅读全文 &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
       
     </div>
 

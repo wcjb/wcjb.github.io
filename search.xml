@@ -2,7 +2,7 @@
 <search>
   <entry>
     <title>LLM之位置编码</title>
-    <url>/posts/1.5775e+40/</url>
+    <url>/posts/15775ef36/</url>
     <content><![CDATA[<p>  在自然语言处理的任务中，位置编码是帮助模型理解序列中每个单词或词片（token）在序列中的位置的一种机制。这是因为像
 Transformer
 这样的架构本质上是无序的，它们通过注意力机制处理整个序列中的所有元素，但并不能直接感知这些元素在序列中的顺序。因此，我们需要将序列的位置信息编码进模型的输入，编码的方式有绝对位置编码和相对位置编码。</p>
@@ -31,10 +31,7 @@ A_{ij} = Q_i \cdot K_j^T + b_{ij}
 token 位置都计算对应的旋转位置编码，接着对每个 token 位置的 query 和 key
 向量的元素按照 两两一组 应用旋转变换，最后再计算 query 和 key
 之间的内积得到 self-attention 的计算结果。总体流程如下图：</p>
-<figure>
-<img src="RoPE.png" alt="RoPE">
-<figcaption aria-hidden="true">RoPE</figcaption>
-</figure>
+<p><img src="RoPE.png"></p>
 <hr>
 <h2 id="参考文献">参考文献</h2>
 <p><a href="https://kexue.fm/archives/8265">[1]
@@ -50,8 +47,8 @@ Transformer with Rotary Position Embedding</a></p>
   </entry>
   <entry>
     <title>LLM之模型训练Tricks</title>
-    <url>/posts/15775e35/</url>
-    <content><![CDATA[<span id="more"></span>
+    <url>/posts/15775ef35/</url>
+    <content><![CDATA[<p>  学习LLM过程中的经典策略记录。 <span id="more"></span></p>
 <h2 id="为什么在llm模型预训练时计算交叉熵损失函数时需要loss-mask">为什么在LLM模型预训练时，计算交叉熵损失函数时需要loss
 mask</h2>
 <p>  在自回归训练中，模型需要根据前<span class="math inline">\(n-1\)</span>个Token预测第<span class="math inline">\(n\)</span>个Token。此时，输入序列为<span class="math inline">\(X =
@@ -84,11 +81,8 @@ x_{min}}\]</span></p></li>
 \quad \sigma^2 = \frac{1}{m} \sum_{i=1}^{m} (x_i - \mu)^2\]</span>
   将数据转换为均值为0，标准差为1的分布，适用于数据服从正态分布的情况</p>
 <p>  在实际使用中，会针对性的做一些调整以适应不同任务，不同场景，主要有Batch
-Norm、Layer Norm、RMS Norm等：</p>
-<figure>
-<img src="norm.png" alt="Norm">
-<figcaption aria-hidden="true">Norm</figcaption>
-</figure>
+Norm、Layer Norm、RMS Norm等:</p>
+<p><img src="norm.png"></p>
 <ul>
 <li><p>Batch Norm</p>
 <p>  对每个特征通道（如图像的RGB通道）在批量数据上计算均值和方差，通过标准化和平移/缩放参数调整分布，公式如下：
@@ -177,8 +171,8 @@ Norm的处理方式是截然不同的。</p>
 </blockquote>
 <h2 id="大模型构建流程">大模型构建流程</h2>
 <p>  根据OpenAI联合创始人Andrej Karpathy在微软Build
-2023大会上公开的信息，OpenAI使用的大模型构建流程如下图所示，主要包括以下四个阶段：
-<img src="LLmbuild.png"></p>
+2023大会上公开的信息，OpenAI使用的大模型构建流程如下图所示，主要包括以下四个阶段：</p>
+<p><img src="LLMBuild.png"></p>
 <ul>
 <li><p>预训练</p>
 <p>  预训练阶段使用的主要模型结构是自回归（Autoregressive）模型GPT[1]，此外还有自编码（Autoencoding）模型BERT[2]、编码器-解码器模型BART[3]，以及融合上述三种方法的自回归填空（Autoregressive
