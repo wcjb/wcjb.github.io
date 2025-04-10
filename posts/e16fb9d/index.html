@@ -23,25 +23,20 @@
     var CONFIG = {"hostname":"wcjb.github.io","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":true,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
   </script>
 
-  <meta name="description" content="主要记录机器视觉领域的一些基本概念及一些实践中的tricks。">
+  <meta name="description" content="在Transformer架构的生成式模型（如GPT系列）中，推理过程需要逐个生成token。传统方式每次生成都需重新计算所有历史token的注意力信息，导致计算复杂度达到O(n²)。KV Cache技术通过缓存历史token的Key和Value矩阵，将后续生成的计算复杂度降至O(n)，实现推理加速，本质上是一种用空间来换取时间的加速策略。">
 <meta property="og:type" content="article">
-<meta property="og:title" content="机器视觉之基本概念">
-<meta property="og:url" content="https://wcjb.github.io/posts/781628f/index.html">
+<meta property="og:title" content="LLM之KVCache">
+<meta property="og:url" content="https://wcjb.github.io/posts/e16fb9d/index.html">
 <meta property="og:site_name" content="老学庵">
-<meta property="og:description" content="主要记录机器视觉领域的一些基本概念及一些实践中的tricks。">
+<meta property="og:description" content="在Transformer架构的生成式模型（如GPT系列）中，推理过程需要逐个生成token。传统方式每次生成都需重新计算所有历史token的注意力信息，导致计算复杂度达到O(n²)。KV Cache技术通过缓存历史token的Key和Value矩阵，将后续生成的计算复杂度降至O(n)，实现推理加速，本质上是一种用空间来换取时间的加速策略。">
 <meta property="og:locale" content="zh_CN">
-<meta property="og:image" content="https://wcjb.github.io/posts/781628f/1.png">
-<meta property="og:image" content="https://wcjb.github.io/posts/781628f/2.png">
-<meta property="article:published_time" content="2025-02-18T07:21:39.000Z">
-<meta property="article:modified_time" content="2025-02-19T02:03:52.610Z">
+<meta property="article:published_time" content="2025-04-08T06:25:49.000Z">
+<meta property="article:modified_time" content="2025-04-10T06:34:41.454Z">
 <meta property="article:author" content="殉道者">
-<meta property="article:tag" content="相机">
-<meta property="article:tag" content="视觉">
-<meta property="article:tag" content="图像">
+<meta property="article:tag" content="-- Trasformer -- 大模型推理 -- 性能优化">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:image" content="https://wcjb.github.io/posts/781628f/1.png">
 
-<link rel="canonical" href="https://wcjb.github.io/posts/781628f/">
+<link rel="canonical" href="https://wcjb.github.io/posts/e16fb9d/">
 
 
 <script id="page-configurations">
@@ -54,7 +49,7 @@
   };
 </script>
 
-  <title>机器视觉之基本概念 | 老学庵</title>
+  <title>LLM之KVCache | 老学庵</title>
   
 
 
@@ -210,7 +205,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://wcjb.github.io/posts/781628f/">
+    <link itemprop="mainEntityOfPage" href="https://wcjb.github.io/posts/e16fb9d/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/uploads/avatar.png">
@@ -223,11 +218,15 @@
     </span>
       <header class="post-header">
         <h1 class="post-title" itemprop="name headline">
-          机器视觉之基本概念
+          LLM之KVCache
         </h1>
 
         <div class="post-meta">
 
+          
+            <i class="fa fa-thumb-tack"></i>
+            <font color=7D26CD>置顶</font>
+            <span class="post-meta-divider">|</span>
           
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -235,14 +234,14 @@
               </span>
               <span class="post-meta-item-text">发表于</span>
 
-              <time title="创建时间：2025-02-18 15:21:39" itemprop="dateCreated datePublished" datetime="2025-02-18T15:21:39+08:00">2025-02-18</time>
+              <time title="创建时间：2025-04-08 14:25:49" itemprop="dateCreated datePublished" datetime="2025-04-08T14:25:49+08:00">2025-04-08</time>
             </span>
               <span class="post-meta-item">
                 <span class="post-meta-item-icon">
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2025-02-19 10:03:52" itemprop="dateModified" datetime="2025-02-19T10:03:52+08:00">2025-02-19</time>
+                <time title="修改时间：2025-04-10 14:34:41" itemprop="dateModified" datetime="2025-04-10T14:34:41+08:00">2025-04-10</time>
               </span>
 
           
@@ -258,14 +257,14 @@
                 <i class="far fa-file-word"></i>
               </span>
                 <span class="post-meta-item-text">本文字数：</span>
-              <span>2.6k</span>
+              <span>1.5k</span>
             </span>
             <span class="post-meta-item" title="阅读时长">
               <span class="post-meta-item-icon">
                 <i class="far fa-clock"></i>
               </span>
                 <span class="post-meta-item-text">阅读时长 &asymp;</span>
-              <span>10 分钟</span>
+              <span>5 分钟</span>
             </span>
 
         </div>
@@ -277,175 +276,55 @@
     <div class="post-body" itemprop="articleBody">
 
       
-        <p>  主要记录机器视觉领域的一些基本概念及一些实践中的tricks。
-<span id="more"></span></p>
-<h2 id="ccd">CCD</h2>
-<p>  CCD（Charge-Coupled
-Device）即电荷耦合器件,通常称为CCD图像传感器，是一种半导体器件，当入射光线照射到CCD芯片上的感光单元（微小光敏物质，即像素（Pixel）），光子会被转为电子，这些电子在像素内累计形成电荷。一块CCD芯片上包含的感光单元越多，其成像分辨率也就越高。其成像过程如下：</p>
-<ul>
-<li><p>光电转换</p>
-<p>入射光线通过光电二极管转换为电荷</p></li>
-<li><p>电荷积累</p>
-<p>光敏元件根据光强的不同积累不同数量的电荷</p></li>
-<li><p>电荷转移</p>
-<p>通过电荷转移机制，逐行、逐列将电荷移至输出放大器</p></li>
-<li><p>电压转换</p>
-<p>输出放大器将电荷信号转为电压信号，并传递给模数转换器（ADC），生成数字图像数据</p></li>
-</ul>
-<h2 id="cmos">CMOS</h2>
-<p>  CMOS（Complementary Metal-Oxide
-Semiconductor，互补金属氧化物半导体）成像原理与CCD成像原理类似，但CMOS成像器件的电荷转移和电压转换过程在同一块硅片上完成，因此CMOS成像器件的结构更加简单，成本更低，功耗更低，适用于高分辨率、低功耗的成像应用。</p>
-<p>CCD与CMOS成像器件的对比如下：</p>
-<table>
-<thead>
-<tr>
-<th style="text-align: center;">特性</th>
-<th style="text-align: center;">CCD</th>
-<th style="text-align: center;">CMOS</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td style="text-align: center;">图像质量</td>
-<td style="text-align: center;">高、噪声低，均匀性好</td>
-<td style="text-align: center;">略低，噪声高</td>
-</tr>
-<tr>
-<td style="text-align: center;">制造成本</td>
-<td style="text-align: center;">高</td>
-<td style="text-align: center;">低</td>
-</tr>
-<tr>
-<td style="text-align: center;">功耗</td>
-<td style="text-align: center;">高</td>
-<td style="text-align: center;">低</td>
-</tr>
-<tr>
-<td style="text-align: center;">读取速度</td>
-<td style="text-align: center;">较慢</td>
-<td style="text-align: center;">快</td>
-</tr>
-<tr>
-<td style="text-align: center;">动态范围</td>
-<td style="text-align: center;">宽</td>
-<td style="text-align: center;">较窄</td>
-</tr>
-<tr>
-<td style="text-align: center;">弱光性能</td>
-<td style="text-align: center;">优</td>
-<td style="text-align: center;">稍弱</td>
-</tr>
-</tbody>
-</table>
-<p>通常来说，CCD通常用于高端相机、科学研究和天文观测等对图像质量要求极高的领域，而CMOS则广泛应用于消费类设备（如智能手机摄像头）、监控设备和工业检测等场景，其成本低、功耗低和速度快更具优势。需要注意的是由于CCD采用全局曝光，而CMOS相机使用卷帘曝光，所以在拍摄运动目标时，优先考虑CCD传感器。</p>
-<blockquote>
-<p>Note 1.
-全局曝光是传感器上所有像素在同一时刻开启曝光并在同一时刻曝光结束，将物体某时刻的状态成像，对运动物体而言，类似于将物体冻结了，所以适合拍摄高速运动的物体。</p>
-</blockquote>
-<blockquote>
-<p>Note 2.
-卷帘曝光是逐行（hang）顺序开启曝光，不同行间曝光的开启时刻有个很小的延迟，所以不适合运动物体的拍摄。</p>
-</blockquote>
-<h2 id="像素">像素</h2>
-<p>  像素是构成数字图像的基本单位，相机靶面上的一个感光单元为一个像素，每个像素点都拥有色调和嫉恶调等色彩信息，规则排列的像素集合可以形成一张完整的图像。</p>
-<h2 id="像素直径">像素直径</h2>
-<p>  像素直径，也称像元尺寸指每个CCD元件的大小，通常使用<span class="math inline">\(\mu
-m\)</span>作为单位，严谨的说，此处的大小中包含了感光单元和信号传输通路，其与像素间距（即某个像素的中心到邻近一个像素的中心的距离）相同。如果像素直径较小，则图像将通过较小的像素进行描绘，因此可以获得更加精细的图像，显然通过像素间距和有效像素数可以直接求出CCD元件中感光区域的大小（即CCD元件的总面积）</p>
-<h2 id="相机靶面尺寸">相机靶面尺寸</h2>
-<p>  相机靶面尺寸指用于接收光信号的传感器的尺寸，指的是传感器（工作区域为矩形）对角线长度。一般分为采用英寸单位表示和采用APS-C大小等规格表示这2种方式。采用英寸表示时，该尺寸并不是拍摄的实际尺寸，而是相当于摄像管的对角长度。比如1/2英寸的CCD表示<strong>拥有相当于1/2英寸的摄像管的拍摄范围</strong>。z之所以会如此计算，是由于当初制造CCD的目的就是用于代替电视机、录像机的摄像管。而想要继续使用镜头等光学器件的需求比较强烈，由此诞生了这种奇怪的规格，主要的英寸规格如下表所示。</p>
-<table>
-<thead>
-<tr>
-<th style="text-align: center;">尺寸(英寸)</th>
-<th style="text-align: center;">对角长度(mm)</th>
-<th style="text-align: center;">拍摄区域(wxh,mm)</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td style="text-align: center;">2/3</td>
-<td style="text-align: center;">11</td>
-<td style="text-align: center;">8.8x6.6</td>
-</tr>
-<tr>
-<td style="text-align: center;">1/2</td>
-<td style="text-align: center;">8</td>
-<td style="text-align: center;">6.4x4.8</td>
-</tr>
-<tr>
-<td style="text-align: center;">1/3</td>
-<td style="text-align: center;">6</td>
-<td style="text-align: center;">4.8x3.6</td>
-</tr>
-<tr>
-<td style="text-align: center;">1/4</td>
-<td style="text-align: center;">4.5</td>
-<td style="text-align: center;">3.6x2.0</td>
-</tr>
-</tbody>
-</table>
-<h2 id="快门速度">快门速度</h2>
-<p>  快门速度在工业视觉中也称为曝光时间，表示CCD或CMOS感光元件中积累电荷的时间，单位为秒。快门速度越快，感光元件中积累电荷的时间越短，图像的亮度越低，图像的细节越少，图像的噪点越多。快门速度越慢，感光元件中积累电荷的时间越长，图像的亮度越高，图像的细节越多，图像的噪点越少。直观来看，快门速度可以用于调整光量。</p>
-<h2 id="曝光值">曝光值</h2>
-<p>  曝光值（EV，Exposure
-Value）是用于衡量图像整体亮度的一个综合指标，由一下三个主要因素决定：</p>
-<ul>
-<li>快门速度</li>
-</ul>
-<p>  控制光线进入的时间，决定了运动模糊的程度，曝光时间过长，如果相机的感光元件在曝光期间，被拍摄的物体发生了运动，导致在单帧中记录下了物体的移动轨迹。</p>
-<ul>
-<li>光圈（F值）</li>
-</ul>
-<p>  控制进入光线的量，决定了相机的景深</p>
-<ul>
-<li>感光度(ISO)</li>
-</ul>
-<p>  控制感光元件对光线的灵敏度</p>
-<p>其定义公式如下： <span class="math display">\[
-E_v = \log_2 \frac{N^2}{t}
+        <p>  在Transformer架构的生成式模型（如GPT系列）中，推理过程需要逐个生成token。传统方式每次生成都需重新计算所有历史token的注意力信息，导致计算复杂度达到O(n²)。<strong>KV
+Cache技术通过缓存历史token的Key和Value矩阵</strong>，将后续生成的计算复杂度降至O(n)，实现推理加速，本质上是一种用空间来换取时间的加速策略。</p>
+<span id="more"></span>
+<h3 id="自注意力机制的冗余计算">1.自注意力机制的冗余计算</h3>
+<p>  GPT系列模型是经典的自回归模型，在推理过程中，一次推理只输出一个token，输出token会与输入tokens拼接在一起，然后作为下一次推理的输入，这样不断反复直到遇到终止符。以GPT2为例，代码如下:
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> torch</span><br><span class="line"><span class="keyword">from</span> transformers <span class="keyword">import</span> GPT2LMHeadModel, GPT2Tokenizer</span><br><span class="line"></span><br><span class="line">model = GPT2LMHeadModel.from_pretrained(<span class="string">&quot;gpt2&quot;</span>, torchscript=<span class="literal">True</span>).<span class="built_in">eval</span>()</span><br><span class="line"></span><br><span class="line">tokenizer = GPT2Tokenizer.from_pretrained(<span class="string">&quot;gpt2&quot;</span>)</span><br><span class="line">in_text = <span class="string">&quot;Hello, how  &quot;</span></span><br><span class="line">in_tokens = torch.tensor(tokenizer.encode(in_text))</span><br><span class="line"></span><br><span class="line">token_eos = torch.tensor([<span class="number">198</span>]) </span><br><span class="line">out_token = <span class="literal">None</span></span><br><span class="line">i = <span class="number">0</span></span><br><span class="line"><span class="keyword">with</span> torch.no_grad():</span><br><span class="line">    <span class="keyword">while</span> out_token != token_eos:</span><br><span class="line">        logits, _ = model(in_tokens)</span><br><span class="line">        out_token = torch.argmax(logits[-<span class="number">1</span>, :], dim=<span class="number">0</span>, keepdim=<span class="literal">True</span>)</span><br><span class="line">        in_tokens = torch.cat((in_tokens, out_token), <span class="number">0</span>)</span><br><span class="line">        text = tokenizer.decode(in_tokens)</span><br><span class="line">        <span class="built_in">print</span>(<span class="string">f&#x27;step <span class="subst">&#123;i&#125;</span> input: <span class="subst">&#123;text&#125;</span>&#x27;</span>, flush=<span class="literal">True</span>)</span><br><span class="line">        i += <span class="number">1</span></span><br><span class="line"></span><br><span class="line">out_text = tokenizer.decode(in_tokens)</span><br><span class="line"><span class="built_in">print</span>(<span class="string">f&#x27;Input: <span class="subst">&#123;in_text&#125;</span>&#x27;</span>)</span><br><span class="line"><span class="built_in">print</span>(<span class="string">f&#x27;Output: <span class="subst">&#123;out_text&#125;</span>&#x27;</span>)</span><br></pre></td></tr></table></figure> ---</p>
+<p>执行输出结果如下： <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">step 0  input: Hello, how   </span><br><span class="line">step 1  input: Hello, how   <span class="keyword">do</span></span><br><span class="line">step 2  input: Hello, how   <span class="keyword">do</span> you</span><br><span class="line">step 3  input: Hello, how   <span class="keyword">do</span> you feel</span><br><span class="line">step 4  input: Hello, how   <span class="keyword">do</span> you feel about</span><br><span class="line">step 5  input: Hello, how   <span class="keyword">do</span> you feel about the</span><br><span class="line">step 6  input: Hello, how   <span class="keyword">do</span> you feel about the new</span><br><span class="line">step 7  input: Hello, how   <span class="keyword">do</span> you feel about the new season</span><br><span class="line">step 8  input: Hello, how   <span class="keyword">do</span> you feel about the new season of</span><br><span class="line">step 9  input: Hello, how   <span class="keyword">do</span> you feel about the new season of The</span><br><span class="line">step 10 input: Hello, how   <span class="keyword">do</span> you feel about the new season of The Walking</span><br><span class="line">step 11 input: Hello, how   <span class="keyword">do</span> you feel about the new season of The Walking Dead</span><br><span class="line">step 12 input: Hello, how   <span class="keyword">do</span> you feel about the new season of The Walking Dead?</span><br><span class="line">step 13 input: Hello, how   <span class="keyword">do</span> you feel about the new season of The Walking Dead?</span><br><span class="line"></span><br><span class="line">Input: Hello, how  </span><br><span class="line">Output: Hello, how   <span class="keyword">do</span> you feel about the new season of The Walking Dead?</span><br></pre></td></tr></table></figure> <span class="math display">\[
+\color{#F00}
+{\int_{-\pi}^{\pi}c_0\frac{1}{\sqrt{2\pi}}cos(jx)\mathrm{d}x}
 \]</span></p>
-<h2 id="增益">增益</h2>
-<p>  增益，是指将图像信号进行电子增幅的过程，增益越大，图像的亮度越高，但噪声也会随之增加。在暗区拍摄图像时，往往通过增加增益来提高图像的亮度，但也会导致图像噪声的增加。因此，在拍摄图像时，需要根据实际情况合理选择增益值，以达到最佳的图像质量。</p>
-<h2 id="面阵相机">面阵相机</h2>
-<p>  面阵相机（Area Scan
-Camera）指感光单元（像素）按矩阵形式排列的相机，其一次拍摄即可捕获整个二维图像，常见视觉检测场景基本都是使用面阵相机，也常用于结构光三维重建。</p>
-<h2 id="线阵相机">线阵相机</h2>
-<p>  线阵相机（Line Scan
-Camera）指感光单元（像素）按线性形式排列的相机，其一次拍摄只能捕获一行图像，成像时，需要通过移动相机或被检测物体来获取整个二维图像。相较于面阵相机，其拥有更高的分辨率，成像质量更高，同时需要配合编码器来配合触发拍照，并使用线型光源，常用于纸张、纺织品、金属板等表面缺陷检测场景。</p>
-<h2 id="通讯方式">通讯方式</h2>
-<h3 id="usb接口">USB接口</h3>
-<p>  支持热插拔、标准统一，可连接多个设备，同时相机也可以通过USB线缆供电</p>
-<h3 id="gige千兆以太网接口">Gige千兆以太网接口</h3>
-<p>  可以简单方便的进行多相机设置，支持100米线材输出，是一种基于千兆以太网通信协议开发的相机接口标准</p>
-<h3 id="cameralink接口">Cameralink接口</h3>
-<p>  专门针对高速图像数据传输设计的通讯接口，是一种串行通讯协议，采用LVDS接口标准，传输速度快、抗干扰能力强、功耗低。</p>
-<h2 id="工作距离wd">工作距离（WD）</h2>
-<p>  指的是镜头的最下端到景物之间的距离。一般的镜头是可以看到无限远的，也就是说是没有上限的。</p>
-<figure>
-<img src="1.png" alt="相机成像结构">
-<figcaption aria-hidden="true">相机成像结构</figcaption>
-</figure>
-<h2 id="视场角fov">视场角（FOV）</h2>
-<p>  指镜头所能覆盖的范围。(相机实际拍摄到的区域尺寸)一个摄像机镜头能涵盖多大范围的景物，通常以角度来表示，这个角度就叫镜头的视角FOV。焦距越长，FOV越小，焦距越短，FOV越大</p>
-<h2 id="光圈">光圈</h2>
-<p>  光圈是一个用来控制光线透过镜头进入机身内感光面光量的装置。当光线不足时，我们把光圈调大，自然可以让更多光线进入相机，反之亦然。一般通过调整通光孔径大小来调节光圈，完整的光圈数值系列如下：F1，F1.4，F2，F2.8，F4，F5.6，F8，F11，F16，F22，F32，F44，F64。用F表示，以【镜头焦距f和通光孔径D的比值】(即，相对孔径的倒数，也就是“焦距÷有效孔径”)来衡量，每个镜头上都标有最大F值，例如：8mm/F1.4代表最大孔径D为5.7mm.
-&gt; F值越小、光圈越大、进光量越大；F值越大、光圈越小、进光量越小。</p>
-<h2 id="焦距">焦距</h2>
-<p>  焦距就是镜头到成像面的距离，比如：50mm镜头，8mm镜头还是75mm镜头等。这些就是镜头到成像面的距离，也就是焦距，单位是毫米。
-&gt;
-焦距的大小决定着视角大小，焦距越大，视角越小，观察范围越小；焦距越小，视角越大，观察范围也越大</p>
-<figure>
-<img src="2.png" alt="相机成像结构">
-<figcaption aria-hidden="true">相机成像结构</figcaption>
-</figure>
-<h2 id="景深">景深</h2>
-<p>  景深与视野相似，不同的是景深指的是纵深的范围，视野指的是横向的范围。在最小工作距离到最大工作距离之间的范围称为景深，景深内的物体都可以清晰成像。景深一般可以通过光圈调节，光圈越小，景深越大。景深与镜头使用光圈、镜头焦距、拍摄距离以及对像质的要求(表现为对容许弥散圆的大小)有关。在假定其它条件不变的情况下：</p>
+<h3 id="kv-cache工作流程">2. KV Cache工作流程</h3>
+<p>  显然上面的计算过程中存在大量重复计算，在上面的推理过程中，每step内，输入一个token序列，经过Embedding层将输入token序列变为一个三维张量<span class="math inline">\([b, s,
+h]\)</span>，经过一通计算，最后经logits层将计算结果映射至词表空间，输出张量维度为<span class="math inline">\([b, s,
+vocab_{size}]\)</span>。当前轮输出token与输入tokens拼接，并作为下一轮的输入tokens，反复多次。可以看出第轮输入<span class="math inline">\(n\)</span>数据只比第<span class="math inline">\(n-1\)</span>轮输入数据新增了一个token，其他全部相同！因此第<span class="math inline">\(n\)</span>轮推理时必然包含了第<span class="math inline">\(n-1\)</span>轮的部分计算。   基于上面的观察，KV
+Cache策略缓存当前轮可重复利用的计算结果，下一轮计算时直接读取缓存结果，避免了大量的冗余计算。采用KV
+Cache后，自回归模型的推理策略分为两个阶段：</p>
 <ul>
-<li>光圈越大，景深越小；光圈越小，景深越大</li>
-<li>镜头焦距越长，景深越小；焦距越短，景深越大</li>
-<li>拍摄距离越远，景深越大；距离越近，景深越小</li>
+<li><p>预填充阶段</p>
+<p>  发生在计算第一个输出token过程中，此时Cache为空，需要为每个
+transformer layer 计算并保存key cache和value
+cache，在输出token时Cache完成填充；FLOPs同KV
+Cache关闭一致，存在大量gemm操作，推理速度慢。</p></li>
+<li><p>使用KV Cache阶段</p>
+<p>  发生在计算非首个token的过程中，这时Cache已缓存历史kv，每轮推理只需读取Cache，同时将当前轮计算出的新的Key、Value追加写入至Cache；FLOPs降低，gemm变为gemv操作，推理速度相对第一阶段变快，这时属于Memory-bound类型计算。</p></li>
 </ul>
-<p>  总而言之，对于对景深有要求的项目，尽可能使用小的光圈；在选择放大倍率的镜头时，在项目许可下尽可能选用低倍率镜头。如果项目要求比较苛刻时，倾向选择高景深的尖端镜头。</p>
+<p>需要注意的时，由于自注意力机制的特性，在推理时仅需计算当前token的Q，并与缓存中的K/V进行注意力计算。</p>
+<p>同样以GPT2为例，代码实现如下： <figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">GPT2Attention</span>(nn.Module):</span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">__init__</span>(<span class="params">self</span>):</span><br><span class="line">        <span class="variable language_">self</span>.register_buffer(<span class="string">&#x27;cached_k&#x27;</span>, torch.zeros(...))</span><br><span class="line">        <span class="variable language_">self</span>.register_buffer(<span class="string">&#x27;cached_v&#x27;</span>, torch.zeros(...))</span><br><span class="line"></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">forward</span>(<span class="params">self, x, layer_past=<span class="literal">None</span></span>):</span><br><span class="line">        <span class="comment"># 计算当前Q/K/V</span></span><br><span class="line">        q, k, v = <span class="variable language_">self</span>.qkv_proj(x).split(...)</span><br><span class="line">        </span><br><span class="line">        <span class="keyword">if</span> layer_past <span class="keyword">is</span> <span class="keyword">not</span> <span class="literal">None</span>:  <span class="comment"># 存在历史缓存</span></span><br><span class="line">            past_k, past_v = layer_past</span><br><span class="line">            k = torch.cat([past_k, k], dim=-<span class="number">2</span>)  <span class="comment"># 序列维度拼接</span></span><br><span class="line">            v = torch.cat([past_v, v], dim=-<span class="number">2</span>)</span><br><span class="line">        </span><br><span class="line">        <span class="keyword">return</span> (k, v) <span class="keyword">if</span> use_cache <span class="keyword">else</span> output </span><br></pre></td></tr></table></figure>   KV
+Cache是典型的以空间换时间的策略，显然其通过缓存历史KV的方式，避免了重复计算，使得自回归模型的推理速度提升了2～3倍，尤其在处理长序列时效果显著，显著减少了对计算资源的要求，同时缓存完整的历史Key和Value，确保模型在长文本生成中保持语义一致性。</p>
+<h3 id="改良与优化">3.改良与优化</h3>
+<p>  当然，由于KV
+Cache的机制，随着序列长度的增加，缓存的Key和Value矩阵会占用大量显存。以一个层数为<span class="math inline">\(L\)</span>，隐藏层维度为<span class="math inline">\(H\)</span>，输入长度为<span class="math inline">\(S\)</span>，输出长度为<span class="math inline">\(N\)</span>的模型，KV Cache的显存占用为: <span class="math display">\[M = 4 * B * L * H * (S + N)\]</span>
+其中B为批量大小。为了缓解推理过程中的显存压力，针对性的提出了一些优化策略：</p>
+<ul>
+<li><p>注意力结构改进</p>
+<p>  采用多查询注意力(Multi-Query
+Attention,MQA)或分组查询注意力(Grouped-Query
+Attention,GQA)减少Key和Value矩阵的参数量。 ￼</p></li>
+<li><p>滑动窗口机制</p>
+<p>  仅缓存最近L个token的Key和Value，结合初始token的“注意力锚点”稳定计算，减少显存占用。
+￼</p></li>
+<li><p>量化压缩</p>
+<p>  对KV Cache进行低精度存储（如FP8），进一步减少显存需求。 ￼</p></li>
+</ul>
+<p>  除了上面几种策略外，基于FlashAttention的优化注意力计算访存模式的技巧也进一步提升推理效率，KV
+Cache通过空间换时间的策略，已成为大模型推理优化的标配技术。</p>
+<h3 id="参考">参考</h3>
+<p><a target="_blank" rel="noopener" href="https://zhuanlan.zhihu.com/p/662498827">[1]
+大模型推理加速：看图学KV Cache</a> <a target="_blank" rel="noopener" href="https://huggingface.co/docs/transformers/main/en/main_classes/cache">[1]
+Transformers官方文档</a></p>
 
     </div>
 
@@ -455,9 +334,7 @@ Camera）指感光单元（像素）按线性形式排列的相机，其一次�
 
       <footer class="post-footer">
           <div class="post-tags">
-              <a href="/tags/%E7%9B%B8%E6%9C%BA/" rel="tag"> <i class="fa fa-tag"></i> 相机</a>
-              <a href="/tags/%E8%A7%86%E8%A7%89/" rel="tag"> <i class="fa fa-tag"></i> 视觉</a>
-              <a href="/tags/%E5%9B%BE%E5%83%8F/" rel="tag"> <i class="fa fa-tag"></i> 图像</a>
+              <a href="/tags/Trasformer-%E5%A4%A7%E6%A8%A1%E5%9E%8B%E6%8E%A8%E7%90%86-%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/" rel="tag"> <i class="fa fa-tag"></i> -- Trasformer -- 大模型推理 -- 性能优化</a>
           </div>
 
         
@@ -466,13 +343,10 @@ Camera）指感光单元（像素）按线性形式排列的相机，其一次�
         
     <div class="post-nav">
       <div class="post-nav-item">
-    <a href="/posts/a65e2a56/" rel="prev" title="初探Transformer架构">
-      <i class="fa fa-chevron-left"></i> 初探Transformer架构
+    <a href="/posts/15775ef36/" rel="prev" title="LLM之位置编码">
+      <i class="fa fa-chevron-left"></i> LLM之位置编码
     </a></div>
-      <div class="post-nav-item">
-    <a href="/posts/15775ef35/" rel="next" title="LLM之模型训练Tricks">
-      LLM之模型训练Tricks <i class="fa fa-chevron-right"></i>
-    </a></div>
+      <div class="post-nav-item"></div>
     </div>
       </footer>
     
@@ -532,7 +406,7 @@ Camera）指感光单元（像素）按线性形式排列的相机，其一次�
 
       <!--noindex-->
       <div class="post-toc-wrap sidebar-panel">
-          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#ccd"><span class="nav-number">1.</span> <span class="nav-text">CCD</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#cmos"><span class="nav-number">2.</span> <span class="nav-text">CMOS</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%83%8F%E7%B4%A0"><span class="nav-number">3.</span> <span class="nav-text">像素</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%83%8F%E7%B4%A0%E7%9B%B4%E5%BE%84"><span class="nav-number">4.</span> <span class="nav-text">像素直径</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%9B%B8%E6%9C%BA%E9%9D%B6%E9%9D%A2%E5%B0%BA%E5%AF%B8"><span class="nav-number">5.</span> <span class="nav-text">相机靶面尺寸</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%BF%AB%E9%97%A8%E9%80%9F%E5%BA%A6"><span class="nav-number">6.</span> <span class="nav-text">快门速度</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%9B%9D%E5%85%89%E5%80%BC"><span class="nav-number">7.</span> <span class="nav-text">曝光值</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%A2%9E%E7%9B%8A"><span class="nav-number">8.</span> <span class="nav-text">增益</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%9D%A2%E9%98%B5%E7%9B%B8%E6%9C%BA"><span class="nav-number">9.</span> <span class="nav-text">面阵相机</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%BA%BF%E9%98%B5%E7%9B%B8%E6%9C%BA"><span class="nav-number">10.</span> <span class="nav-text">线阵相机</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%80%9A%E8%AE%AF%E6%96%B9%E5%BC%8F"><span class="nav-number">11.</span> <span class="nav-text">通讯方式</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#usb%E6%8E%A5%E5%8F%A3"><span class="nav-number">11.1.</span> <span class="nav-text">USB接口</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#gige%E5%8D%83%E5%85%86%E4%BB%A5%E5%A4%AA%E7%BD%91%E6%8E%A5%E5%8F%A3"><span class="nav-number">11.2.</span> <span class="nav-text">Gige千兆以太网接口</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#cameralink%E6%8E%A5%E5%8F%A3"><span class="nav-number">11.3.</span> <span class="nav-text">Cameralink接口</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%B7%A5%E4%BD%9C%E8%B7%9D%E7%A6%BBwd"><span class="nav-number">12.</span> <span class="nav-text">工作距离（WD）</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%A7%86%E5%9C%BA%E8%A7%92fov"><span class="nav-number">13.</span> <span class="nav-text">视场角（FOV）</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%85%89%E5%9C%88"><span class="nav-number">14.</span> <span class="nav-text">光圈</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%84%A6%E8%B7%9D"><span class="nav-number">15.</span> <span class="nav-text">焦距</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%99%AF%E6%B7%B1"><span class="nav-number">16.</span> <span class="nav-text">景深</span></a></li></ol></div>
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%87%AA%E6%B3%A8%E6%84%8F%E5%8A%9B%E6%9C%BA%E5%88%B6%E7%9A%84%E5%86%97%E4%BD%99%E8%AE%A1%E7%AE%97"><span class="nav-number">1.</span> <span class="nav-text">1.自注意力机制的冗余计算</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#kv-cache%E5%B7%A5%E4%BD%9C%E6%B5%81%E7%A8%8B"><span class="nav-number">2.</span> <span class="nav-text">2. KV Cache工作流程</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%94%B9%E8%89%AF%E4%B8%8E%E4%BC%98%E5%8C%96"><span class="nav-number">3.</span> <span class="nav-text">3.改良与优化</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8F%82%E8%80%83"><span class="nav-number">4.</span> <span class="nav-text">参考</span></a></li></ol></div>
       </div>
       <!--/noindex-->
 
@@ -795,7 +669,7 @@ NexT.utils.loadComments(document.querySelector('#gitalk-container'), () => {
       repo        : 'wcjb.github.io',
       owner       : 'wcjb',
       admin       : ['wcjb'],
-      id          : '7891de11f13905b2dc76771b86bd6803',
+      id          : 'ee6eb5b0ed8438e73d5a2110d445cbdc',
         language: 'zh-CN',
       distractionFreeMode: true
     });

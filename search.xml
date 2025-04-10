@@ -1,6 +1,63 @@
 <?xml version="1.0" encoding="utf-8"?>
 <search>
   <entry>
+    <title>LLM之KVCache</title>
+    <url>/posts/e16fb9d/</url>
+    <content><![CDATA[<p>  在Transformer架构的生成式模型（如GPT系列）中，推理过程需要逐个生成token。传统方式每次生成都需重新计算所有历史token的注意力信息，导致计算复杂度达到O(n²)。<strong>KV
+Cache技术通过缓存历史token的Key和Value矩阵</strong>，将后续生成的计算复杂度降至O(n)，实现推理加速，本质上是一种用空间来换取时间的加速策略。</p>
+<span id="more"></span>
+<h3 id="自注意力机制的冗余计算">1.自注意力机制的冗余计算</h3>
+<p>  GPT系列模型是经典的自回归模型，在推理过程中，一次推理只输出一个token，输出token会与输入tokens拼接在一起，然后作为下一次推理的输入，这样不断反复直到遇到终止符。以GPT2为例，代码如下:
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> torch</span><br><span class="line"><span class="keyword">from</span> transformers <span class="keyword">import</span> GPT2LMHeadModel, GPT2Tokenizer</span><br><span class="line"></span><br><span class="line">model = GPT2LMHeadModel.from_pretrained(<span class="string">&quot;gpt2&quot;</span>, torchscript=<span class="literal">True</span>).<span class="built_in">eval</span>()</span><br><span class="line"></span><br><span class="line">tokenizer = GPT2Tokenizer.from_pretrained(<span class="string">&quot;gpt2&quot;</span>)</span><br><span class="line">in_text = <span class="string">&quot;Hello, how  &quot;</span></span><br><span class="line">in_tokens = torch.tensor(tokenizer.encode(in_text))</span><br><span class="line"></span><br><span class="line">token_eos = torch.tensor([<span class="number">198</span>]) </span><br><span class="line">out_token = <span class="literal">None</span></span><br><span class="line">i = <span class="number">0</span></span><br><span class="line"><span class="keyword">with</span> torch.no_grad():</span><br><span class="line">    <span class="keyword">while</span> out_token != token_eos:</span><br><span class="line">        logits, _ = model(in_tokens)</span><br><span class="line">        out_token = torch.argmax(logits[-<span class="number">1</span>, :], dim=<span class="number">0</span>, keepdim=<span class="literal">True</span>)</span><br><span class="line">        in_tokens = torch.cat((in_tokens, out_token), <span class="number">0</span>)</span><br><span class="line">        text = tokenizer.decode(in_tokens)</span><br><span class="line">        <span class="built_in">print</span>(<span class="string">f&#x27;step <span class="subst">&#123;i&#125;</span> input: <span class="subst">&#123;text&#125;</span>&#x27;</span>, flush=<span class="literal">True</span>)</span><br><span class="line">        i += <span class="number">1</span></span><br><span class="line"></span><br><span class="line">out_text = tokenizer.decode(in_tokens)</span><br><span class="line"><span class="built_in">print</span>(<span class="string">f&#x27;Input: <span class="subst">&#123;in_text&#125;</span>&#x27;</span>)</span><br><span class="line"><span class="built_in">print</span>(<span class="string">f&#x27;Output: <span class="subst">&#123;out_text&#125;</span>&#x27;</span>)</span><br></pre></td></tr></table></figure> ---</p>
+<p>执行输出结果如下： <figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">step 0  input: Hello, how   </span><br><span class="line">step 1  input: Hello, how   <span class="keyword">do</span></span><br><span class="line">step 2  input: Hello, how   <span class="keyword">do</span> you</span><br><span class="line">step 3  input: Hello, how   <span class="keyword">do</span> you feel</span><br><span class="line">step 4  input: Hello, how   <span class="keyword">do</span> you feel about</span><br><span class="line">step 5  input: Hello, how   <span class="keyword">do</span> you feel about the</span><br><span class="line">step 6  input: Hello, how   <span class="keyword">do</span> you feel about the new</span><br><span class="line">step 7  input: Hello, how   <span class="keyword">do</span> you feel about the new season</span><br><span class="line">step 8  input: Hello, how   <span class="keyword">do</span> you feel about the new season of</span><br><span class="line">step 9  input: Hello, how   <span class="keyword">do</span> you feel about the new season of The</span><br><span class="line">step 10 input: Hello, how   <span class="keyword">do</span> you feel about the new season of The Walking</span><br><span class="line">step 11 input: Hello, how   <span class="keyword">do</span> you feel about the new season of The Walking Dead</span><br><span class="line">step 12 input: Hello, how   <span class="keyword">do</span> you feel about the new season of The Walking Dead?</span><br><span class="line">step 13 input: Hello, how   <span class="keyword">do</span> you feel about the new season of The Walking Dead?</span><br><span class="line"></span><br><span class="line">Input: Hello, how  </span><br><span class="line">Output: Hello, how   <span class="keyword">do</span> you feel about the new season of The Walking Dead?</span><br></pre></td></tr></table></figure> <span class="math display">\[
+\color{#F00}
+{\int_{-\pi}^{\pi}c_0\frac{1}{\sqrt{2\pi}}cos(jx)\mathrm{d}x}
+\]</span></p>
+<h3 id="kv-cache工作流程">2. KV Cache工作流程</h3>
+<p>  显然上面的计算过程中存在大量重复计算，在上面的推理过程中，每step内，输入一个token序列，经过Embedding层将输入token序列变为一个三维张量<span class="math inline">\([b, s,
+h]\)</span>，经过一通计算，最后经logits层将计算结果映射至词表空间，输出张量维度为<span class="math inline">\([b, s,
+vocab_{size}]\)</span>。当前轮输出token与输入tokens拼接，并作为下一轮的输入tokens，反复多次。可以看出第轮输入<span class="math inline">\(n\)</span>数据只比第<span class="math inline">\(n-1\)</span>轮输入数据新增了一个token，其他全部相同！因此第<span class="math inline">\(n\)</span>轮推理时必然包含了第<span class="math inline">\(n-1\)</span>轮的部分计算。   基于上面的观察，KV
+Cache策略缓存当前轮可重复利用的计算结果，下一轮计算时直接读取缓存结果，避免了大量的冗余计算。采用KV
+Cache后，自回归模型的推理策略分为两个阶段：</p>
+<ul>
+<li><p>预填充阶段</p>
+<p>  发生在计算第一个输出token过程中，此时Cache为空，需要为每个
+transformer layer 计算并保存key cache和value
+cache，在输出token时Cache完成填充；FLOPs同KV
+Cache关闭一致，存在大量gemm操作，推理速度慢。</p></li>
+<li><p>使用KV Cache阶段</p>
+<p>  发生在计算非首个token的过程中，这时Cache已缓存历史kv，每轮推理只需读取Cache，同时将当前轮计算出的新的Key、Value追加写入至Cache；FLOPs降低，gemm变为gemv操作，推理速度相对第一阶段变快，这时属于Memory-bound类型计算。</p></li>
+</ul>
+<p>需要注意的时，由于自注意力机制的特性，在推理时仅需计算当前token的Q，并与缓存中的K/V进行注意力计算。</p>
+<p>同样以GPT2为例，代码实现如下： <figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">GPT2Attention</span>(nn.Module):</span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">__init__</span>(<span class="params">self</span>):</span><br><span class="line">        <span class="variable language_">self</span>.register_buffer(<span class="string">&#x27;cached_k&#x27;</span>, torch.zeros(...))</span><br><span class="line">        <span class="variable language_">self</span>.register_buffer(<span class="string">&#x27;cached_v&#x27;</span>, torch.zeros(...))</span><br><span class="line"></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">forward</span>(<span class="params">self, x, layer_past=<span class="literal">None</span></span>):</span><br><span class="line">        <span class="comment"># 计算当前Q/K/V</span></span><br><span class="line">        q, k, v = <span class="variable language_">self</span>.qkv_proj(x).split(...)</span><br><span class="line">        </span><br><span class="line">        <span class="keyword">if</span> layer_past <span class="keyword">is</span> <span class="keyword">not</span> <span class="literal">None</span>:  <span class="comment"># 存在历史缓存</span></span><br><span class="line">            past_k, past_v = layer_past</span><br><span class="line">            k = torch.cat([past_k, k], dim=-<span class="number">2</span>)  <span class="comment"># 序列维度拼接</span></span><br><span class="line">            v = torch.cat([past_v, v], dim=-<span class="number">2</span>)</span><br><span class="line">        </span><br><span class="line">        <span class="keyword">return</span> (k, v) <span class="keyword">if</span> use_cache <span class="keyword">else</span> output </span><br></pre></td></tr></table></figure>   KV
+Cache是典型的以空间换时间的策略，显然其通过缓存历史KV的方式，避免了重复计算，使得自回归模型的推理速度提升了2～3倍，尤其在处理长序列时效果显著，显著减少了对计算资源的要求，同时缓存完整的历史Key和Value，确保模型在长文本生成中保持语义一致性。</p>
+<h3 id="改良与优化">3.改良与优化</h3>
+<p>  当然，由于KV
+Cache的机制，随着序列长度的增加，缓存的Key和Value矩阵会占用大量显存。以一个层数为<span class="math inline">\(L\)</span>，隐藏层维度为<span class="math inline">\(H\)</span>，输入长度为<span class="math inline">\(S\)</span>，输出长度为<span class="math inline">\(N\)</span>的模型，KV Cache的显存占用为: <span class="math display">\[M = 4 * B * L * H * (S + N)\]</span>
+其中B为批量大小。为了缓解推理过程中的显存压力，针对性的提出了一些优化策略：</p>
+<ul>
+<li><p>注意力结构改进</p>
+<p>  采用多查询注意力(Multi-Query
+Attention,MQA)或分组查询注意力(Grouped-Query
+Attention,GQA)减少Key和Value矩阵的参数量。 ￼</p></li>
+<li><p>滑动窗口机制</p>
+<p>  仅缓存最近L个token的Key和Value，结合初始token的“注意力锚点”稳定计算，减少显存占用。
+￼</p></li>
+<li><p>量化压缩</p>
+<p>  对KV Cache进行低精度存储（如FP8），进一步减少显存需求。 ￼</p></li>
+</ul>
+<p>  除了上面几种策略外，基于FlashAttention的优化注意力计算访存模式的技巧也进一步提升推理效率，KV
+Cache通过空间换时间的策略，已成为大模型推理优化的标配技术。</p>
+<h3 id="参考">参考</h3>
+<p><a href="https://zhuanlan.zhihu.com/p/662498827">[1]
+大模型推理加速：看图学KV Cache</a> <a href="https://huggingface.co/docs/transformers/main/en/main_classes/cache">[1]
+Transformers官方文档</a></p>
+]]></content>
+      <tags>
+        <tag>-- Trasformer -- 大模型推理 -- 性能优化</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>LLM之位置编码</title>
     <url>/posts/15775ef36/</url>
     <content><![CDATA[<p>  在自然语言处理的任务中，位置编码是帮助模型理解序列中每个单词或词片（token）在序列中的位置的一种机制。这是因为像
@@ -50,6 +107,15 @@ Transformer with Rotary Position Embedding</a></p>
     <title>LLM之模型训练Tricks</title>
     <url>/posts/15775ef35/</url>
     <content><![CDATA[<p>  学习LLM过程中的经典策略记录。 <span id="more"></span></p>
+<h2 id="causal-mask">Causal mask</h2>
+<p>  Causal
+mask是自注意力机制中的一种掩码。在自注意力机制中，每个位置的输出都依赖于序列中所有位置都输入，包括当前位置之后的位置。这种机制在解码器中特别常见，因为解码器在生成输出时必须按顺序依次生成。但是在预测时，未来显然是不可见的，所以需要在每个位置处将未来的位置的信息屏蔽，这种屏蔽的方式也就是Causal
+mask。它保证了解码器在生成时，只是基于历史信息，而不是未来的信息。</p>
+<p>  通常情况下，Causal
+mask是一个二维矩阵，该矩阵对角线以下的元素全为1，表示允许当前位置之前的信息流动，而对角线以上的元素都为0，表示屏蔽了当前位置之后的信息。在使用
+Transformer
+架构进行序列到序列任务时，常见的做法是在解码器的自注意力层中应用这种
+causal mask，以确保生成的序列是自左向右生成的。 <img src="CausalMask.png"></p>
 <h2 id="为什么在llm模型预训练时计算交叉熵损失函数时需要loss-mask">为什么在LLM模型预训练时，计算交叉熵损失函数时需要loss
 mask</h2>
 <p>  在自回归训练中，模型需要根据前<span class="math inline">\(n-1\)</span>个Token预测第<span class="math inline">\(n\)</span>个Token。此时，输入序列为<span class="math inline">\(X =
@@ -86,8 +152,8 @@ Norm、Layer Norm、RMS Norm等:</p>
 <p><img src="norm.png"></p>
 <ul>
 <li><p>Batch Norm</p>
-<p>  对每个特征通道（如图像的RGB通道）在批量数据上计算均值和方差，通过标准化和平移/缩放参数调整分布，公式如下：
-<span class="math display">\[y = \gamma \cdot
+<p>  对每个特征通道（如图像的RGB通道）在批量数据上计算均值和方差，通过标准化和平移/缩放参数调整分布，公式如下：</p>
+<p><span class="math display">\[y = \gamma \cdot
 \dfrac{x-\mu}{\sqrt{\sigma^2 + \epsilon}} + \beta\]</span></p></li>
 <li><p>Layer Norm</p>
 <p>  对单个样本的所有特征维度（如序列模型的每个token向量）计算均值和方差，实现跨样本的归一化，公式同上，只是针对的输入不同</p></li>

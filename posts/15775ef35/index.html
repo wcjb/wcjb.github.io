@@ -30,15 +30,16 @@
 <meta property="og:site_name" content="老学庵">
 <meta property="og:description" content="学习LLM过程中的经典策略记录。">
 <meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://wcjb.github.io/posts/15775ef35/CausalMask.png">
 <meta property="og:image" content="https://wcjb.github.io/posts/15775ef35/norm.png">
 <meta property="og:image" content="https://wcjb.github.io/posts/15775ef35/LLMBuild.png">
 <meta property="article:published_time" content="2025-03-31T09:11:09.000Z">
-<meta property="article:modified_time" content="2025-04-08T06:00:55.520Z">
+<meta property="article:modified_time" content="2025-04-10T06:49:07.318Z">
 <meta property="article:author" content="殉道者">
 <meta property="article:tag" content="LLM">
 <meta property="article:tag" content="模型训练">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:image" content="https://wcjb.github.io/posts/15775ef35/norm.png">
+<meta name="twitter:image" content="https://wcjb.github.io/posts/15775ef35/CausalMask.png">
 
 <link rel="canonical" href="https://wcjb.github.io/posts/15775ef35/">
 
@@ -245,7 +246,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2025-04-08 14:00:55" itemprop="dateModified" datetime="2025-04-08T14:00:55+08:00">2025-04-08</time>
+                <time title="修改时间：2025-04-10 14:49:07" itemprop="dateModified" datetime="2025-04-10T14:49:07+08:00">2025-04-10</time>
               </span>
 
           
@@ -261,14 +262,14 @@
                 <i class="far fa-file-word"></i>
               </span>
                 <span class="post-meta-item-text">本文字数：</span>
-              <span>2.1k</span>
+              <span>2.4k</span>
             </span>
             <span class="post-meta-item" title="阅读时长">
               <span class="post-meta-item-icon">
                 <i class="far fa-clock"></i>
               </span>
                 <span class="post-meta-item-text">阅读时长 &asymp;</span>
-              <span>8 分钟</span>
+              <span>9 分钟</span>
             </span>
 
         </div>
@@ -281,6 +282,15 @@
 
       
         <p>  学习LLM过程中的经典策略记录。 <span id="more"></span></p>
+<h2 id="causal-mask">Causal mask</h2>
+<p>  Causal
+mask是自注意力机制中的一种掩码。在自注意力机制中，每个位置的输出都依赖于序列中所有位置都输入，包括当前位置之后的位置。这种机制在解码器中特别常见，因为解码器在生成输出时必须按顺序依次生成。但是在预测时，未来显然是不可见的，所以需要在每个位置处将未来的位置的信息屏蔽，这种屏蔽的方式也就是Causal
+mask。它保证了解码器在生成时，只是基于历史信息，而不是未来的信息。</p>
+<p>  通常情况下，Causal
+mask是一个二维矩阵，该矩阵对角线以下的元素全为1，表示允许当前位置之前的信息流动，而对角线以上的元素都为0，表示屏蔽了当前位置之后的信息。在使用
+Transformer
+架构进行序列到序列任务时，常见的做法是在解码器的自注意力层中应用这种
+causal mask，以确保生成的序列是自左向右生成的。 <img src="CausalMask.png"></p>
 <h2 id="为什么在llm模型预训练时计算交叉熵损失函数时需要loss-mask">为什么在LLM模型预训练时，计算交叉熵损失函数时需要loss
 mask</h2>
 <p>  在自回归训练中，模型需要根据前<span class="math inline">\(n-1\)</span>个Token预测第<span class="math inline">\(n\)</span>个Token。此时，输入序列为<span class="math inline">\(X =
@@ -317,8 +327,8 @@ Norm、Layer Norm、RMS Norm等:</p>
 <p><img src="norm.png"></p>
 <ul>
 <li><p>Batch Norm</p>
-<p>  对每个特征通道（如图像的RGB通道）在批量数据上计算均值和方差，通过标准化和平移/缩放参数调整分布，公式如下：
-<span class="math display">\[y = \gamma \cdot
+<p>  对每个特征通道（如图像的RGB通道）在批量数据上计算均值和方差，通过标准化和平移/缩放参数调整分布，公式如下：</p>
+<p><span class="math display">\[y = \gamma \cdot
 \dfrac{x-\mu}{\sqrt{\sigma^2 + \epsilon}} + \beta\]</span></p></li>
 <li><p>Layer Norm</p>
 <p>  对单个样本的所有特征维度（如序列模型的每个token向量）计算均值和方差，实现跨样本的归一化，公式同上，只是针对的输入不同</p></li>
@@ -537,8 +547,8 @@ Models</a></p></li>
 
       <!--noindex-->
       <div class="post-toc-wrap sidebar-panel">
-          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%BA%E4%BB%80%E4%B9%88%E5%9C%A8llm%E6%A8%A1%E5%9E%8B%E9%A2%84%E8%AE%AD%E7%BB%83%E6%97%B6%E8%AE%A1%E7%AE%97%E4%BA%A4%E5%8F%89%E7%86%B5%E6%8D%9F%E5%A4%B1%E5%87%BD%E6%95%B0%E6%97%B6%E9%9C%80%E8%A6%81loss-mask"><span class="nav-number">1.</span> <span class="nav-text">为什么在LLM模型预训练时，计算交叉熵损失函数时需要loss
-mask</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E4%B8%AD%E5%B8%B8%E7%94%A8%E5%BD%92%E4%B8%80%E5%8C%96%E6%8A%80%E6%9C%AF"><span class="nav-number">2.</span> <span class="nav-text">深度学习中常用归一化技术</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%A4%A7%E6%A8%A1%E5%9E%8B%E6%9E%84%E5%BB%BA%E6%B5%81%E7%A8%8B"><span class="nav-number">3.</span> <span class="nav-text">大模型构建流程</span></a></li></ol></div>
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#causal-mask"><span class="nav-number">1.</span> <span class="nav-text">Causal mask</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%BA%E4%BB%80%E4%B9%88%E5%9C%A8llm%E6%A8%A1%E5%9E%8B%E9%A2%84%E8%AE%AD%E7%BB%83%E6%97%B6%E8%AE%A1%E7%AE%97%E4%BA%A4%E5%8F%89%E7%86%B5%E6%8D%9F%E5%A4%B1%E5%87%BD%E6%95%B0%E6%97%B6%E9%9C%80%E8%A6%81loss-mask"><span class="nav-number">2.</span> <span class="nav-text">为什么在LLM模型预训练时，计算交叉熵损失函数时需要loss
+mask</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E4%B8%AD%E5%B8%B8%E7%94%A8%E5%BD%92%E4%B8%80%E5%8C%96%E6%8A%80%E6%9C%AF"><span class="nav-number">3.</span> <span class="nav-text">深度学习中常用归一化技术</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%A4%A7%E6%A8%A1%E5%9E%8B%E6%9E%84%E5%BB%BA%E6%B5%81%E7%A8%8B"><span class="nav-number">4.</span> <span class="nav-text">大模型构建流程</span></a></li></ol></div>
       </div>
       <!--/noindex-->
 
@@ -554,14 +564,14 @@ mask</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">8</span>
+          <span class="site-state-item-count">9</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">16</span>
+        <span class="site-state-item-count">17</span>
         <span class="site-state-item-name">标签</span></a>
       </div>
   </nav>
@@ -640,12 +650,12 @@ mask</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#
     <span class="post-meta-item-icon">
       <i class="fa fa-chart-area"></i>
     </span>
-    <span title="站点总字数">24k</span>
+    <span title="站点总字数">26k</span>
     <span class="post-meta-divider">|</span>
     <span class="post-meta-item-icon">
       <i class="fa fa-coffee"></i>
     </span>
-    <span title="站点阅读时长">1:27</span>
+    <span title="站点阅读时长">1:34</span>
 </div>
 
 <!--

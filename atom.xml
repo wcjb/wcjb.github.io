@@ -6,7 +6,7 @@
   <link href="https://wcjb.github.io/atom.xml" rel="self"/>
   
   <link href="https://wcjb.github.io/"/>
-  <updated>2025-04-08T06:06:17.590Z</updated>
+  <updated>2025-04-10T06:34:41.454Z</updated>
   <id>https://wcjb.github.io/</id>
   
   <author>
@@ -15,6 +15,24 @@
   </author>
   
   <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>LLM之KVCache</title>
+    <link href="https://wcjb.github.io/posts/e16fb9d/"/>
+    <id>https://wcjb.github.io/posts/e16fb9d/</id>
+    <published>2025-04-08T06:25:49.000Z</published>
+    <updated>2025-04-10T06:34:41.454Z</updated>
+    
+    
+    <summary type="html">&lt;p&gt;  在Transformer架构的生成式模型（如GPT系列）中，推理过程需要逐个生成token。传统方式每次生成都需重新计算所有历史token的注意力信息，导致计算复杂度达到O(n²)。&lt;strong&gt;KV
+Cache技术通过缓存历史token的Key和Value矩阵&lt;/strong&gt;，将后续生成的计算复杂度降至O(n)，实现推理加速，本质上是一种用空间来换取时间的加速策略。&lt;/p&gt;</summary>
+    
+    
+    
+    
+    <category term="-- Trasformer -- 大模型推理 -- 性能优化" scheme="https://wcjb.github.io/tags/Trasformer-%E5%A4%A7%E6%A8%A1%E5%9E%8B%E6%8E%A8%E7%90%86-%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/"/>
+    
+  </entry>
   
   <entry>
     <title>LLM之位置编码</title>
@@ -40,7 +58,7 @@ Transformer
     <link href="https://wcjb.github.io/posts/15775ef35/"/>
     <id>https://wcjb.github.io/posts/15775ef35/</id>
     <published>2025-03-31T09:11:09.000Z</published>
-    <updated>2025-04-08T06:00:55.520Z</updated>
+    <updated>2025-04-10T06:49:07.318Z</updated>
     
     
     <summary type="html">&lt;p&gt;  学习LLM过程中的经典策略记录。&lt;/p&gt;</summary>
