@@ -1,0 +1,1021 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.3.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+  <meta name="google-site-verification" content="rRxEGVoWcPPII6Ts-TzSapPe0XCHwuoRZsTwX9kKSEM">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="https://fonts.lug.ustc.edu.cn/css?family=Noto Serif SC:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+  <link rel="stylesheet" href="/lib/pace/pace-theme-mac-osx.min.css">
+  <script src="/lib/pace/pace.min.js"></script>
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"wcjb.github.io","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":true,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="自Transformer架构的开山之作《Attention Is All You Need》发表以来，自注意力机制已成为深度学习模型的基石技术，尤其在自然语言处理领域展现革命性突破。鉴于该机制已渗透至各类先进模型架构，深入理解其运作原理变得至关重要。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="理解自注意力机制">
+<meta property="og:url" content="https://wcjb.github.io/posts/15775ef77/index.html">
+<meta property="og:site_name" content="老学庵">
+<meta property="og:description" content="自Transformer架构的开山之作《Attention Is All You Need》发表以来，自注意力机制已成为深度学习模型的基石技术，尤其在自然语言处理领域展现革命性突破。鉴于该机制已渗透至各类先进模型架构，深入理解其运作原理变得至关重要。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F2d632b81-5bd6-432a-a456-37f20788be20_1180x614.png">
+<meta property="og:image" content="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F49828e20-cd55-47bb-84a3-59effec1be79_3140x4251.png">
+<meta property="og:image" content="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fecef3e00-4c0e-4c7a-9a9f-42ac4e4ada69_366x786.png">
+<meta property="og:image" content="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Ff9774001-ea9d-48bf-9857-3c911b0a279d_588x962.png">
+<meta property="og:image" content="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fbaf9e308-223b-429e-8527-a7b868003e8c_814x912.png">
+<meta property="og:image" content="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F42da287a-18e8-45c7-860c-46e8a3a534fc_1400x798.png">
+<meta property="og:image" content="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F6e1dcdeb-e096-4ff9-bdf9-3338e4efa4b4_1916x1048.png">
+<meta property="og:image" content="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F7651e279-01ed-4316-91dc-d6be8ef4e947_1836x1116.png">
+<meta property="og:image" content="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Ff406d55e-990a-4e3b-be82-d966eb74a3e7_1766x1154.png">
+<meta property="og:image" content="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fb7dd5ec8-4912-4e0d-8265-b335c08d2958_1760x1126.png">
+<meta property="og:image" content="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fe1317a05-3542-4158-94bf-085109a5793a_1220x702.png">
+<meta property="og:image" content="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F7fcce180-cda2-4094-bb7c-32ea12e60c9a_1468x274.png">
+<meta property="og:image" content="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fa94e36c7-ec67-43d6-96c0-7f9781f402b5_1054x270.png">
+<meta property="article:published_time" content="2025-04-10T09:23:36.000Z">
+<meta property="article:modified_time" content="2025-04-16T00:56:50.921Z">
+<meta property="article:author" content="殉道者">
+<meta property="article:tag" content="自注意力机制">
+<meta property="article:tag" content="大语言模型">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F2d632b81-5bd6-432a-a456-37f20788be20_1180x614.png">
+
+<link rel="canonical" href="https://wcjb.github.io/posts/15775ef77/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>理解自注意力机制 | 老学庵</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+<link rel="alternate" href="/atom.xml" title="老学庵" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">老学庵</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">天行健，君子以自强不息；地势坤，君子以厚德载物！</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+        <li class="menu-item menu-item-rss">
+
+    <a href="/atom.xml" rel="section"><i class="fa fa-rss fa-fw"></i>RSS</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+  
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://wcjb.github.io/posts/15775ef77/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/uploads/avatar.png">
+      <meta itemprop="name" content="殉道者">
+      <meta itemprop="description" content="幼而学者,如日出之光；老而学者，如秉烛夜行，犹贤乎瞑目而无见者也！">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="老学庵">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          理解自注意力机制
+        </h1>
+
+        <div class="post-meta">
+
+          
+            <i class="fa fa-thumb-tack"></i>
+            <font color=7D26CD>置顶</font>
+            <span class="post-meta-divider">|</span>
+          
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2025-04-10 17:23:36" itemprop="dateCreated datePublished" datetime="2025-04-10T17:23:36+08:00">2025-04-10</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2025-04-16 08:56:50" itemprop="dateModified" datetime="2025-04-16T08:56:50+08:00">2025-04-16</time>
+              </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span><br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>5.1k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>19 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>  自Transformer架构的开山之作《<a target="_blank" rel="noopener" href="https://arxiv.org/abs/1706.03762">Attention Is All You
+Need</a>》发表以来，自注意力机制已成为深度学习模型的基石技术，尤其在自然语言处理领域展现革命性突破。鉴于该机制已渗透至各类先进模型架构，深入理解其运作原理变得至关重要。</p>
+<span id="more"></span>
+<p>  注意力机制的概念源起于神经机器翻译中对长序列处理的探索<a target="_blank" rel="noopener" href="https://arxiv.org/abs/1409.0473"></a>。传统逐字翻译的局限在于：不同语言特有的语法结构与语义逻辑（如中文"吃食堂"的动宾搭配）在直译中易被破坏，导致语义失真。</p>
+<p><a target="_blank" rel="noopener" href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F2d632b81-5bd6-432a-a456-37f20788be20_1180x614.png"><img src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F2d632b81-5bd6-432a-a456-37f20788be20_1180x614.png"></a>
+&gt;
+逐字翻译（上）与注意力机制翻译（下）效果对比：后者能捕捉"making"与"more""difficult"的语义关联</p>
+<p>  Transformer架构的革命性突破在于完全摒弃了循环神经网络的时序依赖。其核心创新——自注意力机制，通过动态计算序列元素间的关联权重，使模型能够：
+1. <strong>全局感知</strong>：每个位置直接访问全部序列信息 2.
+<strong>动态聚焦</strong>：根据上下文自动强化关键特征 3.
+<strong>并行计算</strong>：突破RNN的序列计算瓶颈</p>
+<p><a target="_blank" rel="noopener" href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F49828e20-cd55-47bb-84a3-59effec1be79_3140x4251.png"><img src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F49828e20-cd55-47bb-84a3-59effec1be79_3140x4251.png"></a>论文中的注意力热力图直观呈现了单词"making"与上下文的多维关联（颜色深度表示注意力权重强度）</p>
+<p>  从数学视角看，自注意力机制实质是构建动态特征增强网络：通过QKV矩阵运算，将原始词嵌入向量转换为包含上下文信息的增强表征。这种特性使其天然适配语言任务——例如"bank"在_"river
+bank"<em>与</em>"bank loan"_中通过注意力权重获得截然不同的语义编码。</p>
+<p>  尽管后续研究涌现出稀疏注意力、局部注意力等改进变体，但原始缩放点积注意力仍是工业界首选：</p>
+<ul>
+<li>计算复杂度O(n²)在大规模分布式训练中可通过并行化缓解<br>
+</li>
+<li>相比近似方法保留完整语义关联<br>
+</li>
+<li>与硬件优化技术（如FlashAttention）高度适配</li>
+</ul>
+<p>本文将以经典论文公式为框架展开解析： <span class="math display">\[
+Attention(Q,K,V)=softmax(\dfrac{QK^T}{\sqrt{d} + \epsilon})V
+\]</span>
+对该公式的逐项解构将揭示自注意力机制的本质特性。扩展阅读推荐：<br>
+- 演进脉络：《<a target="_blank" rel="noopener" href="https://arxiv.org/abs/2009.06732">高效Transformers综述</a>》<br>
+- 工程实践：《<a target="_blank" rel="noopener" href="https://arxiv.org/abs/2302.01107">高效训练技术解析</a>》<br>
+- 最新突破：<a target="_blank" rel="noopener" href="https://arxiv.org/abs/2205.14135">FlashAttention</a>系列优化技术</p>
+<hr>
+<h3 id="embedding-an-input-sentence">Embedding an Input Sentence</h3>
+<p>以中文俗语为例，构建词表<code>dc=&#123;"人生","苦","短","先","吃","甜点"&#125;</code>（实际应用需3-5万词表）。通过以下步骤实现自注意力编码：
+1. 词嵌入向量化（维度d_model=512） 2. 计算QKV矩阵 3. 注意力权重矩阵生成
+4. 上下文增强表征输出</p>
+<p><strong>In</strong></p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">sentence = <span class="string">&#x27;Life is short, eat dessert first&#x27;</span></span><br><span class="line">dc = &#123;s:i <span class="keyword">for</span> i,s <span class="keyword">in</span> <span class="built_in">enumerate</span>(<span class="built_in">sorted</span>(sentence.replace(<span class="string">&#x27;,&#x27;</span>, <span class="string">&#x27;&#x27;</span>).split()))&#125;</span><br><span class="line"><span class="built_in">print</span>(dc)</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p><strong>Out</strong></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&#123;<span class="string">&#x27;Life&#x27;</span>: 0, <span class="string">&#x27;dessert&#x27;</span>: 1, <span class="string">&#x27;eat&#x27;</span>: 2, <span class="string">&#x27;first&#x27;</span>: 3, <span class="string">&#x27;is&#x27;</span>: 4, <span class="string">&#x27;short&#x27;</span>: 5&#125;</span><br></pre></td></tr></table></figure>
+<p>接下来，我们使用这个字典为每个单词分配一个整数索引：</p>
+<p><strong>在：</strong></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">进口火炬</span><br><span class="line">​</span><br><span class="line">sentence_int = torch.tensor（</span><br><span class="line">    [dc[s] for s in sentence.replace(&#x27;,&#x27;, &#x27;&#x27;).split()]</span><br><span class="line">)</span><br><span class="line">打印（句子整数）</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p><strong>出去：</strong></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">张量（[0, 4, 5, 2, 1, 3]）</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>现在，使用输入句子的整数向量表示，我们可以使用嵌入层将输入编码为实向量嵌入。在这里，我们将使用一个微小的三维嵌入，使得每个输入词都由一个三维向量表示。</p>
+<p>请注意，嵌入的大小通常在数百到数千维之间。例如，Llama 2
+使用的嵌入大小为
+4,096。我们在这里使用三维嵌入纯粹是为了说明目的。这样我们就可以检查单个向量，而无需用数字填满整个页面。</p>
+<p>由于该句子由 6 个单词组成，因此将产生 6×3 维嵌入：</p>
+<p><strong>在：</strong></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">词汇量 = 50_000</span><br><span class="line">​</span><br><span class="line">torch.manual_seed（123）</span><br><span class="line">嵌入 = torch.nn.Embedding（vocab_size，3）</span><br><span class="line">嵌入句子 = 嵌入（句子 int）.分离（）</span><br><span class="line">​</span><br><span class="line">打印（嵌入句子）</span><br><span class="line">打印（嵌入句子.形状）</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p><strong>出去：</strong></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">张量（[[ 0.3374, -0.1778, -0.3035]，</span><br><span class="line">        [0.1794,1.8951,0.4954]，</span><br><span class="line">        [0.2692，-0.0770，-1.0205]，</span><br><span class="line">        [-0.2196, -0.3792, 0.7671]，</span><br><span class="line">        [-0.5880, 0.3486, 0.6603]，</span><br><span class="line">        [-1.1925, 0.6984, -1.4097]]）</span><br><span class="line">手电筒尺寸（[6, 3]）</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>现在，让我们讨论一下被广泛使用的自注意力机制，即缩放点积注意力机制，它是
+Transformer 架构的一个组成部分。</p>
+<p>自注意力机制利用三个权重矩阵，分别称为_<strong>W
+q</strong>_、<em><strong>W k</strong>_和</em><strong>W
+v</strong>_，它们在训练过程中作为模型参数进行调整。这些矩阵分别用于将输入投影到序列的_查询
+(query)_ 、<em>键 (key</em> ) 和_值 (value)部分。_</p>
+<p><em><strong>通过权重矩阵W</strong>_和嵌入输入</em><strong>x</strong>_之间的矩阵乘法获得相应的查询、键和值序列：</p>
+<ul>
+<li><p>查询序列：<em><strong>q （i）</strong></em> = <em><strong>x
+（i）W q</strong></em> for <em>i</em> in sequence <em>1 …
+T</em></p></li>
+<li><p>密钥序列：<em><strong>k （i）</strong></em> = <em><strong>x
+（i）W k</strong></em> ，其中_i_在序列_1…T中_</p></li>
+<li><p>值序列：<em><strong>v （i）</strong></em> = <em><strong>x （i）W
+v，</strong></em> 其中_i_在序列_1…T中_</p></li>
+</ul>
+<p>索引_i指_的是输入序列中的标记索引位置，其长度为_T_ 。</p>
+<p><a target="_blank" rel="noopener" href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fecef3e00-4c0e-4c7a-9a9f-42ac4e4ada69_366x786.png"><img src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fecef3e00-4c0e-4c7a-9a9f-42ac4e4ada69_366x786.png"></a>通过输入
+x 和权重 W 计算查询、键和值向量。</p>
+<p>这里，<em><strong>q (i)</strong>_和</em><strong>k
+(i)</strong>_都是维度为_<strong>d k</strong>_的向量。投影矩阵_<strong>W
+q</strong>_和_<strong>W k 的</strong>_形状为_<strong>d</strong>_ ×
+<em><strong>d k</strong></em> ，而_<strong>W v
+的</strong>_形状为_<strong>d</strong>_ × <em><strong>d
+v</strong></em>。</p>
+<p>（需要注意的是，_<strong>d代表每个词向量</strong>__<strong>x</strong>_的大小。）</p>
+<p>由于我们计算的是查询向量和键向量之间的点积，因此这两个向量必须包含相同数量的元素
+( <em><strong>dq=dk)。在许多 LLM 中，我们对值向量使用相同的大小，例如
+dq</strong></em> <em><strong>= dk =</strong></em> dv
+_<strong>。<strong>然而</strong>，<strong>值</strong>向量</strong>__<strong>v</strong>_
+<em><strong>(i)</strong>_中的元素数量（它决定了最终上下文</em><strong>向量</strong>_的大小）可以是任意的。</p>
+<p>因此，对于以下代码演练，我们将设置_<strong>d q = d k =
+2</strong>_并使用_<strong>d v = 4</strong>_，初始化投影矩阵如下：</p>
+<p><strong>在：</strong></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">torch.manual_seed（123）</span><br><span class="line">​</span><br><span class="line">d = embedded_sentence.shape[1]</span><br><span class="line">​</span><br><span class="line">d_q，d_k，d_v = 2，2，4</span><br><span class="line">​</span><br><span class="line">W_query = torch.nn.参数（torch.rand（d，d_q））</span><br><span class="line">W_key = torch.nn.参数（torch.rand（d，d_k））</span><br><span class="line">W_value = torch.nn.参数（torch.rand（d，d_v））</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>（与之前的词嵌入向量类似，维度_<strong>dq 、dk
+、dv通常</strong>_要大得多，但为了便于说明，我们在这里使用较小的数字。<em><strong>）</strong></em></p>
+<p>现在，假设我们有兴趣计算第二个输入元素的注意向量——第二个输入元素在这里充当查询：</p>
+<p><a target="_blank" rel="noopener" href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Ff9774001-ea9d-48bf-9857-3c911b0a279d_588x962.png"><img src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Ff9774001-ea9d-48bf-9857-3c911b0a279d_588x962.png"></a>在以下部分中，我们重点关注第二个输入_<strong>x</strong>_
+(2)</p>
+<p>在代码中，它看起来如下所示：</p>
+<p><strong>在：</strong></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">x_2 = 嵌入句子[1]</span><br><span class="line">query_2 = x_2 @ W_query</span><br><span class="line">key_2 = x_2 @ W_key</span><br><span class="line">值_2 = x_2 @ W_值</span><br><span class="line">​</span><br><span class="line">打印（query_2.shape）</span><br><span class="line">打印（key_2.shape）</span><br><span class="line">打印（value_2.形状）</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p><strong>出去：</strong></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">手电筒尺寸（[2]）</span><br><span class="line">手电筒尺寸（[2]）</span><br><span class="line">手电筒尺寸（[4]）</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>然后，我们可以将其推广到计算所有输入的剩余键和值元素，因为在下一步计算非标准化注意力权重时我们将需要它们：</p>
+<p><strong>在：</strong></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">键 = 嵌入句子 @ W_key</span><br><span class="line">值 = 嵌入句子 @ W_value</span><br><span class="line">​</span><br><span class="line">打印（“键.形状：”，键.形状）</span><br><span class="line">打印（“值.形状：”，值.形状）</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p><strong>出去：</strong></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">键.形状：火炬.尺寸（[6, 2]）</span><br><span class="line">值.形状：火炬.尺寸（[6，4]）</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>现在我们有了所有必需的键和值，我们可以进行下一步，计算非标准化注意力权重_<strong>ω</strong>_
+(omega)，如下图所示：</p>
+<p><a target="_blank" rel="noopener" href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fbaf9e308-223b-429e-8527-a7b868003e8c_814x912.png"><img src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fbaf9e308-223b-429e-8527-a7b868003e8c_814x912.png"></a>计算非标准化注意力权重_<strong>ω</strong>_（omega）</p>
+<p>如上图所示，我们计算_<strong>ω
+i,j</strong>_作为查询和键序列之间的点积，<em><strong>ω i,j</strong>
+=</em> <em><strong>q</strong></em> <em><strong>(i)</strong></em>
+<em><strong>k</strong></em> <em><strong>(j)</strong></em>。</p>
+<p>例如，我们可以按如下方式计算查询和第 5 个输入元素（对应于索引位置
+4）的非规范化注意力权重：</p>
+<p><strong>在：</strong></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">omega_24 = query_2.dot(键[4])</span><br><span class="line">打印（omega_24）</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>（请注意，_<strong>ω</strong>_是希腊字母“omega”的符号，因此上面的代码变量具有相同的名称。）</p>
+<p><strong>出去：</strong></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">张量（1.2903）</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>由于我们稍后需要这些未标准化的注意力权重_<strong>ω</strong>_来计算实际的注意力权重，因此让我们计算所有输入标记的_<strong>ω</strong>_值，如上图所示：</p>
+<p><strong>在：</strong></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">omega_2 = query_2 @ keys.T</span><br><span class="line">打印（omega_2）</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p><strong>出去：</strong></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">张量（[-0.6004, 3.4707, -1.5023, 0.4991, 1.2903, -1.3374]）</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>自注意力机制的后续步骤是应用softmax函数对未归一化的注意力权重ω进行归一化_<strong>，</strong>_<em><strong>从而</strong>_获得归一化的注意力权重</em><strong>α</strong>_
+（alpha）。此外，在通过softmax函数进行归一化之前，先使用1/√{
+<em><strong>dk</strong></em>
+_<strong>}对ω</strong>_进行缩放，如下所示：</p>
+<p><a target="_blank" rel="noopener" href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F42da287a-18e8-45c7-860c-46e8a3a534fc_1400x798.png"><img src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F42da287a-18e8-45c7-860c-46e8a3a534fc_1400x798.png"></a>计算标准化注意力权重_<strong>α</strong>_</p>
+<p>_<strong>通过dk进行</strong>_缩放可确保权重向量的欧氏长度大致相同。这有助于防止注意力权重过小或过大，从而避免数值不稳定或影响模型在训练期间的收敛能力。</p>
+<p>在代码中，我们可以按如下方式实现注意力权重的计算：</p>
+<p><strong>在：</strong></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">导入 torch.nn. functional 作为 F</span><br><span class="line">​</span><br><span class="line">attention_weights_2 = F.softmax(omega_2 / d_k**0.5, dim=0)</span><br><span class="line">打印（attention_weights_2）</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p><strong>出去：</strong></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">张量（[0.0386, 0.6870, 0.0204, 0.0840, 0.1470, 0.0229]）</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>最后，最后一步是计算上下文向量_<strong>z (2)
+，它是原始查询输入</strong>_<em><strong>x</strong></em>
+_<strong>(2)</strong>_的注意力加权版本，通过注意力权重将所有其他输入元素作为其上下文：</p>
+<p><a target="_blank" rel="noopener" href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F6e1dcdeb-e096-4ff9-bdf9-3338e4efa4b4_1916x1048.png"><img src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F6e1dcdeb-e096-4ff9-bdf9-3338e4efa4b4_1916x1048.png"></a>注意力权重特定于某个输入元素。这里，我们选择了输入元素_<strong>x</strong>
+(2)。_</p>
+<p>在代码中，它看起来如下所示：</p>
+<p><strong>在：</strong></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">context_vector_2 = attention_weights_2 @ 值</span><br><span class="line">​</span><br><span class="line">打印（context_vector_2.shape）</span><br><span class="line">打印（context_vector_2）</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p><strong>出去：</strong></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">手电筒尺寸（[4]）</span><br><span class="line">张量（[0.5313, 1.3607, 0.7891, 1.3110]）</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>请注意，由于我们之前指定了_<strong>d</strong>_
+<em><strong>v</strong></em> <em><strong>&gt; d</strong></em>
+，因此此输出向量具有比原始输入向量（<em><strong>d</strong></em>
+<em><strong>= 3）更多的维度（</strong></em> <em><strong>d
+v</strong></em> <em><strong>= 4</strong></em> ）
+；但是，嵌入大小选择_<strong>d</strong>_
+_<strong>v</strong>_是任意的。</p>
+<p>现在，为了总结上面章节中自注意力机制的代码实现，我们可以将前面的代码总结在一个紧凑的<code>SelfAttention</code>类中：</p>
+<p><strong>在：</strong></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">导入 torch.nn 作为 nn</span><br><span class="line">​</span><br><span class="line">类 SelfAttention（nn.Module）：</span><br><span class="line">​</span><br><span class="line">    def __init__(self, d_in, d_out_kq, d_out_v):</span><br><span class="line">        超级（）。__ init __（）</span><br><span class="line">        self.d_out_kq = d_out_kq</span><br><span class="line">        self.W_query = nn.参数（torch.rand（d_in，d_out_kq））</span><br><span class="line">        self.W_key = nn.参数（torch.rand（d_in，d_out_kq））</span><br><span class="line">        self.W_value = nn.参数（torch.rand（d_in，d_out_v））</span><br><span class="line">​</span><br><span class="line">    def forward（self，x）：</span><br><span class="line">        键 = x @ self.W_key</span><br><span class="line">        查询 = x @ self.W_query</span><br><span class="line">        值 = x @ self.W_value</span><br><span class="line">        </span><br><span class="line">        attn_scores = query@keys.T # 非标准化注意力权重    </span><br><span class="line">        attn_weights = torch.softmax（</span><br><span class="line">            attn_scores / self.d_out_kq**0.5，dim=-1</span><br><span class="line">        )</span><br><span class="line">        </span><br><span class="line">        context_vec = attn_weights @ 值</span><br><span class="line">        返回 context_vec</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>按照 PyTorch
+的约定，<code>SelfAttention</code>上述类在方法中初始化自注意力参数<code>__init__</code>，并通过该方法计算所有输入的注意力权重和上下文向量<code>forward</code>。我们可以按如下方式使用此类：</p>
+<p><strong>在：</strong></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">torch.manual_seed（123）</span><br><span class="line">​</span><br><span class="line"># 将 d_out_v 从 4 减少到 1，因为我们有 4 个头</span><br><span class="line">d_in，d_out_kq，d_out_v = 3，2，4</span><br><span class="line">​</span><br><span class="line">sa = SelfAttention(d_in, d_out_kq, d_out_v)</span><br><span class="line">打印（sa（嵌入句子））</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p><strong>出去：</strong></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">张量（[[-0.1564, 0.1028, -0.0763, -0.0764]，</span><br><span class="line">        [ 0.5313, 1.3607, 0.7891, 1.3110],</span><br><span class="line">        [-0.3542，-0.1234，-0.2627，-0.3706]，</span><br><span class="line">        [ 0.0071, 0.3345, 0.0969, 0.1998],</span><br><span class="line">        [ 0.1008, 0.4780, 0.2021, 0.3674],</span><br><span class="line">        [-0.5296, -0.2799, -0.4107, -0.6006]], grad_fn=&lt;MmBackward0&gt;)</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>如果您查看第二行，您会发现它与<code>context_vector_2</code>上一节中的值完全匹配：<code>tensor([0.5313, 1.3607, 0.7891, 1.3110])</code>。</p>
+<p>在本文顶部的第一张图中（为了方便起见，下面也再次显示），我们看到
+Transformer 使用了一个称为_多头注意力的模块_。</p>
+<p>这个“多头”注意力模块与我们上面讨论过的自注意力机制（尺度点积注意力）有何关系？</p>
+<p>在缩放点积注意力机制中，输入序列使用三个矩阵进行变换，分别代表查询、键和值。在多头注意力机制中，这三个矩阵可以被视为一个注意力头。下图总结了我们之前介绍和实现的这个注意力头：</p>
+<p><a target="_blank" rel="noopener" href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F7651e279-01ed-4316-91dc-d6be8ef4e947_1836x1116.png"><img src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F7651e279-01ed-4316-91dc-d6be8ef4e947_1836x1116.png"></a>总结之前实现的自注意力机制</p>
+<p>顾名思义，多头注意力机制包含多个这样的头，每个头由查询、键和值矩阵组成。这一概念类似于在卷积神经网络中使用多个核，从而生成具有多个输出通道的特征图。</p>
+<p><a target="_blank" rel="noopener" href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Ff406d55e-990a-4e3b-be82-d966eb74a3e7_1766x1154.png"><img src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Ff406d55e-990a-4e3b-be82-d966eb74a3e7_1766x1154.png"></a>多头注意力：具有多个头的自注意力</p>
+<p>为了在代码中说明这一点，我们可以<code>MultiHeadAttentionWrapper</code>为之前的<code>SelfAttention</code>类编写一个类：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">类 MultiHeadAttentionWrapper(nn.Module):</span><br><span class="line">​</span><br><span class="line">    def __init__(self, d_in, d_out_kq, d_out_v, num_heads):</span><br><span class="line">        超级（）。__ init __（）</span><br><span class="line">        self.heads = nn.ModuleList(</span><br><span class="line">            [自我注意力（d_in，d_out_kq，d_out_v）]</span><br><span class="line">             对于 _ 在范围内（num_heads）]</span><br><span class="line">        )</span><br><span class="line">​</span><br><span class="line">    def forward（self，x）：</span><br><span class="line">        返回 torch.cat([head(x) for head in self.heads], dim=-1)</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>这些<code>d_*</code>参数与之前的类中相同<code>SelfAttention</code>——这里唯一的新输入参数是注意力头的数量：</p>
+<ul>
+<li><p><code>d_in</code>：输入特征向量的维数。</p></li>
+<li><p><code>d_out_kq</code>：查询和关键输出的维度。</p></li>
+<li><p><code>d_out_v</code>：价值输出的维度。</p></li>
+<li><p><code>num_heads</code>：注意力头的数量。</p></li>
+</ul>
+<p>我们使用这些输入参数初始化类<code>SelfAttention</code>时间<code>num_heads</code>。并使用
+PyTorch<code>nn.ModuleList</code>来存储这些多个<code>SelfAttention</code>实例。</p>
+<p>然后，该<code>forward</code>过程涉及将每个<code>SelfAttention</code>头（存储在
+中<code>self.heads</code>）独立地应用于输入<code>x</code>。然后，每个头的结果沿着最后一个维度（<code>dim=-1</code>）连接起来。让我们在下面看看它的实际效果！</p>
+<p>首先，为了便于说明，假设我们有一个输出维度为 1 的自注意力头：</p>
+<p><strong>在：</strong></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">torch.manual_seed（123）</span><br><span class="line">​</span><br><span class="line">d_in，d_out_kq，d_out_v = 3，2，1</span><br><span class="line">​</span><br><span class="line">sa = SelfAttention(d_in, d_out_kq, d_out_v)</span><br><span class="line">打印（sa（嵌入句子））</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p><strong>出去：</strong></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">张量（[[-0.0185]，</span><br><span class="line">        [0.4003]，</span><br><span class="line">        [-0.1103]，</span><br><span class="line">        [0.0668]，</span><br><span class="line">        [0.1180]，</span><br><span class="line">        [-0.1827]]，grad_fn=&lt;MmBackward0&gt;）</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>现在，让我们将其扩展到 4 个注意力头：</p>
+<p><strong>在：</strong></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">torch.manual_seed（123）</span><br><span class="line">​</span><br><span class="line">块大小 = 嵌入句子.形状[1]</span><br><span class="line">mha = MultiHeadAttentionWrapper(</span><br><span class="line">    d_in，d_out_kq，d_out_v，num_heads=4</span><br><span class="line">)</span><br><span class="line">​</span><br><span class="line">context_vecs = mha(embedded_sentence)</span><br><span class="line">​</span><br><span class="line">打印（context_vecs）</span><br><span class="line">print(&quot;context_vecs.shape:&quot;, context_vecs.shape)</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p><strong>Out:</strong></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">tensor([[-0.0185,  0.0170,  0.1999, -0.0860],</span><br><span class="line">        [ 0.4003,  1.7137,  1.3981,  1.0497],</span><br><span class="line">        [-0.1103, -0.1609,  0.0079, -0.2416],</span><br><span class="line">        [ 0.0668,  0.3534,  0.2322,  0.1008],</span><br><span class="line">        [ 0.1180,  0.6949,  0.3157,  0.2807],</span><br><span class="line">        [-0.1827, -0.2060, -0.2393, -0.3167]], grad_fn=&lt;CatBackward0&gt;)</span><br><span class="line">context_vecs.shape: torch.Size([6, 4])</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>Based on the output above, you can see that the single self-attention
+head created earlier now represents the first column in the output
+tensor above.</p>
+<p>Notice that the multi-head attention result is a 6×4-dimensional
+tensor: We have 6 input tokens and 4 self-attention heads, where each
+self-attention head returns a 1-dimensional output. Previously, in the
+Self-Attention section, we also produced a 6×4-dimensional tensor.
+That's because we set the output dimension to 4 instead of 1. In
+practice, why do we even need multiple attention heads if we can
+regulate the output embedding size in the <code>SelfAttention</code>
+class itself?</p>
+<p>The distinction between increasing the output dimension of a single
+self-attention head and using multiple attention heads lies in how the
+model processes and learns from the data. While both approaches increase
+the capacity of the model to represent different features or aspects of
+the data, they do so in fundamentally different ways.</p>
+<p>For instance, each attention head in multi-head attention can
+potentially learn to focus on different parts of the input sequence,
+capturing various aspects or relationships within the data. This
+diversity in representation is key to the success of multi-head
+attention.</p>
+<p>Multi-head attention can also be more efficient, especially in terms
+of parallel computation. Each head can be processed independently,
+making it well-suited for modern hardware accelerators like GPUs or TPUs
+that excel at parallel processing.</p>
+<p>In short, the use of multiple attention heads is not just about
+increasing the model's capacity but about enhancing its ability to learn
+a diverse set of features and relationships within the data. For
+example, the 7B Llama 2 model uses 32 attention heads.</p>
+<p>In this section, we are adapting the previously discussed
+self-attention mechanism into a causal self-attention mechanism,
+specifically for GPT-like (decoder-style) LLMs that are used to generate
+text. This causal self-attention mechanism is also often referred to as
+“masked self-attention”. In the original transformer architecture, it
+corresponds to the “masked multi-head attention” module — for
+simplicity, we will look at a single attention head in this section, but
+the same concept generalizes to multiple heads.</p>
+<p>Causal self-attention ensures that the outputs for a certain position
+in a sequence is based only on the known outputs at previous positions
+and not on future positions. In simpler terms, it ensures that the
+prediction for each next word should only depend on the preceding words.
+To achieve this in GPT-like LLMs, for each token processed, we mask out
+the future tokens, which come after the current token in the input
+text.</p>
+<p>The application of a causal mask to the attention weights for hiding
+future input tokens in the inputs is illustrated in the figure
+below.</p>
+<p><a target="_blank" rel="noopener" href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fb7dd5ec8-4912-4e0d-8265-b335c08d2958_1760x1126.png"><img src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fb7dd5ec8-4912-4e0d-8265-b335c08d2958_1760x1126.png"></a></p>
+<p>To illustrate and implement causal self-attention, let's work with
+the unweighted attention scores and attention weights from the previous
+section. First, we quickly recap the computation of the attention scores
+from the previous <em>Self-Attention</em> section:</p>
+<p><strong>In:</strong></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">torch.manual_seed(123)</span><br><span class="line">​</span><br><span class="line">d_in, d_out_kq, d_out_v = 3, 2, 4</span><br><span class="line">​</span><br><span class="line">W_query = nn.Parameter(torch.rand(d_in, d_out_kq))</span><br><span class="line">W_key   = nn.Parameter(torch.rand(d_in, d_out_kq))</span><br><span class="line">W_value = nn.Parameter(torch.rand(d_in, d_out_v))</span><br><span class="line">​</span><br><span class="line">x = embedded_sentence</span><br><span class="line">​</span><br><span class="line">keys = x @ W_key</span><br><span class="line">queries = x @ W_query</span><br><span class="line">values = x @ W_value</span><br><span class="line">​</span><br><span class="line"># attn_scores are the &quot;omegas&quot;, </span><br><span class="line"># the unnormalized attention weights</span><br><span class="line">attn_scores = queries @ keys.T </span><br><span class="line">​</span><br><span class="line">print(attn_scores)</span><br><span class="line">print(attn_scores.shape)</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p><strong>Out:</strong></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">tensor([[ 0.0613, -0.3491,  0.1443, -0.0437, -0.1303,  0.1076],</span><br><span class="line">        [-0.6004,  3.4707, -1.5023,  0.4991,  1.2903, -1.3374],</span><br><span class="line">        [ 0.2432, -1.3934,  0.5869, -0.1851, -0.5191,  0.4730],</span><br><span class="line">        [-0.0794,  0.4487, -0.1807,  0.0518,  0.1677, -0.1197],</span><br><span class="line">        [-0.1510,  0.8626, -0.3597,  0.1112,  0.3216, -0.2787],</span><br><span class="line">        [ 0.4344, -2.5037,  1.0740, -0.3509, -0.9315,  0.9265]],</span><br><span class="line">       grad_fn=&lt;MmBackward0&gt;)</span><br><span class="line">torch.Size([6, 6])</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>Similar to the <em>Self-Attention</em> section before, the output
+above is a 6×6 tensor containing these pairwise unnormalized attention
+weights (also called attention scores) for the 6 input tokens.</p>
+<p>Previously, we then computed the scaled dot-product attention via the
+softmax function as follows:</p>
+<p><strong>In:</strong></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">attn_weights = torch.softmax(attn_scores / d_out_kq**0.5, dim=1)</span><br><span class="line">print(attn_weights)</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p><strong>Out:</strong></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">tensor([[0.1772, 0.1326, 0.1879, 0.1645, 0.1547, 0.1831],</span><br><span class="line">        [0.0386, 0.6870, 0.0204, 0.0840, 0.1470, 0.0229],</span><br><span class="line">        [0.1965, 0.0618, 0.2506, 0.1452, 0.1146, 0.2312],</span><br><span class="line">        [0.1505, 0.2187, 0.1401, 0.1651, 0.1793, 0.1463],</span><br><span class="line">        [0.1347, 0.2758, 0.1162, 0.1621, 0.1881, 0.1231],</span><br><span class="line">        [0.1973, 0.0247, 0.3102, 0.1132, 0.0751, 0.2794]],</span><br><span class="line">       grad_fn=&lt;SoftmaxBackward0&gt;)</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>The 6×6 output above represents the attention weights, which we also
+computed in the <em>Self-Attention</em> section before.</p>
+<p>Now, in GPT-like LLMs, we train the model to read and generate one
+token (or word) at a time, from left to right. If we have a training
+text sample like "Life is short eat desert first" we have the following
+setup, where the context vectors for the word to the right side of the
+arrow should only incorporate itself and the previous words:</p>
+<ul>
+<li><p>"Life" → "is"</p></li>
+<li><p>"Life is" → "short"</p></li>
+<li><p>"Life is short" → "eat"</p></li>
+<li><p>"Life is short eat" → "desert"</p></li>
+<li><p>"Life is short eat desert" → "first"</p></li>
+</ul>
+<p>The simplest way to achieve this setup above is to mask out all
+future tokens by applying a mask to the attention weight matrix above
+the diagonal, as illustrated in the figure below. This way, “future”
+words will not be included when creating the context vectors, which are
+created as a attention-weighted sum over the inputs.</p>
+<p><a target="_blank" rel="noopener" href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fe1317a05-3542-4158-94bf-085109a5793a_1220x702.png"><img src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fe1317a05-3542-4158-94bf-085109a5793a_1220x702.png"></a>Attention
+weights above the diagonal should be masked out</p>
+<p>In code, we can achieve this via PyTorch's <a target="_blank" rel="noopener" href="https://pytorch.org/docs/stable/generated/torch.tril.html#">tril</a>
+function, which we first use to create a mask of 1's and 0's:</p>
+<p><strong>In:</strong></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">block_size = attn_scores.shape[0]</span><br><span class="line">mask_simple = torch.tril(torch.ones(block_size, block_size))</span><br><span class="line">print(mask_simple)</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p><strong>Out:</strong></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">tensor([[1., 0., 0., 0., 0., 0.],</span><br><span class="line">        [1., 1., 0., 0., 0., 0.],</span><br><span class="line">        [1., 1., 1., 0., 0., 0.],</span><br><span class="line">        [1., 1., 1., 1., 0., 0.],</span><br><span class="line">        [1., 1., 1., 1., 1., 0.],</span><br><span class="line">        [1., 1., 1., 1., 1., 1.]])</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>Next, we multiply the attention weights with this mask to zero out
+all the attention weights above the diagonal:</p>
+<p><strong>In:</strong></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">masked_simple = attn_weights*mask_simple</span><br><span class="line">print(masked_simple)</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p><strong>Out:</strong></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">tensor([[0.1772, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000],</span><br><span class="line">        [0.0386, 0.6870, 0.0000, 0.0000, 0.0000, 0.0000],</span><br><span class="line">        [0.1965, 0.0618, 0.2506, 0.0000, 0.0000, 0.0000],</span><br><span class="line">        [0.1505, 0.2187, 0.1401, 0.1651, 0.0000, 0.0000],</span><br><span class="line">        [0.1347, 0.2758, 0.1162, 0.1621, 0.1881, 0.0000],</span><br><span class="line">        [0.1973, 0.0247, 0.3102, 0.1132, 0.0751, 0.2794]],</span><br><span class="line">       grad_fn=&lt;MulBackward0&gt;)</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>While the above is one way to mask out future words, notice that the
+attention weights in each row don't sum to one anymore. To mitigate
+that, we can normalize the rows such that they sum up to 1 again, which
+is a standard convention for attention weights:</p>
+<p><strong>In:</strong></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">row_sums = masked_simple.sum(dim=1, keepdim=True)</span><br><span class="line">masked_simple_norm = masked_simple / row_sums</span><br><span class="line">print(masked_simple_norm)</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p><strong>Out:</strong></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">tensor([[1.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000],</span><br><span class="line">        [0.0532, 0.9468, 0.0000, 0.0000, 0.0000, 0.0000],</span><br><span class="line">        [0.3862, 0.1214, 0.4924, 0.0000, 0.0000, 0.0000],</span><br><span class="line">        [0.2232, 0.3242, 0.2078, 0.2449, 0.0000, 0.0000],</span><br><span class="line">        [0.1536, 0.3145, 0.1325, 0.1849, 0.2145, 0.0000],</span><br><span class="line">        [0.1973, 0.0247, 0.3102, 0.1132, 0.0751, 0.2794]],</span><br><span class="line">       grad_fn=&lt;DivBackward0&gt;)</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>As we can see, the attention weights in each row now sum up to 1.</p>
+<p>Normalizing attention weights in neural networks, such as in
+transformer models, is advantageous over unnormalized weights for two
+main reasons. First, normalized attention weights that sum to 1 resemble
+a probability distribution. This makes it easier to interpret the
+model's attention to various parts of the input in terms of proportions.
+Second, by constraining the attention weights to sum to 1, this
+normalization helps control the scale of the weights and gradients to
+improve the training dynamics.</p>
+<p><strong>More efficient masking without renormalization</strong></p>
+<p>In the causal self-attention procedure we coded above, we first
+compute the attention scores, then compute the attention weights, mask
+out attention weights above the diagonal, and lastly renormalize the
+attention weights. This is summarized in the figure below:</p>
+<p><a target="_blank" rel="noopener" href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F7fcce180-cda2-4094-bb7c-32ea12e60c9a_1468x274.png"><img src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F7fcce180-cda2-4094-bb7c-32ea12e60c9a_1468x274.png"></a>The
+previously implemented causal self-attention procedure</p>
+<p>Alternatively, there is a more efficient way to achieve the same
+results. In this approach, we take the attention scores and replace the
+values above the diagonal with negative infinity before the values are
+input into the softmax function to compute the attention weights. This
+is summarized in the figure below:</p>
+<p><a target="_blank" rel="noopener" href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fa94e36c7-ec67-43d6-96c0-7f9781f402b5_1054x270.png"><img src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fa94e36c7-ec67-43d6-96c0-7f9781f402b5_1054x270.png"></a>An
+alternative, more efficient approach to implementing causal
+self-attention</p>
+<p>We can code up this procedure in PyTorch as follows, starting with
+masking the attention scores above the diagonal:</p>
+<p><strong>In:</strong></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">mask = torch.triu(torch.ones(block_size, block_size), diagonal=1)</span><br><span class="line">masked = attn_scores.masked_fill(mask.bool(), -torch.inf)</span><br><span class="line">print(masked)</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>The code above first creates a <code>mask</code> with 0s below the
+diagonal, and 1s above the diagonal. Here, <code>torch.triu</code>
+(<strong>u</strong>pper <strong>tri</strong>angle) retains the elements
+on and above the main diagonal of a matrix, zeroing out the elements
+below it, thus preserving the upper triangular portion. In contrast,
+<code>torch.tril</code> (<strong>l</strong>ower
+<strong>t</strong>riangle) keeps the elements on and below the main
+diagonal.</p>
+<p>The <code>masked_fill</code> method then replaces all the elements
+above the diagonal via positive mask values (1s) with
+<code>-torch.inf</code>, with the results being shown below.</p>
+<p><strong>Out:</strong></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">tensor([[ 0.0613,    -inf,    -inf,    -inf,    -inf,    -inf],</span><br><span class="line">        [-0.6004,  3.4707,    -inf,    -inf,    -inf,    -inf],</span><br><span class="line">        [ 0.2432, -1.3934,  0.5869,    -inf,    -inf,    -inf],</span><br><span class="line">        [-0.0794,  0.4487, -0.1807,  0.0518,    -inf,    -inf],</span><br><span class="line">        [-0.1510,  0.8626, -0.3597,  0.1112,  0.3216,    -inf],</span><br><span class="line">        [ 0.4344, -2.5037,  1.0740, -0.3509, -0.9315,  0.9265]],</span><br><span class="line">       grad_fn=&lt;MaskedFillBackward0&gt;)</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>Then, all we have to do is to apply the softmax function as usual to
+obtain the normalized and masked attention weights:</p>
+<p><strong>In:</strong></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">attn_weights = torch.softmax(masked / d_out_kq**0.5, dim=1)</span><br><span class="line">print(attn_weights)</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p><strong>Out:</strong></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">tensor([[1.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000],</span><br><span class="line">        [0.0532, 0.9468, 0.0000, 0.0000, 0.0000, 0.0000],</span><br><span class="line">        [0.3862, 0.1214, 0.4924, 0.0000, 0.0000, 0.0000],</span><br><span class="line">        [0.2232, 0.3242, 0.2078, 0.2449, 0.0000, 0.0000],</span><br><span class="line">        [0.1536, 0.3145, 0.1325, 0.1849, 0.2145, 0.0000],</span><br><span class="line">        [0.1973, 0.0247, 0.3102, 0.1132, 0.0751, 0.2794]],</span><br><span class="line">       grad_fn=&lt;SoftmaxBackward0&gt;)  </span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>Why does this work? The softmax function, applied in the last step,
+converts the input values into a probability distribution. When
+<code>-inf</code> is present in the inputs, softmax effectively treats
+them as zero probability. This is because <code>e^(-inf)</code>
+approaches 0, and thus these positions contribute nothing to the output
+probabilities.</p>
+<p>In this article, we explored the inner workings of self-attention
+through a step-by-step coding approach. Using this as a foundation, we
+then looked into multi-head attention, a fundamental component of large
+language transformers.</p>
+<p>We then also coded cross-attention, a variant of self-attention that
+is particularly effective when applied between two distinct sequences.
+And lastly, we coded causal self-attention, a concept crucial for
+generating coherent and contextually appropriate sequences in
+decoder-style LLMs such as GPT and Llama.</p>
+<p>By coding these complex mechanisms from scratch, you hopefully gained
+a good understanding of the inner workings of the self-attention
+mechanism used in transformers and LLMs.</p>
+<p>(Note that the code presented in this article is intended for
+illustrative purposes. If you plan to implement self-attention for
+training LLMs, I recommend considering optimized implementations like <a target="_blank" rel="noopener" href="https://arxiv.org/abs/2307.08691">Flash Attention</a>, which
+reduce memory footprint and computational load.)</p>
+<p>In the code walkthrough above, the sections on Self-Attention and
+Causal-Attention, we set <em><strong>d_q = d_k = 2</strong></em> and
+<em><strong>d_v = 4</strong></em>. In other words, we used the same
+dimensions for query and key sequences. While the value matrix
+<em><strong>W_v</strong></em> is often chosen to have the same dimension
+as the query and key matrices (such as in PyTorch's <a target="_blank" rel="noopener" href="https://pytorch.org/docs/stable/generated/torch.nn.MultiheadAttention.html">MultiHeadAttention</a>
+class), we can select an arbitrary number size for the value
+dimensions…</p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/%E8%87%AA%E6%B3%A8%E6%84%8F%E5%8A%9B%E6%9C%BA%E5%88%B6/" rel="tag"> <i class="fa fa-tag"></i> 自注意力机制</a>
+              <a href="/tags/%E5%A4%A7%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B/" rel="tag"> <i class="fa fa-tag"></i> 大语言模型</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/posts/e16fb9d/" rel="prev" title="LLM之KVCache">
+      <i class="fa fa-chevron-left"></i> LLM之KVCache
+    </a></div>
+      <div class="post-nav-item"></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+    <div class="comments" id="gitalk-container"></div>
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#embedding-an-input-sentence"><span class="nav-number">1.</span> <span class="nav-text">Embedding an Input Sentence</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="殉道者"
+      src="/uploads/avatar.png">
+  <p class="site-author-name" itemprop="name">殉道者</p>
+  <div class="site-description" itemprop="description">幼而学者,如日出之光；老而学者，如秉烛夜行，犹贤乎瞑目而无见者也！</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">10</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">19</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/wcjb" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;wcjb" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="/wcjbyjx@gmail.com" title="E-Mail → wcjbyjx@gmail.com"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+
+      </div>
+      
+      
+        <div class="links-of-blogroll motion-element links-of-blogroll-block">
+          <div class="links-of-blogroll-title">
+            <!-- modify icon to fire by szw -->
+            <i class="fa fa-history fa-" aria-hidden="true"></i>
+            近期文章
+          </div>
+          <ul class="links-of-blogroll-list">
+            
+            
+              <li class="recent_posts_li">
+                <a href="/" title="" target="_blank"></a>
+              </li>
+            
+              <li class="recent_posts_li">
+                <a href="/" title="" target="_blank"></a>
+              </li>
+            
+              <li class="recent_posts_li">
+                <a href="/" title="" target="_blank"></a>
+              </li>
+            
+              <li class="recent_posts_li">
+                <a href="/" title="" target="_blank"></a>
+              </li>
+            
+              <li class="recent_posts_li">
+                <a href="/" title="" target="_blank"></a>
+              </li>
+            
+          </ul>
+        </div>
+      
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2025</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">殉道者</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+    <span title="站点总字数">32k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">1:56</span>
+</div>
+
+<!--
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+-->
+
+    <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script size="300" alpha="0.6" zIndex="-1" src="//cdn.jsdelivr.net/gh/theme-next/theme-next-canvas-ribbon@1/canvas-ribbon.js"></script>
+  <script src="/lib/anime.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/medium-zoom@1/dist/medium-zoom.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+      
+
+<script>
+  if (typeof MathJax === 'undefined') {
+    window.MathJax = {
+      loader: {
+          load: ['[tex]/mhchem'],
+        source: {
+          '[tex]/amsCd': '[tex]/amscd',
+          '[tex]/AMScd': '[tex]/amscd'
+        }
+      },
+      tex: {
+        inlineMath: {'[+]': [['$', '$']]},
+          packages: {'[+]': ['mhchem']},
+        tags: 'ams'
+      },
+      options: {
+        renderActions: {
+          findScript: [10, doc => {
+            document.querySelectorAll('script[type^="math/tex"]').forEach(node => {
+              const display = !!node.type.match(/; *mode=display/);
+              const math = new doc.options.MathItem(node.textContent, doc.inputJax[0], display);
+              const text = document.createTextNode('');
+              node.parentNode.replaceChild(text, node);
+              math.start = {node: text, delim: '', n: 0};
+              math.end = {node: text, delim: '', n: 0};
+              doc.math.push(math);
+            });
+          }, '', false],
+          insertedScript: [200, () => {
+            document.querySelectorAll('mjx-container').forEach(node => {
+              let target = node.parentNode;
+              if (target.nodeName.toLowerCase() === 'li') {
+                target.parentNode.classList.add('has-jax');
+              }
+            });
+          }, '', false]
+        }
+      }
+    };
+    (function () {
+      var script = document.createElement('script');
+      script.src = '//cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js';
+      script.defer = true;
+      document.head.appendChild(script);
+    })();
+  } else {
+    MathJax.startup.document.state(0);
+    MathJax.texReset();
+    MathJax.typeset();
+  }
+</script>
+
+    
+
+  
+
+<link rel="stylesheet" href="//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.css">
+
+<script>
+NexT.utils.loadComments(document.querySelector('#gitalk-container'), () => {
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.js', () => {
+    var gitalk = new Gitalk({
+      clientID    : 'Ov23lijO0ypdZO6PpImE',
+      clientSecret: '95acc21cc04144cce9fca13a46ca80ef78f03d8d',
+      repo        : 'wcjb.github.io',
+      owner       : 'wcjb',
+      admin       : ['wcjb'],
+      id          : '2fcd946aabea936dc2f7e7ae434b0d88',
+        language: 'zh-CN',
+      distractionFreeMode: true
+    });
+    gitalk.render('gitalk-container');
+  }, window.Gitalk);
+});
+</script>
+
+<script src="/live2dw/lib/L2Dwidget.min.js?094cbace49a39548bed64abff5988b05"></script><script>L2Dwidget.init({"pluginRootPath":"live2dw/","pluginJsPath":"lib/","pluginModelPath":"assets/","tagMode":false,"log":false,"model":{"jsonPath":"/live2dw/assets/hijiki.model.json"},"display":{"position":"right","width":150,"height":300},"mobile":{"show":true}});</script></body>
+</html>

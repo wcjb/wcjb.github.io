@@ -32,8 +32,10 @@
 <meta property="og:locale" content="zh_CN">
 <meta property="og:image" content="https://wcjb.github.io/posts/781628f/1.png">
 <meta property="og:image" content="https://wcjb.github.io/posts/781628f/2.png">
+<meta property="og:image" content="https://wcjb.github.io/posts/781628f/%E5%90%8C%E8%BD%B4%E5%85%89%E6%BA%90.png">
+<meta property="og:image" content="https://wcjb.github.io/posts/781628f/%E5%90%8C%E8%BD%B4%E5%85%89%E6%BA%90%E6%88%90%E5%83%8F.png">
 <meta property="article:published_time" content="2025-02-18T07:21:39.000Z">
-<meta property="article:modified_time" content="2025-02-19T02:03:52.610Z">
+<meta property="article:modified_time" content="2025-04-16T00:55:24.227Z">
 <meta property="article:author" content="殉道者">
 <meta property="article:tag" content="相机">
 <meta property="article:tag" content="视觉">
@@ -242,7 +244,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2025-02-19 10:03:52" itemprop="dateModified" datetime="2025-02-19T10:03:52+08:00">2025-02-19</time>
+                <time title="修改时间：2025-04-16 08:55:24" itemprop="dateModified" datetime="2025-04-16T08:55:24+08:00">2025-04-16</time>
               </span>
 
           
@@ -258,14 +260,14 @@
                 <i class="far fa-file-word"></i>
               </span>
                 <span class="post-meta-item-text">本文字数：</span>
-              <span>2.6k</span>
+              <span>3.8k</span>
             </span>
             <span class="post-meta-item" title="阅读时长">
               <span class="post-meta-item-icon">
                 <i class="far fa-clock"></i>
               </span>
                 <span class="post-meta-item-text">阅读时长 &asymp;</span>
-              <span>10 分钟</span>
+              <span>14 分钟</span>
             </span>
 
         </div>
@@ -446,6 +448,42 @@ Camera）指感光单元（像素）按线性形式排列的相机，其一次�
 <li>拍摄距离越远，景深越大；距离越近，景深越小</li>
 </ul>
 <p>  总而言之，对于对景深有要求的项目，尽可能使用小的光圈；在选择放大倍率的镜头时，在项目许可下尽可能选用低倍率镜头。如果项目要求比较苛刻时，倾向选择高景深的尖端镜头。</p>
+<h2 id="同轴光源">同轴光源</h2>
+<p>  同轴光照明,<code>是指经被测物反射的光线与镜头光轴平行的照明方式</code>,同轴光源是机器视觉光源里唯一一种能直接在镜头正下方使用的光源，能提供来自镜头方向的照明角度。</p>
+<div class="img-container">
+<img src="同轴光源.png" alt="同轴光源" style="display:block; margin:0 auto; width:30%">
+<div class="caption" style="text-align: center; font-family: sans-serif">
+<pre><code>同轴光源</code></pre>
+</div>
+</div>
+<hr>
+<div class="img-container">
+<img src="同轴光源成像.png" alt="同轴光源成像" style="display:block; margin:0 auto; width:60%">
+<div class="caption" style="text-align: center; font-family: sans-serif">
+<pre><code>同轴光源成像</code></pre>
+</div>
+</div>
+<p>  同轴光源的发光区在侧面，出射的光线经过有特殊涂层的分光镜或分光棱镜，一半光线透过后被吸光材料吸收，而另一半光线被反射后照射在被测物表面，经被测物表面反射后经镜头到相机芯片成像。根据实际需要，可设计为不同的发光尺寸。由于光学结构特殊，当扩大发光区宽度时，光源的高度也需要随之改变。
+  同轴光源可以消除物体表面不平整引起的阴影，从而减少干扰；部分采用分光镜设计，减少光损失，提高成像清晰度，均匀照射物体表面。应用领域:系列光源最适宜用于反射度极高的物体，如金属、玻璃、胶片、晶片等表面的划伤检测，芯片和硅晶片的破损检测，Mark点定位，包装条码识别。</p>
+<h2 id="背光源">背光源</h2>
+<p>  用高密度LED阵列面提供高强度背光照明，能突出物体的外形轮廓特征，尤其适合作为显微镜的载物台。红白两用背光源、红蓝多用背光源，能调配出不同颜色，满足不同被测物多色要求。应用领域:机械零件尺寸的测量，电子元件、IC的外型检测，胶片污点检测，透明物体划痕检测等。</p>
+<h2 id="条形光源">条形光源</h2>
+<p>  条形光源是较大方形结构被测物的首选光源；颜色可根据需求搭配，自由组合；照射角度与安装随意可调。应用领域:金属表面检查，图像扫描，表面裂缝检测，LCD面板检测等。</p>
+<h2 id="环形光源">环形光源</h2>
+<p>  环形光源提供不同照射角度、不同颜色组合，更能突出物体的三维信息；高密度LED阵列，高亮度；多种紧凑设计，节省安装空间；解决对角照射阴影问题；可选配漫射板导光，光线均匀扩散。应用领域:PCB基板检测，IC元件检测，显微镜照明，液晶校正，塑胶容器检测，集成电路印字检查</p>
+<h2 id="aoi专用光源">AOI专用光源</h2>
+<p>  不同角度的三色光照明，照射凸显焊锡三维信息；外加漫射板导光，减少反光；不同角度组合；应用领域:用于电路板焊锡检测。</p>
+<h2 id="球积分光源">球积分光源</h2>
+<p>  具有积分效果的半球面内壁，均匀反射从底部360度发射出的光线，使整个图像的照度十分均匀。应用领域:合于曲面，表面凹凸，弧形表面检测，或金属、玻璃表面反光较强的物体表面检测。</p>
+<h2 id="线形光源">线形光源</h2>
+<p>  超高亮度，采用柱面透镜聚光，适用于各种流水线连续检测场合。应用领域:阵相机照明专用，AOI专用。</p>
+<h2 id="点光源">点光源</h2>
+<p>  大功率LED，体积小，发光强度高；光纤卤素灯的替代品，尤其适合作为镜头的同轴光源等；高效散热装置，大大提高光源的使用寿命。应用领域:适合远心镜头使用，用于芯片检测，Mark点定位，晶片及液晶玻璃底基校正。</p>
+<h2 id="组合条形光源">组合条形光源</h2>
+<p>  
+四边配置条形光，每边照明独立可控；可根据被测物要求调整所需照明角度，适用性广。应用案例:CB基板检测，IC元件检测，焊锡检查，Mark点定位，显微镜照明，包装条码照明，球形物体照明等。</p>
+<h2 id="对位光源">对位光源</h2>
+<p>  对位速度快；视场大；精度高；体积小，便于检测集成；亮度高，可选配辅助环形光源。应用领域:VA系列光源是全自动电路板印刷机对位的专用光源。</p>
 
     </div>
 
@@ -532,7 +570,7 @@ Camera）指感光单元（像素）按线性形式排列的相机，其一次�
 
       <!--noindex-->
       <div class="post-toc-wrap sidebar-panel">
-          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#ccd"><span class="nav-number">1.</span> <span class="nav-text">CCD</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#cmos"><span class="nav-number">2.</span> <span class="nav-text">CMOS</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%83%8F%E7%B4%A0"><span class="nav-number">3.</span> <span class="nav-text">像素</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%83%8F%E7%B4%A0%E7%9B%B4%E5%BE%84"><span class="nav-number">4.</span> <span class="nav-text">像素直径</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%9B%B8%E6%9C%BA%E9%9D%B6%E9%9D%A2%E5%B0%BA%E5%AF%B8"><span class="nav-number">5.</span> <span class="nav-text">相机靶面尺寸</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%BF%AB%E9%97%A8%E9%80%9F%E5%BA%A6"><span class="nav-number">6.</span> <span class="nav-text">快门速度</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%9B%9D%E5%85%89%E5%80%BC"><span class="nav-number">7.</span> <span class="nav-text">曝光值</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%A2%9E%E7%9B%8A"><span class="nav-number">8.</span> <span class="nav-text">增益</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%9D%A2%E9%98%B5%E7%9B%B8%E6%9C%BA"><span class="nav-number">9.</span> <span class="nav-text">面阵相机</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%BA%BF%E9%98%B5%E7%9B%B8%E6%9C%BA"><span class="nav-number">10.</span> <span class="nav-text">线阵相机</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%80%9A%E8%AE%AF%E6%96%B9%E5%BC%8F"><span class="nav-number">11.</span> <span class="nav-text">通讯方式</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#usb%E6%8E%A5%E5%8F%A3"><span class="nav-number">11.1.</span> <span class="nav-text">USB接口</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#gige%E5%8D%83%E5%85%86%E4%BB%A5%E5%A4%AA%E7%BD%91%E6%8E%A5%E5%8F%A3"><span class="nav-number">11.2.</span> <span class="nav-text">Gige千兆以太网接口</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#cameralink%E6%8E%A5%E5%8F%A3"><span class="nav-number">11.3.</span> <span class="nav-text">Cameralink接口</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%B7%A5%E4%BD%9C%E8%B7%9D%E7%A6%BBwd"><span class="nav-number">12.</span> <span class="nav-text">工作距离（WD）</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%A7%86%E5%9C%BA%E8%A7%92fov"><span class="nav-number">13.</span> <span class="nav-text">视场角（FOV）</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%85%89%E5%9C%88"><span class="nav-number">14.</span> <span class="nav-text">光圈</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%84%A6%E8%B7%9D"><span class="nav-number">15.</span> <span class="nav-text">焦距</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%99%AF%E6%B7%B1"><span class="nav-number">16.</span> <span class="nav-text">景深</span></a></li></ol></div>
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#ccd"><span class="nav-number">1.</span> <span class="nav-text">CCD</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#cmos"><span class="nav-number">2.</span> <span class="nav-text">CMOS</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%83%8F%E7%B4%A0"><span class="nav-number">3.</span> <span class="nav-text">像素</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%83%8F%E7%B4%A0%E7%9B%B4%E5%BE%84"><span class="nav-number">4.</span> <span class="nav-text">像素直径</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%9B%B8%E6%9C%BA%E9%9D%B6%E9%9D%A2%E5%B0%BA%E5%AF%B8"><span class="nav-number">5.</span> <span class="nav-text">相机靶面尺寸</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%BF%AB%E9%97%A8%E9%80%9F%E5%BA%A6"><span class="nav-number">6.</span> <span class="nav-text">快门速度</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%9B%9D%E5%85%89%E5%80%BC"><span class="nav-number">7.</span> <span class="nav-text">曝光值</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%A2%9E%E7%9B%8A"><span class="nav-number">8.</span> <span class="nav-text">增益</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%9D%A2%E9%98%B5%E7%9B%B8%E6%9C%BA"><span class="nav-number">9.</span> <span class="nav-text">面阵相机</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%BA%BF%E9%98%B5%E7%9B%B8%E6%9C%BA"><span class="nav-number">10.</span> <span class="nav-text">线阵相机</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%80%9A%E8%AE%AF%E6%96%B9%E5%BC%8F"><span class="nav-number">11.</span> <span class="nav-text">通讯方式</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#usb%E6%8E%A5%E5%8F%A3"><span class="nav-number">11.1.</span> <span class="nav-text">USB接口</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#gige%E5%8D%83%E5%85%86%E4%BB%A5%E5%A4%AA%E7%BD%91%E6%8E%A5%E5%8F%A3"><span class="nav-number">11.2.</span> <span class="nav-text">Gige千兆以太网接口</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#cameralink%E6%8E%A5%E5%8F%A3"><span class="nav-number">11.3.</span> <span class="nav-text">Cameralink接口</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%B7%A5%E4%BD%9C%E8%B7%9D%E7%A6%BBwd"><span class="nav-number">12.</span> <span class="nav-text">工作距离（WD）</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%A7%86%E5%9C%BA%E8%A7%92fov"><span class="nav-number">13.</span> <span class="nav-text">视场角（FOV）</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%85%89%E5%9C%88"><span class="nav-number">14.</span> <span class="nav-text">光圈</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%84%A6%E8%B7%9D"><span class="nav-number">15.</span> <span class="nav-text">焦距</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%99%AF%E6%B7%B1"><span class="nav-number">16.</span> <span class="nav-text">景深</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%90%8C%E8%BD%B4%E5%85%89%E6%BA%90"><span class="nav-number">17.</span> <span class="nav-text">同轴光源</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%83%8C%E5%85%89%E6%BA%90"><span class="nav-number">18.</span> <span class="nav-text">背光源</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%9D%A1%E5%BD%A2%E5%85%89%E6%BA%90"><span class="nav-number">19.</span> <span class="nav-text">条形光源</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%8E%AF%E5%BD%A2%E5%85%89%E6%BA%90"><span class="nav-number">20.</span> <span class="nav-text">环形光源</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#aoi%E4%B8%93%E7%94%A8%E5%85%89%E6%BA%90"><span class="nav-number">21.</span> <span class="nav-text">AOI专用光源</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%90%83%E7%A7%AF%E5%88%86%E5%85%89%E6%BA%90"><span class="nav-number">22.</span> <span class="nav-text">球积分光源</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%BA%BF%E5%BD%A2%E5%85%89%E6%BA%90"><span class="nav-number">23.</span> <span class="nav-text">线形光源</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%82%B9%E5%85%89%E6%BA%90"><span class="nav-number">24.</span> <span class="nav-text">点光源</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%BB%84%E5%90%88%E6%9D%A1%E5%BD%A2%E5%85%89%E6%BA%90"><span class="nav-number">25.</span> <span class="nav-text">组合条形光源</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AF%B9%E4%BD%8D%E5%85%89%E6%BA%90"><span class="nav-number">26.</span> <span class="nav-text">对位光源</span></a></li></ol></div>
       </div>
       <!--/noindex-->
 
@@ -548,14 +586,14 @@ Camera）指感光单元（像素）按线性形式排列的相机，其一次�
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">9</span>
+          <span class="site-state-item-count">10</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">17</span>
+        <span class="site-state-item-count">19</span>
         <span class="site-state-item-name">标签</span></a>
       </div>
   </nav>
@@ -634,12 +672,12 @@ Camera）指感光单元（像素）按线性形式排列的相机，其一次�
     <span class="post-meta-item-icon">
       <i class="fa fa-chart-area"></i>
     </span>
-    <span title="站点总字数">26k</span>
+    <span title="站点总字数">32k</span>
     <span class="post-meta-divider">|</span>
     <span class="post-meta-item-icon">
       <i class="fa fa-coffee"></i>
     </span>
-    <span title="站点阅读时长">1:34</span>
+    <span title="站点阅读时长">1:56</span>
 </div>
 
 <!--
