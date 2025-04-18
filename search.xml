@@ -104,6 +104,86 @@ Transformer with Rotary Position Embedding</a></p>
       </tags>
   </entry>
   <entry>
+    <title>LLM之余弦退火学习率</title>
+    <url>/posts/19c3723a/</url>
+    <content><![CDATA[<p>  学习率这个概念在非线性优化中经常出现，在深度学习中模型在反向传播阶段严重依赖于损失函数梯度的链式传播，为了更好的控制参数更新的步长，引入了学习率的概念：
+<span class="math display">\[
+w_{new} = w_{old} - \eta \ \Delta J(w)
+\]</span></p>
+<span id="more"></span>
+<p>  其中的<span class="math inline">\(\eta\)</span>为学习率，直观来说，非线性优化的过程就像下山，学习率就是步长，步子迈的太大或太小都不太理想。当步子迈得的太大了，你可能就直接跨过山脚，对应到模型训练中，就是学习率太高，每次更新参数时，跳过了最小值，导致在最优值附近来回振荡，无法收敛;步子太小，则需要走很久，才能到达山脚，对应到模型训练中，就是学习率太低，模型收敛的速度很慢，需要较长时间的训练才能收敛到最优值。举这个经典的下山的例子是为了说明学习率在模型训练中的重要意义。
+  在深度学习的模型训练中学习率有很多使用策略，包括不限于：</p>
+<ul>
+<li>固定学习率</li>
+</ul>
+<p>  顾名思义就是在模型训练过程中使用固定学习率来进行模型训练，这样会难以平衡初期的收敛速度和后期的精细调整，一般很少使用，只在一些简单问题上应用。</p>
+<ul>
+<li>阶梯式衰减学习率（step decay）</li>
+</ul>
+<p>  指学习率在模型训练的特定步骤中衰减，会导致学习率变化不平滑，模型训练不稳定。</p>
+<ul>
+<li>指数衰减学习率（exponential decay）</li>
+</ul>
+<p>  指学习率在模型训练过程中按指数函数衰减，由于指数函数的高增长特性，前期往往能快速收敛，但是后期由于学习率衰减过快，导致训练停滞，收敛速度很慢。</p>
+<ul>
+<li>线性预热+线性衰减</li>
+</ul>
+<p>  指学习率在模型训练过程中先线性增加再线性较少，此方案在大语言模型的预训练被广泛使用，缺点在于是线性变化，变化不太平滑。</p>
+<ul>
+<li>余弦退火学习率（Cosine Annealing）</li>
+</ul>
+<p>  余弦退火学习率的公式如下： <span class="math display">\[
+\eta_{t} = \eta_{min} + \frac{1}{2}(\eta_{max} -
+\eta_{min})(1+\cos(\frac{t}{T}\pi))
+\]</span>   其中，<span class="math inline">\(\eta_{t}\)</span>是第<span class="math inline">\(t\)</span>步的学习率，<span class="math inline">\(\eta_{min}\)</span>是训练过程中能接受的最小学习率，<span class="math inline">\(\eta_{max}是最大学习率\)</span>，<span class="math inline">\(t\)</span>为当前的训练步树，<span class="math inline">\(T\)</span>该epoch中的总训练步数。从公式可以看出，在训练的开始阶段，学习率解决最大值，模型的收敛速度较快，到达一定训练步数后，学些率开始减少，模型会在更小的参数空间内搜索最优值，随着训练步数的增长，学习率逐渐逼近最小值，模型在最优值附近的参数空间内搜索。</p>
+<p>  同时学习率是按照余弦曲线的方式进行更新，变化平滑的同时，不会出现变化幅度不大。目前基于余弦退火学习率衍生出一些更精细的学习率调度算法，如：</p>
+<ul>
+<li><p>带热重启的余弦退火</p>
+<p>  学习率在训练过程中周期性回到最大值，然后再次降低，公式如下：</p>
+<p><span class="math display">\[
+  \eta_{t} = \eta_{min} + \frac{1}{2}(\eta_{max} -
+\eta_{min})(1+\cos(\frac{T_{cur}}{T_i}\pi))
+  \]</span>   其中，<span class="math inline">\(T_{cur}\)</span>是自上次热重启之后的训练步数，<span class="math inline">\(T_i\)</span>是当前周期的总步数。这种学习率调度方式有助于跳出局部最优解，探索更广阔的参数空间</p></li>
+<li><p>带预热的余弦退火</p>
+<p>  带预热的余弦退火通过两阶段学习率调整实现：</p>
+<ul>
+<li><p>​预热阶段</p>
+<p>训练初期学习率从较小值线性或非线性增长至预设的最大值，避免随机初始化权重下的大幅度参数更新引发振荡。</p></li>
+<li><p>余弦退火阶段</p>
+<p>  预热完成后，学习率按余弦函数周期性衰减，从最大值逐渐降至最小值，数学公式如下：
+<span class="math display">\[
+  \eta_{t}=
+  \begin{cases}
+  \eta_{start} + \dfrac{t}{T_{warmup}}(\eta_{max} -
+\eta_{start})    \qquad 0 \leq t &lt; T_{warmup} \\
+  \eta_{max} + \frac{1}{2}(\eta_{max} -
+\eta_{min})(1+cos(\frac{t}{T_{cos}}\pi))  \qquad t \geq T_{warmup}
+  \end{cases}
+  \]</span> <span class="math inline">\(T_{warmup}\)</span>为预热步数，<span class="math inline">\(T_{cos}\)</span>为退火周期</p></li>
+</ul></li>
+<li><p>循环余弦退火（cyclical cosine annealing）</p>
+<p>  顾名思义，就是在模型训练过程中，学习率的变化在余弦退火的基础上存在多个余弦周期，通过重启（Restart）机制恢复学习率至最大值，形成多周期探索-利用循环，可以平衡梯度在参数空间的探索与利用，避免剧烈波动。</p></li>
+</ul>
+<p>  余弦退火学习率策略通过平滑地调整学习率，帮助模型在训练初期快速收敛，在训练后期精细调整参数，从而找到更好的局部最优解。它的提出和发展极大地推动了深度学习模型训练的稳定性和效率，已成为现代深度学习训练的标准配置之一。</p>
+<p>  虽然它不是万能的解决方案，但在大多数深度学习任务中，特别是大型语言模型的训练中，余弦退火都能提供显著的性能提升。通过理解其工作原理和适用边界，我们可以更好地利用这一强大工具，提高模型训练效果。</p>
+<blockquote>
+<p>编程实现</p>
+</blockquote>
+<ul>
+<li><p>demo 1 <figure class="highlight c++"><table><tr><td class="code"><pre><span class="line">from torch.optim.lr_scheduler <span class="keyword">import</span> CosineAnnealingLR</span><br><span class="line"><span class="keyword">import</span> torch</span><br><span class="line"></span><br><span class="line"># 创建模型和优化器</span><br><span class="line">model = <span class="built_in">MyModel</span>()</span><br><span class="line">optimizer = torch.optim.<span class="built_in">Adam</span>(model.<span class="built_in">parameters</span>(), lr=<span class="number">0.001</span>)</span><br><span class="line"></span><br><span class="line"># 创建余弦退火调度器</span><br><span class="line"># T_max是半个周期的长度，通常设为总训练步数</span><br><span class="line"># eta_min是最小学习率</span><br><span class="line">scheduler = <span class="built_in">CosineAnnealingLR</span>(optimizer, T_max=<span class="number">1000</span>, eta_min=<span class="number">0.0001</span>)</span><br><span class="line"></span><br><span class="line"># 在训练循环中使用</span><br><span class="line"><span class="keyword">for</span> epoch in <span class="built_in">range</span>(num_epochs):</span><br><span class="line">    <span class="keyword">for</span> batch in data_loader:</span><br><span class="line">        # 训练步骤</span><br><span class="line">        optimizer.<span class="built_in">zero_grad</span>()</span><br><span class="line">        outputs = <span class="built_in">model</span>(inputs)</span><br><span class="line">        loss = <span class="built_in">criterion</span>(outputs, targets)</span><br><span class="line">        loss.<span class="built_in">backward</span>()</span><br><span class="line">        optimizer.<span class="built_in">step</span>()</span><br><span class="line">        </span><br><span class="line">        # 更新学习率</span><br><span class="line">        scheduler.<span class="built_in">step</span>()</span><br></pre></td></tr></table></figure></p></li>
+<li><p>demo 2 <figure class="highlight c++"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">import</span> math</span></span><br><span class="line"><span class="function">def <span class="title">get_cosine_lr</span><span class="params">(current_step, total_steps, max_lr, min_lr)</span>:</span></span><br><span class="line"><span class="function">    <span class="string">&quot;&quot;</span><span class="string">&quot;计算当前步骤的余弦退火学习率&quot;</span><span class="string">&quot;&quot;</span></span></span><br><span class="line"><span class="function">    return min_lr + <span class="number">0.5</span> * (max_lr - min_lr) * (<span class="number">1</span> + math.cos(math.pi * current_step / total_steps))</span></span><br><span class="line"><span class="function"></span></span><br><span class="line"><span class="function"># 在训练循环中使用</span></span><br><span class="line"><span class="function">max_lr =</span> <span class="number">0.001</span></span><br><span class="line">min_lr = <span class="number">0.0001</span></span><br><span class="line">total_steps = <span class="number">1000</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">for</span> step in <span class="built_in">range</span>(total_steps):</span><br><span class="line">    # 计算当前学习率</span><br><span class="line">    current_lr = <span class="built_in">get_cosine_lr</span>(step, total_steps, max_lr, min_lr)</span><br><span class="line">    </span><br><span class="line">    # 更新优化器的学习率</span><br><span class="line">    <span class="keyword">for</span> param_group in optimizer.param_groups:</span><br><span class="line">        param_group[<span class="string">&#x27;lr&#x27;</span>] = current_lr</span><br><span class="line">    </span><br><span class="line">    # 正常的训练步骤</span><br><span class="line">    optimizer.<span class="built_in">zero_grad</span>()</span><br><span class="line">    outputs = <span class="built_in">model</span>(inputs)</span><br><span class="line">    loss = <span class="built_in">criterion</span>(outputs, targets)</span><br><span class="line">    loss.<span class="built_in">backward</span>()</span><br><span class="line">    optimizer.<span class="built_in">step</span>()</span><br></pre></td></tr></table></figure></p></li>
+<li><p>demo 3</p>
+<p><figure class="highlight c++"><table><tr><td class="code"><pre><span class="line">from torch.optim.lr_scheduler <span class="keyword">import</span> CosineAnnealingWarmRestarts</span><br><span class="line"></span><br><span class="line"># 创建带热重启的余弦退火调度器</span><br><span class="line"># T_0是第一次重启前的迭代次数</span><br><span class="line"># T_mult是控制重启周期如何变化的因子</span><br><span class="line">scheduler = <span class="built_in">CosineAnnealingWarmRestarts</span>(</span><br><span class="line">    optimizer, </span><br><span class="line">    T_0=<span class="number">1000</span>,  # 第一个周期的长度</span><br><span class="line">    T_mult=<span class="number">2</span>,  # 每次重启后周期长度翻倍</span><br><span class="line">    eta_min=<span class="number">0.0001</span>  # 最小学习率</span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"># 在训练循环中使用</span><br><span class="line"><span class="keyword">for</span> epoch in <span class="built_in">range</span>(num_epochs):</span><br><span class="line">    <span class="keyword">for</span> batch in data_loader:</span><br><span class="line">        # 训练步骤</span><br><span class="line">        optimizer.<span class="built_in">zero_grad</span>()</span><br><span class="line">        outputs = <span class="built_in">model</span>(inputs)</span><br><span class="line">        loss = <span class="built_in">criterion</span>(outputs, targets)</span><br><span class="line">        loss.<span class="built_in">backward</span>()</span><br><span class="line">        optimizer.<span class="built_in">step</span>()</span><br><span class="line">        </span><br><span class="line">        # 更新学习率</span><br><span class="line">        scheduler.<span class="built_in">step</span>()</span><br></pre></td></tr></table></figure></p></li>
+</ul>
+]]></content>
+      <tags>
+        <tag>LLM</tag>
+        <tag>学习率</tag>
+        <tag>模型训练</tag>
+        <tag>余弦退火</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>LLM之模型训练Tricks</title>
     <url>/posts/15775ef35/</url>
     <content><![CDATA[<p>  学习LLM过程中的经典策略记录。 <span id="more"></span></p>
@@ -291,685 +371,6 @@ Models</a></p></li>
       <tags>
         <tag>LLM</tag>
         <tag>模型训练</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>LLM之余弦退火学习率</title>
-    <url>/posts/19c3723a/</url>
-    <content><![CDATA[<p>  学习率这个概念在非线性优化中经常出现，在深度学习中模型在反向传播阶段严重依赖于损失函数梯度的链式传播，为了更好的控制参数更新的步长，引入了学习率的概念：
-<span class="math display">\[
-w_{new} = w_{old} - \eta \ \Delta J(w)
-\]</span></p>
-<span id="more"></span>
-<p>  其中的<span class="math inline">\(\eta\)</span>为学习率，直观来说，非线性优化的过程就像下山，学习率就是步长，步子迈的太大或太小都不太理想。当步子迈得的太大了，你可能就直接跨过山脚，对应到模型训练中，就是学习率太高，每次更新参数时，跳过了最小值，导致在最优值附近来回振荡，无法收敛;步子太小，则需要走很久，才能到达山脚，对应到模型训练中，就是学习率太低，模型收敛的速度很慢，需要较长时间的训练才能收敛到最优值。举这个经典的下山的例子是为了说明学习率在模型训练中的重要意义。
-  在深度学习的模型训练中学习率有很多使用策略，包括不限于：</p>
-<ul>
-<li>固定学习率</li>
-</ul>
-<p>  顾名思义就是在模型训练过程中使用固定学习率来进行模型训练，这样会难以平衡初期的收敛速度和后期的精细调整，一般很少使用，只在一些简单问题上应用。</p>
-<ul>
-<li>阶梯式衰减学习率（step decay）</li>
-</ul>
-<p>  指学习率在模型训练的特定步骤中衰减，会导致学习率变化不平滑，模型训练不稳定。</p>
-<ul>
-<li>指数衰减学习率（exponential decay）</li>
-</ul>
-<p>  指学习率在模型训练过程中按指数函数衰减，由于指数函数的高增长特性，前期往往能快速收敛，但是后期由于学习率衰减过快，导致训练停滞，收敛速度很慢。</p>
-<ul>
-<li>线性预热+线性衰减</li>
-</ul>
-<p>  指学习率在模型训练过程中先线性增加再线性较少，此方案在大语言模型的预训练被广泛使用，缺点在于是线性变化，变化不太平滑。</p>
-<ul>
-<li>余弦退火学习率（Cosine Annealing）</li>
-</ul>
-<p>  余弦退火学习率的公式如下： <span class="math display">\[
-\eta_{t} = \eta_{min} + \frac{1}{2}(\eta_{max} -
-\eta_{min})(1+\cos(\frac{t}{T}\pi))
-\]</span>   其中，<span class="math inline">\(\eta_{t}\)</span>是第<span class="math inline">\(t\)</span>步的学习率，<span class="math inline">\(\eta_{min}\)</span>是训练过程中能接受的最小学习率，<span class="math inline">\(\eta_{max}是最大学习率\)</span>，<span class="math inline">\(t\)</span>为当前的训练步树，<span class="math inline">\(T\)</span>该epoch中的总训练步数。从公式可以看出，在训练的开始阶段，学习率解决最大值，模型的收敛速度较快，到达一定训练步数后，学些率开始减少，模型会在更小的参数空间内搜索最优值，随着训练步数的增长，学习率逐渐逼近最小值，模型在最优值附近的参数空间内搜索。</p>
-<p>  同时学习率是按照余弦曲线的方式进行更新，变化平滑的同时，不会出现变化幅度不大。目前基于余弦退火学习率衍生出一些更精细的学习率调度算法，如：</p>
-<ul>
-<li><p>带热重启的余弦退火</p>
-<p>  学习率在训练过程中周期性回到最大值，然后再次降低，公式如下：</p>
-<p><span class="math display">\[
-  \eta_{t} = \eta_{min} + \frac{1}{2}(\eta_{max} -
-\eta_{min})(1+\cos(\frac{T_{cur}}{T_i}\pi))
-  \]</span>   其中，<span class="math inline">\(T_{cur}\)</span>是自上次热重启之后的训练步数，<span class="math inline">\(T_i\)</span>是当前周期的总步数。这种学习率调度方式有助于跳出局部最优解，探索更广阔的参数空间</p></li>
-<li><p>带预热的余弦退火</p>
-<p>  带预热的余弦退火通过两阶段学习率调整实现：</p>
-<ul>
-<li><p>​预热阶段</p>
-<p>训练初期学习率从较小值线性或非线性增长至预设的最大值，避免随机初始化权重下的大幅度参数更新引发振荡。</p></li>
-<li><p>余弦退火阶段</p>
-<p>  预热完成后，学习率按余弦函数周期性衰减，从最大值逐渐降至最小值，数学公式如下：
-<span class="math display">\[
-  \eta_{t}=
-  \begin{cases}
-  \eta_{start} + \dfrac{t}{T_{warmup}}(\eta_{max} -
-\eta_{start})    \qquad 0 \leq t &lt; T_{warmup} \\
-  \eta_{max} + \frac{1}{2}(\eta_{max} -
-\eta_{min})(1+cos(\frac{t}{T_{cos}}\pi))  \qquad t \geq T_{warmup}
-  \end{cases}
-  \]</span> <span class="math inline">\(T_{warmup}\)</span>为预热步数，<span class="math inline">\(T_{cos}\)</span>为退火周期</p></li>
-</ul></li>
-<li><p>循环余弦退火（cyclical cosine annealing）</p>
-<p>  顾名思义，就是在模型训练过程中，学习率的变化在余弦退火的基础上存在多个余弦周期，通过重启（Restart）机制恢复学习率至最大值，形成多周期探索-利用循环，可以平衡梯度在参数空间的探索与利用，避免剧烈波动。</p></li>
-</ul>
-<p>  余弦退火学习率策略通过平滑地调整学习率，帮助模型在训练初期快速收敛，在训练后期精细调整参数，从而找到更好的局部最优解。它的提出和发展极大地推动了深度学习模型训练的稳定性和效率，已成为现代深度学习训练的标准配置之一。</p>
-<p>  虽然它不是万能的解决方案，但在大多数深度学习任务中，特别是大型语言模型的训练中，余弦退火都能提供显著的性能提升。通过理解其工作原理和适用边界，我们可以更好地利用这一强大工具，提高模型训练效果。</p>
-<blockquote>
-<p>编程实现</p>
-</blockquote>
-<ul>
-<li><p>demo 1 <figure class="highlight c++"><table><tr><td class="code"><pre><span class="line">from torch.optim.lr_scheduler <span class="keyword">import</span> CosineAnnealingLR</span><br><span class="line"><span class="keyword">import</span> torch</span><br><span class="line"></span><br><span class="line"># 创建模型和优化器</span><br><span class="line">model = <span class="built_in">MyModel</span>()</span><br><span class="line">optimizer = torch.optim.<span class="built_in">Adam</span>(model.<span class="built_in">parameters</span>(), lr=<span class="number">0.001</span>)</span><br><span class="line"></span><br><span class="line"># 创建余弦退火调度器</span><br><span class="line"># T_max是半个周期的长度，通常设为总训练步数</span><br><span class="line"># eta_min是最小学习率</span><br><span class="line">scheduler = <span class="built_in">CosineAnnealingLR</span>(optimizer, T_max=<span class="number">1000</span>, eta_min=<span class="number">0.0001</span>)</span><br><span class="line"></span><br><span class="line"># 在训练循环中使用</span><br><span class="line"><span class="keyword">for</span> epoch in <span class="built_in">range</span>(num_epochs):</span><br><span class="line">    <span class="keyword">for</span> batch in data_loader:</span><br><span class="line">        # 训练步骤</span><br><span class="line">        optimizer.<span class="built_in">zero_grad</span>()</span><br><span class="line">        outputs = <span class="built_in">model</span>(inputs)</span><br><span class="line">        loss = <span class="built_in">criterion</span>(outputs, targets)</span><br><span class="line">        loss.<span class="built_in">backward</span>()</span><br><span class="line">        optimizer.<span class="built_in">step</span>()</span><br><span class="line">        </span><br><span class="line">        # 更新学习率</span><br><span class="line">        scheduler.<span class="built_in">step</span>()</span><br></pre></td></tr></table></figure></p></li>
-<li><p>demo 2 <figure class="highlight c++"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">import</span> math</span></span><br><span class="line"><span class="function">def <span class="title">get_cosine_lr</span><span class="params">(current_step, total_steps, max_lr, min_lr)</span>:</span></span><br><span class="line"><span class="function">    <span class="string">&quot;&quot;</span><span class="string">&quot;计算当前步骤的余弦退火学习率&quot;</span><span class="string">&quot;&quot;</span></span></span><br><span class="line"><span class="function">    return min_lr + <span class="number">0.5</span> * (max_lr - min_lr) * (<span class="number">1</span> + math.cos(math.pi * current_step / total_steps))</span></span><br><span class="line"><span class="function"></span></span><br><span class="line"><span class="function"># 在训练循环中使用</span></span><br><span class="line"><span class="function">max_lr =</span> <span class="number">0.001</span></span><br><span class="line">min_lr = <span class="number">0.0001</span></span><br><span class="line">total_steps = <span class="number">1000</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">for</span> step in <span class="built_in">range</span>(total_steps):</span><br><span class="line">    # 计算当前学习率</span><br><span class="line">    current_lr = <span class="built_in">get_cosine_lr</span>(step, total_steps, max_lr, min_lr)</span><br><span class="line">    </span><br><span class="line">    # 更新优化器的学习率</span><br><span class="line">    <span class="keyword">for</span> param_group in optimizer.param_groups:</span><br><span class="line">        param_group[<span class="string">&#x27;lr&#x27;</span>] = current_lr</span><br><span class="line">    </span><br><span class="line">    # 正常的训练步骤</span><br><span class="line">    optimizer.<span class="built_in">zero_grad</span>()</span><br><span class="line">    outputs = <span class="built_in">model</span>(inputs)</span><br><span class="line">    loss = <span class="built_in">criterion</span>(outputs, targets)</span><br><span class="line">    loss.<span class="built_in">backward</span>()</span><br><span class="line">    optimizer.<span class="built_in">step</span>()</span><br></pre></td></tr></table></figure></p></li>
-<li><p>demo 3</p>
-<p><figure class="highlight c++"><table><tr><td class="code"><pre><span class="line">from torch.optim.lr_scheduler <span class="keyword">import</span> CosineAnnealingWarmRestarts</span><br><span class="line"></span><br><span class="line"># 创建带热重启的余弦退火调度器</span><br><span class="line"># T_0是第一次重启前的迭代次数</span><br><span class="line"># T_mult是控制重启周期如何变化的因子</span><br><span class="line">scheduler = <span class="built_in">CosineAnnealingWarmRestarts</span>(</span><br><span class="line">    optimizer, </span><br><span class="line">    T_0=<span class="number">1000</span>,  # 第一个周期的长度</span><br><span class="line">    T_mult=<span class="number">2</span>,  # 每次重启后周期长度翻倍</span><br><span class="line">    eta_min=<span class="number">0.0001</span>  # 最小学习率</span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"># 在训练循环中使用</span><br><span class="line"><span class="keyword">for</span> epoch in <span class="built_in">range</span>(num_epochs):</span><br><span class="line">    <span class="keyword">for</span> batch in data_loader:</span><br><span class="line">        # 训练步骤</span><br><span class="line">        optimizer.<span class="built_in">zero_grad</span>()</span><br><span class="line">        outputs = <span class="built_in">model</span>(inputs)</span><br><span class="line">        loss = <span class="built_in">criterion</span>(outputs, targets)</span><br><span class="line">        loss.<span class="built_in">backward</span>()</span><br><span class="line">        optimizer.<span class="built_in">step</span>()</span><br><span class="line">        </span><br><span class="line">        # 更新学习率</span><br><span class="line">        scheduler.<span class="built_in">step</span>()</span><br></pre></td></tr></table></figure></p></li>
-</ul>
-]]></content>
-      <tags>
-        <tag>LLM</tag>
-        <tag>学习率</tag>
-        <tag>模型训练</tag>
-        <tag>余弦退火</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>卡尔曼滤波</title>
-    <url>/posts/b654ab75/</url>
-    <content><![CDATA[<p>  <strong>卡尔曼滤波</strong>（Kalman filter）是一种高效率的<a href="https://www.wikiwand.com/zh-hans/递归滤波器">递归滤波器</a>（<a href="https://www.wikiwand.com/zh-hans/自迴歸模型">自回归</a>滤波器），它能够从一系列的不完全及包含<a href="https://www.wikiwand.com/zh-hans/雜訊_(通訊學)">杂讯</a>的<a href="https://www.wikiwand.com/zh-hans/测量">测量</a>中，估计<a href="https://www.wikiwand.com/zh-hans/动态系统">动态系统</a>的状态。卡尔曼滤波会根据各测量量在不同时间下的值，考虑各时间下的<a href="https://www.wikiwand.com/zh-hans/联合分布">联合分布</a>，再产生对未知变数的估计，因此会比只以单一测量量为基础的估计方式要准。卡尔曼滤波得名自主要贡献者之一的<a href="https://www.wikiwand.com/zh-hans/鲁道夫·卡尔曼">鲁道夫·卡尔曼</a>，最早用于解决阿波罗计划的轨道预测问题。
-<span id="more"></span>
-  上面的定义摘自维基百科，是对卡尔曼滤波的专业阐述，为了便于理解通过下面两个例子来对卡尔曼滤波有个大致的了解。</p>
-<p>  航天器的发动机能够在足够高的温度下燃烧燃料，为航天器提供足够的动力，航天器发动机燃烧室在燃烧时温度可以达到数千摄氏度，过高的温度可能会损坏发动机的机械部件，导致火箭发射失败，因此需要密切关注火箭燃烧室的内部温度，显然在燃烧室内部放置温度传感器会直接被融化。此时，无法直接测量燃烧室的内部温度，基于这种情况，可以在燃烧室外放置一个温度传感器测量燃烧室的外部温度，使用卡尔曼滤波器利用外部温度来估算燃烧室的内部温度。</p>
-<p>  这是卡尔曼滤波器一种使用方式：</p>
-<blockquote>
-<p>  当系统的状态无法通过直接测量得到但是可以间接测量时，可以使用卡尔曼滤波通过间接测量值来估算系统的状态。
-总所周知，汽车的导航系统使用<code>车载传感器（Onboard sensors）</code>得到汽车的当前位置并导航到目的地。常用的车载传感器有：<code>惯性测量单元（Inertial measurement unit,IMU）</code>使用加速度计和陀螺仪来测量汽车的加速度和角速度；<code>里程表(Odometer)</code>测量汽车的相对行驶距离；<code>GPS接收器(GPS receiver)</code>接收来自GPS卫星的信号，来确定汽车在地球表面的位置。</p>
-</blockquote>
-<blockquote>
-<p>  IMU中的加速度计提供了汽车当前的加速度大小及方向，但是想要获得汽车的位置，需要对加速度进行两次积分（<span class="math inline">\(s =\iint
-a(t)dt\)</span>）得到汽车的位置，数值积分算法在计算位置时会存在微小的误差并且会随着时间的累积会不断，最终产生积分漂移，完全偏离汽车的正确位置；里程表容易受到轮胎压力和道路状况的影响；而GPS位置跟新速度慢，而且会存在一定噪声，最大问题还是在车辆通过隧道或车库时，信号很差，甚至无法接收到信号。三种车载传感器各自有各自的局限和优势，只用单独一种传感器进行定位效果都不尽如人意，此时可以使用卡尔曼滤波融合三种传感器得到汽车位置的最优估计值。</p>
-</blockquote>
-<p>  这是卡尔曼滤波的另一种使用方式：</p>
-<blockquote>
-<p>组合各种可能受到噪声影响的传感器测量值，得到一个最优的估计值。</p>
-</blockquote>
-<p>  卡尔曼滤波主要应用于高精度传感系统中，在时下大热的机器人、无人机、自动导航都有着应用，由于其递归的特性（即只要获知上一时刻状态的估计值以及当前状态的观测值就可以计算出当前状态的估计值），因此不需要记录观测或者估计的历史信息。与大多数滤波器不同之处，卡尔曼滤波器是一种纯粹的<a href="https://www.wikiwand.com/zh-hans/時域">时域</a>滤波器，它不需要像<a href="https://www.wikiwand.com/zh-hans/低通滤波器">低通滤波器</a>等<a href="https://www.wikiwand.com/zh-hans/频域">频域</a>滤波器那样，需要在频域设计再转换到时域实现。</p>
-<p>  其本质思想是采用信号与噪声的状态空间模型，利用前一时刻地估计值和现时刻的观测值来更新对状态变量的估计，求出现时刻的估计值，它适合于实时处理和计算机运算。下面我们一步步来解开卡尔曼滤波的神秘面纱。</p>
-<hr>
-<h3 id="隐马尔可夫">隐马尔可夫</h3>
-<h4 id="随机过程">随机过程</h4>
-<p>  随机过程被认为是概率论的“动力学”部分，其研究对象是随时间演变的随机现象。对于这种现象，已不能用随机变量或多维随机变量来合理表达，而需要一族（无限多个）随机变量来描述。高等教育出版社的《概率论和数理统计》第四版是这样定义随机过程：</p>
-<blockquote>
-<p>  设<span class="math inline">\(T\)</span>是一无限实数集，我们把依赖于参数<span class="math inline">\(t\in
-T\)</span>的一族随机变量称为<code>随机过程</code>，记为<span class="math inline">\(\{X(t),t\in T\}\)</span>,其中对<span class="math inline">\(\forall t \in T,X(t)\)</span>是一随机变量，<span class="math inline">\(T\)</span>叫做<code>参数集</code>。通常把<span class="math inline">\(t\)</span>看作时间，称<span class="math inline">\(X(t)\)</span>为时刻<span class="math inline">\(t\)</span>时过程的状态，而<span class="math inline">\(X(t_1)=x,x \in R\)</span>定义为<span class="math inline">\(t=t_1\)</span>时过程处于状态<span class="math inline">\(x\)</span>，对于<span class="math inline">\(\forall t\in
-T,X(t)\)</span>的所有可能取一切值的全体称为随机过程的<code>状态空间</code>，<code>泊松过程</code>和<code>维纳过程</code>都是典型的随机过程，篇幅有限这里不做进一步展开，有兴趣的读者可以自行Google。</p>
-</blockquote>
-<h4 id="马尔可夫过程">马尔可夫过程</h4>
-<p>  一个随机过程在时刻<span class="math inline">\(t_0\)</span>所处的状态为已知的条件下，随机过程在时刻<span class="math inline">\(t（t&gt;t_0)\)</span>所处的状态与其在时刻<span class="math inline">\(t_0\)</span>之前所处的状态无关。简而言之，就是“将来”仅依赖于”现在”与“过去”无关。我们称这种特性为<code>马尔可夫性</code>或无后效性。而这种具有马尔可夫性质的随机过程称之为<code>马尔可夫过程</code>，可以推出，泊松过程是时间连续状态离散的马尔可夫过程，而维纳过程则是时间状态都连续的马尔可夫过程。对于时间和状态都是离散的马尔可夫过程就是构成卡尔曼滤波的重要基石<code>马尔可夫链</code>：</p>
-<p>  对于随机过程<span class="math inline">\({X_n,n=1,2,\cdots}\)</span>,若其条件概率分布满足:
-<span class="math display">\[
-P\{X_{n+1}=x_{n+1}|X_n=x_n,\cdots,X_1=x_1\}=P\{X_{n+1}=x_{n+1}|X_n=x_n\}
-\]</span>，则称此随机过程为马尔可夫链。</p>
-<h4 id="状态转移矩阵">状态转移矩阵</h4>
-<p>  在马尔可夫链中，从一个状态转移到另一个状态的概率称为状态转移概率，如果系统的可能状态是有限的，例如有<span class="math inline">\(K\)</span>个状态，则状态转移概率构成一个<span class="math inline">\(K\times K\)</span>的状态转移矩阵： <span class="math display">\[P=\left[ \begin{matrix}   p_{11} &amp; p_{12}
-&amp; \cdots &amp; p_{1K} \\ p_{21} &amp; p_{22} &amp; \cdots &amp;
-p_{2K}\\ \cdots &amp; \cdots &amp; \cdots &amp;\cdots \\ p_{K1} &amp;
-p_{K2} &amp; \cdots &amp; p_{KK}\end{matrix}  \right]\]</span>
-其中矩阵的每一行的和为1，该矩阵是一个随机矩阵，任何一个随机矩阵都可以作为状态转移矩阵
-。</p>
-<h4 id="隐马尔可夫模型">隐马尔可夫模型</h4>
-<p>  在马尔可夫模型中，系统的状态是直接可见的，这样状态的转移概率就可以构成该系统的全部参数。但是，在实际生活中更多的情况是：系统状态并不是直接可见，我们往往只能观测到受状态影响的某些变量。显然对这些可观测到的变量使用马尔可夫模型对系统进行状态分析是不严谨的。为此，对于这种含有隐含未知参数的马尔可夫过程，数学家通过随机过程可观察的参数确定该过程的隐含参数，然后利用这些参数来作进一步分析，这也是大名鼎鼎的<code>隐马尔可夫模型（Hidden Markov model，HMM）</code>的本质，至于隐马尔可夫模型的更多详细内容，如果进行展开的话，需要花费大量篇幅，在此先不做展开。隐马尔可夫模型在语音识别和模式识别领域都有着应用，而卡尔曼滤波也是构建在隐马尔可夫模型之上的。</p>
-<h3 id="线性卡尔曼滤波">线性卡尔曼滤波</h3>
-<p>  <code>卡尔曼滤波是一个递归滤波器，其算法本质是通过动态系统的有限个观测值，估计动态系统的隐藏状态。</code>接下来，我们从动态系统的状态空间模型开始，一步步推导卡尔曼滤波算法。</p>
-<h4 id="状态空间模型">状态空间模型</h4>
-<p>  动态系统都具有一个基本特征：系统的状态，那么什么是系统的状态呢，其定义如下：</p>
-<blockquote>
-<p>  一个随机动态系统的状态被定义为最少量的信息，这些信息包含过去作用于该系统的输入的影响，并足以完全描述系统将来的行为。（该定义截取自机械工业出版社译制的《神经网络与机器学习》第三版
-第十四章 动态系统状态估计的贝叶斯滤波）</p>
-</blockquote>
-<p>  通常我们使用状态空间模型来描述动态系统状态对外部世界的影响，一般而言，状态空间模型分为两个部分：</p>
-<blockquote>
-<ul>
-<li><p>系统模型</p>
-<p>  系统模型使用时域函数来描述动态系统状态的演变，其数学表示为一阶马尔可夫链：<span class="math inline">\(x_{n+1}=\zeta_{n}(x_n,\omega_n)\)</span>，其中<span class="math inline">\(n\)</span>表示离散时间，向量<span class="math inline">\(x_n\)</span>表示动态系统当前的状态，向量<span class="math inline">\(x_{n+1}\)</span>表示下一状态的值，向量<span class="math inline">\(\omega_n\)</span>表示过程噪声，<span class="math inline">\(\zeta\)</span>为<span class="math inline">\(x_n,\omega_n\)</span>的向量函数，会随时间改变。</p></li>
-<li><p>测量模型</p>
-<p>  测量模型描述了动态系统状态对外部世界的影响，公式如下：<span class="math inline">\(y_n = \xi(x_n,v_n)\)</span>，其中向量<span class="math inline">\(y_n\)</span>表示外部世界对动态系统的一组观测值，向量<span class="math inline">\(v_n\)</span>是外部世界噪声的测量值，<span class="math inline">\(\xi\)</span>是<span class="math inline">\(x_n,v_n\)</span>的向量函数，会随时间改变。</p></li>
-</ul>
-</blockquote>
-<p>  对于状态空间模型，有着如下假设：</p>
-<blockquote>
-<ul>
-<li>动态系统的任意时刻<span class="math inline">\(k\)</span>,其过程噪声<span class="math inline">\(\omega_k\)</span>与初始状态<span class="math inline">\(x_0\)</span>无关；</li>
-<li>动态系统的过程噪声<span class="math inline">\(\omega_n\)</span>于测量噪声<span class="math inline">\(v_n\)</span>是统计独立，也就是说对<span class="math inline">\(\forall i,j\)</span>都有<span class="math inline">\(E[\omega_iv_j^T]=0\)</span>成立；</li>
-</ul>
-</blockquote>
-<p>  一般而言，跟状态与状态之间的是否为线性关系及过程噪声、测量噪声二者是否服从高斯分布将状态空间模型分为四大类：</p>
-<blockquote>
-<ul>
-<li>线性高斯模型</li>
-<li>线性非高斯模型</li>
-<li>非线性高斯模型</li>
-<li>非线性非高斯模型</li>
-</ul>
-</blockquote>
-<p>  显然不管是非线性还是非高斯或二者兼之的状态空间模型，其处理难度是远高于线性高斯模型的，我们先来处理最简单的状态空间模型——线性高斯模型。</p>
-<h4 id="线性卡尔曼滤波的理论推导">线性卡尔曼滤波的理论推导</h4>
-<p>对于线性高斯模型，其状态空间模型可设为如下形式：</p>
-<p><span class="math display">\[
-\begin{cases}
-x_{n}=A_{n}x_{n-1}+\omega_{n} \\
-y_n = H_nx_n+v_n
-\end{cases}
-\]</span>   其中<span class="math inline">\(\omega_n\sim N(0,Q),v_n\sim
-N(0,R)\)</span>，<span class="math inline">\(A_{n+1}\)</span>是动态系统从状态<span class="math inline">\(x_n\)</span>到<span class="math inline">\(x_{n+1}\)</span>的状态转移矩阵，<span class="math inline">\(H_n\)</span>是测量矩阵，表示系统状态<span class="math inline">\(x_n\)</span>对<span class="math inline">\(y_n\)</span>的增益，将系统状态映射到外部世界。</p>
-<p>  考虑到动态系统会受到系统中已知的控制器的控制信息的影响，需要在系统模型中加入这部分信息，修正后的状态空间模型如下：</p>
-<p><span class="math display">\[
-\begin{cases}
-x_{n}=A_{n}x_{n-1}+B_{n}\mu_{n}+\omega_{n} \\ y_n = H_nx_n+v_n
-\end{cases}
-\]</span> 其中<span class="math inline">\(\mu_n\)</span>是系统的控制器向量，<span class="math inline">\(B_n\)</span>是系统的控制向量。</p>
-<p>  为方便进行推导，定义<span class="math inline">\(\hat{x}^{-}_k \in
-R^n\)</span>（<span class="math inline">\(^-\)</span>代表先验,^代表估计）为在已知第<span class="math inline">\(k\)</span>步以前状态情况下第<span class="math inline">\(k\)</span>步的先验状态估计。定义<span class="math inline">\(\hat{x}_k\in R^n\)</span>为已知观测变量<span class="math inline">\(y_k\)</span>时，第<span class="math inline">\(k\)</span>步的后验估计状态，由此定义先验估计误差和后验估计误差：</p>
-<p><span class="math display">\[
-\begin{cases}
-  e_k^-\equiv{x_k-\hat{x}_k^-} \\ e_k\equiv{x_k-\hat{x}_k}
-\end{cases}
-\]</span> 先验估计误差的协方差为：</p>
-<p><span class="math display">\[
-P_k^-=E[e_k^-{e_k^-}^T]
-\]</span> 后验误差估计的协方差为： <span class="math display">\[
-P_k=E[e_ke_k^T]
-\]</span>   显然<span class="math inline">\(P_k^-\)</span>是真实值和预测值之间的协方差，<span class="math inline">\(P_k\)</span>是真实值和最优估计值之间的协方差。卡尔曼滤波的核心就是如何根据<span class="math inline">\(k-1\)</span>时刻的最优状态估计<span class="math inline">\(\hat{x}_{k-1}\)</span>和第<span class="math inline">\(k\)</span>时刻的观测值<span class="math inline">\(y_k\)</span>得到<span class="math inline">\(k\)</span>时刻的最优状态估计值<span class="math inline">\(\hat{x}_k\)</span>,显然根据定义<span class="math inline">\(P_k\)</span>越小，估计值越接近于真实值，此时，只需求解当前条件下使得<span class="math inline">\(P_k\)</span>最小的状态估计值即是当前时刻状态的最优估计值。利用上文修正后的状态空间模型的系统模型得到<span class="math inline">\(k\)</span>时刻状态的预测值<span class="math inline">\(\hat{x}_k^-=A\hat{x}_{k-1}+B\mu_k\)</span>，为了得到<span class="math inline">\(k\)</span>时刻的最小协方差<span class="math inline">\(P_k\)</span>，卡尔曼滤波定义参数卡尔曼增益<span class="math inline">\(K=\frac{\hat{x}_k-\hat{x}_k^-}{y_k-H\hat{x}_k^-}\)</span>，其中，观测向量及其预测之差<span class="math inline">\(y_k-H\hat{x}_k^-\)</span>被称为测量过程的新息或残余。新息反应了预测值和实际值之间的不一致程度，为零时表明二者完全吻合，推导过程如下。</p>
-<hr>
-<p>由卡尔曼增益的定义式变形得到:</p>
-<p><span class="math display">\[\hat{x}_k=\hat{x}_k^-+K(y_k-H\hat{x}_k^-)\]</span></p>
-<p>将状态空间模型的观测模型代入得到:</p>
-<p><span class="math display">\[\hat{x}_k=\hat{x}_k^-+K(Hx_k
-+v_k-H\hat{x}_k^-)\]</span></p>
-<p>进一步整理变换得到:</p>
-<p><span class="math display">\[\hat{x}_k-x_k=\hat{x}_k^—x_k+KH(x_k-\hat{x}_k^-)+Kv_k\]</span></p>
-<p>结合先验估计误差和后验估计误差的定义可知:</p>
-<p><span class="math display">\[e_k=(I-KH)e_k^-+Kv_k\]</span></p>
-<p>代入后验误差协方差的定义计算得到:</p>
-<p><span class="math display">\[P_k=E[e_ke_k^T]=
-E[[(I-KH)e_k^—Kv_k][(I-KH)e_k^—Kv_k]^T]\]</span></p>
-<p>展开可知:</p>
-<p><span class="math display">\[P_k=P^-_k-KHP^-_k-P^-_kH^TK^T+K(HP^-_kH^T+R)K^T=P(K)\]</span></p>
-<p>要求<span class="math inline">\(P_k\)</span>的最小值，结合上式对卡尔曼增益<span class="math inline">\(K\)</span>求偏导，得到：</p>
-<p><span class="math display">\[\frac{\partial{P_k}}{\partial{K}}=-2P^-_kH^T+2KHP_k^-H^T+2KR\]</span></p>
-<blockquote>
-<p>  需要注意的是，因为涉及到矩阵导数，与常规导数求导略有不同，有兴趣的读者，可以结合下面的矩阵求导规则进行求导：</p>
-<p>若<span class="math inline">\(Y=AX\)</span>,则<span class="math inline">\(\frac{d{Y}}{d{X}}=A^T\)</span>；</p>
-<p>若<span class="math inline">\(Y=XA\)</span>,则<span class="math inline">\(\frac{d{Y}}{d{X}}=A\)</span>；</p>
-<p>若<span class="math inline">\(Y=A^TXB\)</span>,则<span class="math inline">\(\frac{d{Y}}{d{X}}=AB^T\)</span>；</p>
-<p>若<span class="math inline">\(Y=A^TX^TB\)</span>,则<span class="math inline">\(\frac{d{Y}}{d{X}}=BA^T\)</span>；</p>
-<p>若<span class="math inline">\(Y=X^TX\)</span>,则<span class="math inline">\(\frac{d{Y}}{d{X}}=\)</span>X；</p>
-<p>若<span class="math inline">\(Y=AX^T\)</span>,则<span class="math inline">\(\frac{d{Y}}{d{X}}=A\)</span>；</p>
-<p>若<span class="math inline">\(Y=u(X)^Tv(X)\)</span>,则<span class="math inline">\(\frac{d{uv}}{d{X}}=\frac{du^T}{dX}v+\frac{dv^T}{X}u\)</span>；</p>
-</blockquote>
-<p>令<span class="math inline">\(\frac{\partial{P_k}}{\partial{K}}=0\)</span>，求解得到:</p>
-<p><span class="math display">\[K=\frac{P^-_kH^T}{HP^-_KH^T+R}\]</span></p>
-<blockquote>
-<p>直观来看，一方面：</p>
-<p><span class="math display">\[\lim\limits_{R\to0}K=\lim\limits_{R\to0}\frac{P_k^-H^T}{HP_k^-H^T+R}=H^{-1}\]</span></p>
-<p>即，随着观测噪声协方差 <span class="math inline">\(R\)</span>的减小，卡尔曼增益逐渐增大，当<span class="math inline">\(R=0\)</span>时，取得最大值<span class="math inline">\(H^{-1}\)</span>;</p>
-<p>另一方面：</p>
-<p><span class="math display">\[\lim\limits_{P_k^-\to0}K=0\]</span></p>
-<p>即，随着先验估计协方差<span class="math inline">\(P_k^-\)</span>的减小，卡尔曼增益随之减小，当<span class="math inline">\(P_k^-=0\)</span>时，取得最小值0；</p>
-<p>结合卡尔曼增益的定义可知，<code>卡尔曼增益实际上表征了状态最优估计过程中模型预测误差与量测误差的比重，随着观测噪声协方差趋近于零，模型中预测误差的比重越来越大，此时模型更信任模型中观测值的信息；另一方面，随着先验估计误差协方差趋近于零，模型中预测误差的比重越来越小，此时模型更信任模型中预测值的信息。</code></p>
-</blockquote>
-<p>代入矩阵函数<span class="math inline">\(P(K)\)</span>得到：</p>
-<p><span class="math display">\[P_k=(I-KH)P_k^-\]</span></p>
-<p>至此，我们已经得到了第<span class="math inline">\(k\)</span>时刻最优状态估计值为：</p>
-<p><span class="math display">\[\hat{x}_k
-=\hat{x}_k^-+K(y_k-H\hat{x}_k^-)\]</span></p>
-<p>  但是，到了这一步问题仍然没有得到解决，因为在计算<span class="math inline">\(k\)</span>时刻的卡尔曼增益时，仍有一个值未确定的：先验估计的协方差矩阵<span class="math inline">\(P_k^-\)</span>，在计算<span class="math inline">\(P_k^-\)</span>之前，需要先计算先验误差：</p>
-<p><span class="math display">\[
-e^-_k=x_k-\hat{x}_k^-=(Ax_{k-1}+B\mu_k+\omega_k)-(A\hat{x}_{k-1}+Bu_k)=Ae_{k-1}+\omega_k
-\]</span> 因为</p>
-<p><span class="math display">\[
-P_k^-=E[e_k^-{e_k^-}^T]=E[(Ae_{k-1}+\omega_k)(Ae_{k-1}+\omega_k)^T]=E[Ae_{k-1}e_{k-1}^TA^T]+E[\omega_k\omega_k^T]
-\]</span> 得到：</p>
-<p><span class="math display">\[P_k^-=AP_{k-1}A^T+Q\]</span></p>
-<p>到这步，卡尔曼滤波形成一个完整的理论闭环。</p>
-<h3 id="离散线性卡尔曼滤波算法">离散线性卡尔曼滤波算法</h3>
-<p>  卡尔曼滤波器采用反馈控制的方法来估计过程状态：滤波器估计过程某一时刻的状态，然后以（含噪声的）观测变量的方式获得反馈。因此卡尔曼滤波器可分为两个部分：</p>
-<h4 id="时间更新方程"><code>时间更新方程</code></h4>
-<p>  时间更新方程负责及时向前推算当前状态变量和误差协方差估计的值，以便为下一个时间状态构造先验估计，其数学表示如下：
-<span class="math display">\[
-\hat x_k^- = A \hat x_{k-1}+B\hat \mu_k+w_k \\
-P_{k}^-=AP_{k-1}A^T+Q
-\]</span></p>
-<h4 id="测量更新方程"><code>测量更新方程</code></h4>
-<p>  测量更新方程负责反馈——也就是说，它将先验估计
-和新的测量变量结合以构造改进的后验估计，其数学表示如下：</p>
-<p><span class="math display">\[K_k=P^-_kH^T(HP^-_kH^T+R)^{-1}\]</span></p>
-<p><span class="math display">\[Z_k=Hx_k+v_k\]</span></p>
-<p><span class="math display">\[\hat x = \hat x_k^{-}+K_k(Z_k-H\hat
-x_k^{-})\]</span></p>
-<p><span class="math display">\[P_k=(I-K_kH)P_k^{-}\]</span></p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">离散线性卡尔曼滤波器的递归计算过程如下图：</span><br></pre></td></tr></table></figure>
-<p><img src="1.jpg" alt="离散卡尔曼滤波的递归过程">
-  时间更新方程将当前状态变量作为先验估计及时地向前投射到测量更新方程，测量更新方程校正先验估计以获得状态的后验估计。完成时间更新方程和测量更新方程的一轮更新之后，再次重复这个过程，将上一次计算得到的后验估计作为下一次计算的先验估计。</p>
-<h4 id="卡尔曼滤波器参数分析">卡尔曼滤波器参数分析</h4>
-<p>  在实现卡尔曼滤波器算法时，会涉及到很多参数，如下：</p>
-<blockquote>
-<p><span class="math inline">\(x_0\)</span>：动态系统的初始状态变量<span class="math inline">\(x_0\)</span>一般直接取第一个测量值<span class="math inline">\(z_0\)</span>；</p>
-<p><span class="math inline">\(P_0\)</span>：系统初始状态变量<span class="math inline">\(x_0\)</span>的协方差，只要初始值不为零，初始协方差矩阵的取值对滤波效果影响很小，都能很快收敛；</p>
-<p><span class="math inline">\(A\)</span>：状态转移矩阵，是根据经验对下一个时间周期目标状态的
-一种预测。在某些情况下，这种预测是确定的，而另一些情况下
-这种预测是未知的；</p>
-<p><span class="math inline">\(B\)</span>：输入控制矩阵，作用在控制向量<span class="math inline">\(\mu_k\)</span>上的<span class="math inline">\(n\times1\)</span>输入控制矩阵，由于控制信息是已知的，一般很好确定；
-<span class="math inline">\(H\)</span>：<span class="math inline">\(m\times n\)</span>观测模型矩阵，
-负责将系统的真实状态映射到观测空间，根据动态系统很容易确定；</p>
-<p><span class="math inline">\(P ^-\)</span>：为<span class="math inline">\(n\times n\)</span>先验估计误差协方差矩阵，由<span class="math inline">\(P_0\)</span>递归即可得到；</p>
-<p><span class="math inline">\(P\)</span> ：为<span class="math inline">\(n×n\)</span>后验估计误差协方差矩阵，由<span class="math inline">\(P_0\)</span>递归即可得到；</p>
-<p><span class="math inline">\(Q\)</span>：<span class="math inline">\(n\times n\)</span>过程噪声<span class="math inline">\(\omega_n\)</span>是的协方差矩阵
-，当动态系统的状态转换过程确定时，<span class="math inline">\(Q\)</span>是一个确定的值，此时，可通过离线测试确定对于某个过程的最优<span class="math inline">\(Q\)</span>值，一般来说，当状态转换过程为已确定时，<span class="math inline">\(Q\)</span> 的取值越小越好。 当 <span class="math inline">\(Q\)</span>
-取值逐渐增大时，滤波收敛变慢，且状态变量的扰动变大。当系统的动态转换过程是不确定的，随时间变化，此时<span class="math inline">\(Q\)</span>不再是一个确定值，而是一个随时间变化的变量<span class="math inline">\(Q(k)\)</span>，此时的卡尔曼滤波为自适应卡尔曼滤波，关于自适应卡尔曼滤波的更详细内容请参考此文—<a href="http://read.pudn.com/downloads76/ebook/285147/Paper/pdf/y8576770004.pdf">自适应卡尔曼滤波技术</a>，在此不做进一步展开；</p>
-<p><span class="math inline">\(R\)</span>：<span class="math inline">\(m\times m\)</span>测量噪声<span class="math inline">\(v_n\)</span>协方差矩阵，
-跟系统外部环境的测量仪器相关，一般很难获得改值，根据平时的使用经历来看:</p>
-<blockquote>
-<p><span class="math inline">\(R\)</span>取值过小或过大都会使滤波效果变差；</p>
-<p><span class="math inline">\(R\)</span>取值越小收敛越快，反之收敛越慢；</p>
-<p>一般离线得到合适的<span class="math inline">\(R\)</span>值，再代入滤波器中；</p>
-</blockquote>
-<p><span class="math inline">\(I\)</span>：<span class="math inline">\(n\times n\)</span> 单位矩阵</p>
-<p><span class="math inline">\(K\)</span>:<span class="math inline">\(n×m\)</span>阶矩阵， 卡尔曼增益</p>
-</blockquote>
-<p>  关于卡尔曼滤波参数的更详细内容，由于篇幅有限，只做了简单的描述，但是卡尔曼滤波器参数的确定却是重中之重，直接影响到算法的效果，要进行实际应用的读者可结合<a href="http://file.elecfans.com/web1/M00/80/05/pIYBAFwnp8uAL-vDAAZFhhuu8y8385.pdf">卡尔曼滤波器参数分析与应用方法研究</a>一文，来做进一步讨论。</p>
-<h3 id="发散现象及平方根滤波">发散现象及平方根滤波</h3>
-<h4 id="发散现象">发散现象</h4>
-<p>  线性卡尔曼滤波基于线性高斯状态空间模型的假设推导的，但是在实际应用时动态系统不一定完全满足这些假定，这会儿导致卡尔曼滤波的不稳定，这也叫卡尔曼滤波的发散现象，另外在计算时如果数值不太精确也会产生发散现象。</p>
-<h4 id="平方根滤波">平方根滤波</h4>
-<p>  一个数学上优美且计算可行的，解决卡尔曼滤波发散问题的方法是使用平方根滤波，其本质思想是对卡尔曼滤波进行修正，在算法的每一次循环中使用数值稳定的正交变换。具体而言，就是使用乔里斯基分解将卡尔曼滤波的误差协方差矩阵转换为其平方根形式。理论推导部分可以参考机械工业出版社的《神经网络与机器学习》
-第十四章 动态系统状态估计的贝叶斯滤波
-中的平方根滤波部分，在此不做推导。</p>
-]]></content>
-      <tags>
-        <tag>卡尔曼滤波</tag>
-        <tag>马尔可夫链</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>理解自注意力机制</title>
-    <url>/posts/15775ef77/</url>
-    <content><![CDATA[<p>  自Transformer架构的开山之作《<a href="https://arxiv.org/abs/1706.03762">Attention Is All You
-Need</a>》发表以来，自注意力机制已成为深度学习模型的基石技术，尤其在自然语言处理领域展现革命性突破。鉴于该机制已渗透至各类先进模型架构，深入理解其运作原理变得至关重要。</p>
-<span id="more"></span>
-<p>  注意力机制的概念源起于神经机器翻译中对长序列处理的探索<a href="https://arxiv.org/abs/1409.0473"></a>。传统逐字翻译的局限在于：不同语言特有的语法结构与语义逻辑（如中文"吃食堂"的动宾搭配）在直译中易被破坏，导致语义失真。</p>
-<p><a href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F2d632b81-5bd6-432a-a456-37f20788be20_1180x614.png"><img src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F2d632b81-5bd6-432a-a456-37f20788be20_1180x614.png"></a>
-&gt;
-逐字翻译（上）与注意力机制翻译（下）效果对比：后者能捕捉"making"与"more""difficult"的语义关联</p>
-<p>  Transformer架构的革命性突破在于完全摒弃了循环神经网络的时序依赖。其核心创新——自注意力机制，通过动态计算序列元素间的关联权重，使模型能够：
-1. <strong>全局感知</strong>：每个位置直接访问全部序列信息 2.
-<strong>动态聚焦</strong>：根据上下文自动强化关键特征 3.
-<strong>并行计算</strong>：突破RNN的序列计算瓶颈</p>
-<p><a href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F49828e20-cd55-47bb-84a3-59effec1be79_3140x4251.png"><img src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F49828e20-cd55-47bb-84a3-59effec1be79_3140x4251.png"></a>论文中的注意力热力图直观呈现了单词"making"与上下文的多维关联（颜色深度表示注意力权重强度）</p>
-<p>  从数学视角看，自注意力机制实质是构建动态特征增强网络：通过QKV矩阵运算，将原始词嵌入向量转换为包含上下文信息的增强表征。这种特性使其天然适配语言任务——例如"bank"在_"river
-bank"<em>与</em>"bank loan"_中通过注意力权重获得截然不同的语义编码。</p>
-<p>  尽管后续研究涌现出稀疏注意力、局部注意力等改进变体，但原始缩放点积注意力仍是工业界首选：</p>
-<ul>
-<li>计算复杂度O(n²)在大规模分布式训练中可通过并行化缓解<br>
-</li>
-<li>相比近似方法保留完整语义关联<br>
-</li>
-<li>与硬件优化技术（如FlashAttention）高度适配</li>
-</ul>
-<p>本文将以经典论文公式为框架展开解析： <span class="math display">\[
-Attention(Q,K,V)=softmax(\dfrac{QK^T}{\sqrt{d} + \epsilon})V
-\]</span>
-对该公式的逐项解构将揭示自注意力机制的本质特性。扩展阅读推荐：<br>
-- 演进脉络：《<a href="https://arxiv.org/abs/2009.06732">高效Transformers综述</a>》<br>
-- 工程实践：《<a href="https://arxiv.org/abs/2302.01107">高效训练技术解析</a>》<br>
-- 最新突破：<a href="https://arxiv.org/abs/2205.14135">FlashAttention</a>系列优化技术</p>
-<hr>
-<h3 id="embedding-an-input-sentence">Embedding an Input Sentence</h3>
-<p>以中文俗语为例，构建词表<code>dc=&#123;"人生","苦","短","先","吃","甜点"&#125;</code>（实际应用需3-5万词表）。通过以下步骤实现自注意力编码：
-1. 词嵌入向量化（维度d_model=512） 2. 计算QKV矩阵 3. 注意力权重矩阵生成
-4. 上下文增强表征输出</p>
-<p><strong>In</strong></p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">sentence = <span class="string">&#x27;Life is short, eat dessert first&#x27;</span></span><br><span class="line">dc = &#123;s:i <span class="keyword">for</span> i,s <span class="keyword">in</span> <span class="built_in">enumerate</span>(<span class="built_in">sorted</span>(sentence.replace(<span class="string">&#x27;,&#x27;</span>, <span class="string">&#x27;&#x27;</span>).split()))&#125;</span><br><span class="line"><span class="built_in">print</span>(dc)</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-<p><strong>Out</strong></p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">&#123;<span class="string">&#x27;Life&#x27;</span>: 0, <span class="string">&#x27;dessert&#x27;</span>: 1, <span class="string">&#x27;eat&#x27;</span>: 2, <span class="string">&#x27;first&#x27;</span>: 3, <span class="string">&#x27;is&#x27;</span>: 4, <span class="string">&#x27;short&#x27;</span>: 5&#125;</span><br></pre></td></tr></table></figure>
-<p>接下来，我们使用这个字典为每个单词分配一个整数索引：</p>
-<p><strong>在：</strong></p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">进口火炬</span><br><span class="line">​</span><br><span class="line">sentence_int = torch.tensor（</span><br><span class="line">    [dc[s] for s in sentence.replace(&#x27;,&#x27;, &#x27;&#x27;).split()]</span><br><span class="line">)</span><br><span class="line">打印（句子整数）</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-<p><strong>出去：</strong></p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">张量（[0, 4, 5, 2, 1, 3]）</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-<p>现在，使用输入句子的整数向量表示，我们可以使用嵌入层将输入编码为实向量嵌入。在这里，我们将使用一个微小的三维嵌入，使得每个输入词都由一个三维向量表示。</p>
-<p>请注意，嵌入的大小通常在数百到数千维之间。例如，Llama 2
-使用的嵌入大小为
-4,096。我们在这里使用三维嵌入纯粹是为了说明目的。这样我们就可以检查单个向量，而无需用数字填满整个页面。</p>
-<p>由于该句子由 6 个单词组成，因此将产生 6×3 维嵌入：</p>
-<p><strong>在：</strong></p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">词汇量 = 50_000</span><br><span class="line">​</span><br><span class="line">torch.manual_seed（123）</span><br><span class="line">嵌入 = torch.nn.Embedding（vocab_size，3）</span><br><span class="line">嵌入句子 = 嵌入（句子 int）.分离（）</span><br><span class="line">​</span><br><span class="line">打印（嵌入句子）</span><br><span class="line">打印（嵌入句子.形状）</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-<p><strong>出去：</strong></p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">张量（[[ 0.3374, -0.1778, -0.3035]，</span><br><span class="line">        [0.1794,1.8951,0.4954]，</span><br><span class="line">        [0.2692，-0.0770，-1.0205]，</span><br><span class="line">        [-0.2196, -0.3792, 0.7671]，</span><br><span class="line">        [-0.5880, 0.3486, 0.6603]，</span><br><span class="line">        [-1.1925, 0.6984, -1.4097]]）</span><br><span class="line">手电筒尺寸（[6, 3]）</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-<p>现在，让我们讨论一下被广泛使用的自注意力机制，即缩放点积注意力机制，它是
-Transformer 架构的一个组成部分。</p>
-<p>自注意力机制利用三个权重矩阵，分别称为_<strong>W
-q</strong>_、<em><strong>W k</strong>_和</em><strong>W
-v</strong>_，它们在训练过程中作为模型参数进行调整。这些矩阵分别用于将输入投影到序列的_查询
-(query)_ 、<em>键 (key</em> ) 和_值 (value)部分。_</p>
-<p><em><strong>通过权重矩阵W</strong>_和嵌入输入</em><strong>x</strong>_之间的矩阵乘法获得相应的查询、键和值序列：</p>
-<ul>
-<li><p>查询序列：<em><strong>q （i）</strong></em> = <em><strong>x
-（i）W q</strong></em> for <em>i</em> in sequence <em>1 …
-T</em></p></li>
-<li><p>密钥序列：<em><strong>k （i）</strong></em> = <em><strong>x
-（i）W k</strong></em> ，其中_i_在序列_1…T中_</p></li>
-<li><p>值序列：<em><strong>v （i）</strong></em> = <em><strong>x （i）W
-v，</strong></em> 其中_i_在序列_1…T中_</p></li>
-</ul>
-<p>索引_i指_的是输入序列中的标记索引位置，其长度为_T_ 。</p>
-<p><a href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fecef3e00-4c0e-4c7a-9a9f-42ac4e4ada69_366x786.png"><img src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fecef3e00-4c0e-4c7a-9a9f-42ac4e4ada69_366x786.png"></a>通过输入
-x 和权重 W 计算查询、键和值向量。</p>
-<p>这里，<em><strong>q (i)</strong>_和</em><strong>k
-(i)</strong>_都是维度为_<strong>d k</strong>_的向量。投影矩阵_<strong>W
-q</strong>_和_<strong>W k 的</strong>_形状为_<strong>d</strong>_ ×
-<em><strong>d k</strong></em> ，而_<strong>W v
-的</strong>_形状为_<strong>d</strong>_ × <em><strong>d
-v</strong></em>。</p>
-<p>（需要注意的是，_<strong>d代表每个词向量</strong>__<strong>x</strong>_的大小。）</p>
-<p>由于我们计算的是查询向量和键向量之间的点积，因此这两个向量必须包含相同数量的元素
-( <em><strong>dq=dk)。在许多 LLM 中，我们对值向量使用相同的大小，例如
-dq</strong></em> <em><strong>= dk =</strong></em> dv
-_<strong>。<strong>然而</strong>，<strong>值</strong>向量</strong>__<strong>v</strong>_
-<em><strong>(i)</strong>_中的元素数量（它决定了最终上下文</em><strong>向量</strong>_的大小）可以是任意的。</p>
-<p>因此，对于以下代码演练，我们将设置_<strong>d q = d k =
-2</strong>_并使用_<strong>d v = 4</strong>_，初始化投影矩阵如下：</p>
-<p><strong>在：</strong></p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">torch.manual_seed（123）</span><br><span class="line">​</span><br><span class="line">d = embedded_sentence.shape[1]</span><br><span class="line">​</span><br><span class="line">d_q，d_k，d_v = 2，2，4</span><br><span class="line">​</span><br><span class="line">W_query = torch.nn.参数（torch.rand（d，d_q））</span><br><span class="line">W_key = torch.nn.参数（torch.rand（d，d_k））</span><br><span class="line">W_value = torch.nn.参数（torch.rand（d，d_v））</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-<p>（与之前的词嵌入向量类似，维度_<strong>dq 、dk
-、dv通常</strong>_要大得多，但为了便于说明，我们在这里使用较小的数字。<em><strong>）</strong></em></p>
-<p>现在，假设我们有兴趣计算第二个输入元素的注意向量——第二个输入元素在这里充当查询：</p>
-<p><a href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Ff9774001-ea9d-48bf-9857-3c911b0a279d_588x962.png"><img src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Ff9774001-ea9d-48bf-9857-3c911b0a279d_588x962.png"></a>在以下部分中，我们重点关注第二个输入_<strong>x</strong>_
-(2)</p>
-<p>在代码中，它看起来如下所示：</p>
-<p><strong>在：</strong></p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">x_2 = 嵌入句子[1]</span><br><span class="line">query_2 = x_2 @ W_query</span><br><span class="line">key_2 = x_2 @ W_key</span><br><span class="line">值_2 = x_2 @ W_值</span><br><span class="line">​</span><br><span class="line">打印（query_2.shape）</span><br><span class="line">打印（key_2.shape）</span><br><span class="line">打印（value_2.形状）</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-<p><strong>出去：</strong></p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">手电筒尺寸（[2]）</span><br><span class="line">手电筒尺寸（[2]）</span><br><span class="line">手电筒尺寸（[4]）</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-<p>然后，我们可以将其推广到计算所有输入的剩余键和值元素，因为在下一步计算非标准化注意力权重时我们将需要它们：</p>
-<p><strong>在：</strong></p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">键 = 嵌入句子 @ W_key</span><br><span class="line">值 = 嵌入句子 @ W_value</span><br><span class="line">​</span><br><span class="line">打印（“键.形状：”，键.形状）</span><br><span class="line">打印（“值.形状：”，值.形状）</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-<p><strong>出去：</strong></p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">键.形状：火炬.尺寸（[6, 2]）</span><br><span class="line">值.形状：火炬.尺寸（[6，4]）</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-<p>现在我们有了所有必需的键和值，我们可以进行下一步，计算非标准化注意力权重_<strong>ω</strong>_
-(omega)，如下图所示：</p>
-<p><a href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fbaf9e308-223b-429e-8527-a7b868003e8c_814x912.png"><img src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fbaf9e308-223b-429e-8527-a7b868003e8c_814x912.png"></a>计算非标准化注意力权重_<strong>ω</strong>_（omega）</p>
-<p>如上图所示，我们计算_<strong>ω
-i,j</strong>_作为查询和键序列之间的点积，<em><strong>ω i,j</strong>
-=</em> <em><strong>q</strong></em> <em><strong>(i)</strong></em>
-<em><strong>k</strong></em> <em><strong>(j)</strong></em>。</p>
-<p>例如，我们可以按如下方式计算查询和第 5 个输入元素（对应于索引位置
-4）的非规范化注意力权重：</p>
-<p><strong>在：</strong></p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">omega_24 = query_2.dot(键[4])</span><br><span class="line">打印（omega_24）</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-<p>（请注意，_<strong>ω</strong>_是希腊字母“omega”的符号，因此上面的代码变量具有相同的名称。）</p>
-<p><strong>出去：</strong></p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">张量（1.2903）</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-<p>由于我们稍后需要这些未标准化的注意力权重_<strong>ω</strong>_来计算实际的注意力权重，因此让我们计算所有输入标记的_<strong>ω</strong>_值，如上图所示：</p>
-<p><strong>在：</strong></p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">omega_2 = query_2 @ keys.T</span><br><span class="line">打印（omega_2）</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-<p><strong>出去：</strong></p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">张量（[-0.6004, 3.4707, -1.5023, 0.4991, 1.2903, -1.3374]）</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-<p>自注意力机制的后续步骤是应用softmax函数对未归一化的注意力权重ω进行归一化_<strong>，</strong>_<em><strong>从而</strong>_获得归一化的注意力权重</em><strong>α</strong>_
-（alpha）。此外，在通过softmax函数进行归一化之前，先使用1/√{
-<em><strong>dk</strong></em>
-_<strong>}对ω</strong>_进行缩放，如下所示：</p>
-<p><a href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F42da287a-18e8-45c7-860c-46e8a3a534fc_1400x798.png"><img src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F42da287a-18e8-45c7-860c-46e8a3a534fc_1400x798.png"></a>计算标准化注意力权重_<strong>α</strong>_</p>
-<p>_<strong>通过dk进行</strong>_缩放可确保权重向量的欧氏长度大致相同。这有助于防止注意力权重过小或过大，从而避免数值不稳定或影响模型在训练期间的收敛能力。</p>
-<p>在代码中，我们可以按如下方式实现注意力权重的计算：</p>
-<p><strong>在：</strong></p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">导入 torch.nn. functional 作为 F</span><br><span class="line">​</span><br><span class="line">attention_weights_2 = F.softmax(omega_2 / d_k**0.5, dim=0)</span><br><span class="line">打印（attention_weights_2）</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-<p><strong>出去：</strong></p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">张量（[0.0386, 0.6870, 0.0204, 0.0840, 0.1470, 0.0229]）</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-<p>最后，最后一步是计算上下文向量_<strong>z (2)
-，它是原始查询输入</strong>_<em><strong>x</strong></em>
-_<strong>(2)</strong>_的注意力加权版本，通过注意力权重将所有其他输入元素作为其上下文：</p>
-<p><a href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F6e1dcdeb-e096-4ff9-bdf9-3338e4efa4b4_1916x1048.png"><img src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F6e1dcdeb-e096-4ff9-bdf9-3338e4efa4b4_1916x1048.png"></a>注意力权重特定于某个输入元素。这里，我们选择了输入元素_<strong>x</strong>
-(2)。_</p>
-<p>在代码中，它看起来如下所示：</p>
-<p><strong>在：</strong></p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">context_vector_2 = attention_weights_2 @ 值</span><br><span class="line">​</span><br><span class="line">打印（context_vector_2.shape）</span><br><span class="line">打印（context_vector_2）</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-<p><strong>出去：</strong></p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">手电筒尺寸（[4]）</span><br><span class="line">张量（[0.5313, 1.3607, 0.7891, 1.3110]）</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-<p>请注意，由于我们之前指定了_<strong>d</strong>_
-<em><strong>v</strong></em> <em><strong>&gt; d</strong></em>
-，因此此输出向量具有比原始输入向量（<em><strong>d</strong></em>
-<em><strong>= 3）更多的维度（</strong></em> <em><strong>d
-v</strong></em> <em><strong>= 4</strong></em> ）
-；但是，嵌入大小选择_<strong>d</strong>_
-_<strong>v</strong>_是任意的。</p>
-<p>现在，为了总结上面章节中自注意力机制的代码实现，我们可以将前面的代码总结在一个紧凑的<code>SelfAttention</code>类中：</p>
-<p><strong>在：</strong></p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">导入 torch.nn 作为 nn</span><br><span class="line">​</span><br><span class="line">类 SelfAttention（nn.Module）：</span><br><span class="line">​</span><br><span class="line">    def __init__(self, d_in, d_out_kq, d_out_v):</span><br><span class="line">        超级（）。__ init __（）</span><br><span class="line">        self.d_out_kq = d_out_kq</span><br><span class="line">        self.W_query = nn.参数（torch.rand（d_in，d_out_kq））</span><br><span class="line">        self.W_key = nn.参数（torch.rand（d_in，d_out_kq））</span><br><span class="line">        self.W_value = nn.参数（torch.rand（d_in，d_out_v））</span><br><span class="line">​</span><br><span class="line">    def forward（self，x）：</span><br><span class="line">        键 = x @ self.W_key</span><br><span class="line">        查询 = x @ self.W_query</span><br><span class="line">        值 = x @ self.W_value</span><br><span class="line">        </span><br><span class="line">        attn_scores = query@keys.T # 非标准化注意力权重    </span><br><span class="line">        attn_weights = torch.softmax（</span><br><span class="line">            attn_scores / self.d_out_kq**0.5，dim=-1</span><br><span class="line">        )</span><br><span class="line">        </span><br><span class="line">        context_vec = attn_weights @ 值</span><br><span class="line">        返回 context_vec</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-<p>按照 PyTorch
-的约定，<code>SelfAttention</code>上述类在方法中初始化自注意力参数<code>__init__</code>，并通过该方法计算所有输入的注意力权重和上下文向量<code>forward</code>。我们可以按如下方式使用此类：</p>
-<p><strong>在：</strong></p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">torch.manual_seed（123）</span><br><span class="line">​</span><br><span class="line"># 将 d_out_v 从 4 减少到 1，因为我们有 4 个头</span><br><span class="line">d_in，d_out_kq，d_out_v = 3，2，4</span><br><span class="line">​</span><br><span class="line">sa = SelfAttention(d_in, d_out_kq, d_out_v)</span><br><span class="line">打印（sa（嵌入句子））</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-<p><strong>出去：</strong></p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">张量（[[-0.1564, 0.1028, -0.0763, -0.0764]，</span><br><span class="line">        [ 0.5313, 1.3607, 0.7891, 1.3110],</span><br><span class="line">        [-0.3542，-0.1234，-0.2627，-0.3706]，</span><br><span class="line">        [ 0.0071, 0.3345, 0.0969, 0.1998],</span><br><span class="line">        [ 0.1008, 0.4780, 0.2021, 0.3674],</span><br><span class="line">        [-0.5296, -0.2799, -0.4107, -0.6006]], grad_fn=&lt;MmBackward0&gt;)</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-<p>如果您查看第二行，您会发现它与<code>context_vector_2</code>上一节中的值完全匹配：<code>tensor([0.5313, 1.3607, 0.7891, 1.3110])</code>。</p>
-<p>在本文顶部的第一张图中（为了方便起见，下面也再次显示），我们看到
-Transformer 使用了一个称为_多头注意力的模块_。</p>
-<p>这个“多头”注意力模块与我们上面讨论过的自注意力机制（尺度点积注意力）有何关系？</p>
-<p>在缩放点积注意力机制中，输入序列使用三个矩阵进行变换，分别代表查询、键和值。在多头注意力机制中，这三个矩阵可以被视为一个注意力头。下图总结了我们之前介绍和实现的这个注意力头：</p>
-<p><a href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F7651e279-01ed-4316-91dc-d6be8ef4e947_1836x1116.png"><img src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F7651e279-01ed-4316-91dc-d6be8ef4e947_1836x1116.png"></a>总结之前实现的自注意力机制</p>
-<p>顾名思义，多头注意力机制包含多个这样的头，每个头由查询、键和值矩阵组成。这一概念类似于在卷积神经网络中使用多个核，从而生成具有多个输出通道的特征图。</p>
-<p><a href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Ff406d55e-990a-4e3b-be82-d966eb74a3e7_1766x1154.png"><img src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Ff406d55e-990a-4e3b-be82-d966eb74a3e7_1766x1154.png"></a>多头注意力：具有多个头的自注意力</p>
-<p>为了在代码中说明这一点，我们可以<code>MultiHeadAttentionWrapper</code>为之前的<code>SelfAttention</code>类编写一个类：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">类 MultiHeadAttentionWrapper(nn.Module):</span><br><span class="line">​</span><br><span class="line">    def __init__(self, d_in, d_out_kq, d_out_v, num_heads):</span><br><span class="line">        超级（）。__ init __（）</span><br><span class="line">        self.heads = nn.ModuleList(</span><br><span class="line">            [自我注意力（d_in，d_out_kq，d_out_v）]</span><br><span class="line">             对于 _ 在范围内（num_heads）]</span><br><span class="line">        )</span><br><span class="line">​</span><br><span class="line">    def forward（self，x）：</span><br><span class="line">        返回 torch.cat([head(x) for head in self.heads], dim=-1)</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-<p>这些<code>d_*</code>参数与之前的类中相同<code>SelfAttention</code>——这里唯一的新输入参数是注意力头的数量：</p>
-<ul>
-<li><p><code>d_in</code>：输入特征向量的维数。</p></li>
-<li><p><code>d_out_kq</code>：查询和关键输出的维度。</p></li>
-<li><p><code>d_out_v</code>：价值输出的维度。</p></li>
-<li><p><code>num_heads</code>：注意力头的数量。</p></li>
-</ul>
-<p>我们使用这些输入参数初始化类<code>SelfAttention</code>时间<code>num_heads</code>。并使用
-PyTorch<code>nn.ModuleList</code>来存储这些多个<code>SelfAttention</code>实例。</p>
-<p>然后，该<code>forward</code>过程涉及将每个<code>SelfAttention</code>头（存储在
-中<code>self.heads</code>）独立地应用于输入<code>x</code>。然后，每个头的结果沿着最后一个维度（<code>dim=-1</code>）连接起来。让我们在下面看看它的实际效果！</p>
-<p>首先，为了便于说明，假设我们有一个输出维度为 1 的自注意力头：</p>
-<p><strong>在：</strong></p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">torch.manual_seed（123）</span><br><span class="line">​</span><br><span class="line">d_in，d_out_kq，d_out_v = 3，2，1</span><br><span class="line">​</span><br><span class="line">sa = SelfAttention(d_in, d_out_kq, d_out_v)</span><br><span class="line">打印（sa（嵌入句子））</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-<p><strong>出去：</strong></p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">张量（[[-0.0185]，</span><br><span class="line">        [0.4003]，</span><br><span class="line">        [-0.1103]，</span><br><span class="line">        [0.0668]，</span><br><span class="line">        [0.1180]，</span><br><span class="line">        [-0.1827]]，grad_fn=&lt;MmBackward0&gt;）</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-<p>现在，让我们将其扩展到 4 个注意力头：</p>
-<p><strong>在：</strong></p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">torch.manual_seed（123）</span><br><span class="line">​</span><br><span class="line">块大小 = 嵌入句子.形状[1]</span><br><span class="line">mha = MultiHeadAttentionWrapper(</span><br><span class="line">    d_in，d_out_kq，d_out_v，num_heads=4</span><br><span class="line">)</span><br><span class="line">​</span><br><span class="line">context_vecs = mha(embedded_sentence)</span><br><span class="line">​</span><br><span class="line">打印（context_vecs）</span><br><span class="line">print(&quot;context_vecs.shape:&quot;, context_vecs.shape)</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-<p><strong>Out:</strong></p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">tensor([[-0.0185,  0.0170,  0.1999, -0.0860],</span><br><span class="line">        [ 0.4003,  1.7137,  1.3981,  1.0497],</span><br><span class="line">        [-0.1103, -0.1609,  0.0079, -0.2416],</span><br><span class="line">        [ 0.0668,  0.3534,  0.2322,  0.1008],</span><br><span class="line">        [ 0.1180,  0.6949,  0.3157,  0.2807],</span><br><span class="line">        [-0.1827, -0.2060, -0.2393, -0.3167]], grad_fn=&lt;CatBackward0&gt;)</span><br><span class="line">context_vecs.shape: torch.Size([6, 4])</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-<p>Based on the output above, you can see that the single self-attention
-head created earlier now represents the first column in the output
-tensor above.</p>
-<p>Notice that the multi-head attention result is a 6×4-dimensional
-tensor: We have 6 input tokens and 4 self-attention heads, where each
-self-attention head returns a 1-dimensional output. Previously, in the
-Self-Attention section, we also produced a 6×4-dimensional tensor.
-That's because we set the output dimension to 4 instead of 1. In
-practice, why do we even need multiple attention heads if we can
-regulate the output embedding size in the <code>SelfAttention</code>
-class itself?</p>
-<p>The distinction between increasing the output dimension of a single
-self-attention head and using multiple attention heads lies in how the
-model processes and learns from the data. While both approaches increase
-the capacity of the model to represent different features or aspects of
-the data, they do so in fundamentally different ways.</p>
-<p>For instance, each attention head in multi-head attention can
-potentially learn to focus on different parts of the input sequence,
-capturing various aspects or relationships within the data. This
-diversity in representation is key to the success of multi-head
-attention.</p>
-<p>Multi-head attention can also be more efficient, especially in terms
-of parallel computation. Each head can be processed independently,
-making it well-suited for modern hardware accelerators like GPUs or TPUs
-that excel at parallel processing.</p>
-<p>In short, the use of multiple attention heads is not just about
-increasing the model's capacity but about enhancing its ability to learn
-a diverse set of features and relationships within the data. For
-example, the 7B Llama 2 model uses 32 attention heads.</p>
-<p>In this section, we are adapting the previously discussed
-self-attention mechanism into a causal self-attention mechanism,
-specifically for GPT-like (decoder-style) LLMs that are used to generate
-text. This causal self-attention mechanism is also often referred to as
-“masked self-attention”. In the original transformer architecture, it
-corresponds to the “masked multi-head attention” module — for
-simplicity, we will look at a single attention head in this section, but
-the same concept generalizes to multiple heads.</p>
-<p>Causal self-attention ensures that the outputs for a certain position
-in a sequence is based only on the known outputs at previous positions
-and not on future positions. In simpler terms, it ensures that the
-prediction for each next word should only depend on the preceding words.
-To achieve this in GPT-like LLMs, for each token processed, we mask out
-the future tokens, which come after the current token in the input
-text.</p>
-<p>The application of a causal mask to the attention weights for hiding
-future input tokens in the inputs is illustrated in the figure
-below.</p>
-<p><a href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fb7dd5ec8-4912-4e0d-8265-b335c08d2958_1760x1126.png"><img src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fb7dd5ec8-4912-4e0d-8265-b335c08d2958_1760x1126.png"></a></p>
-<p>To illustrate and implement causal self-attention, let's work with
-the unweighted attention scores and attention weights from the previous
-section. First, we quickly recap the computation of the attention scores
-from the previous <em>Self-Attention</em> section:</p>
-<p><strong>In:</strong></p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">torch.manual_seed(123)</span><br><span class="line">​</span><br><span class="line">d_in, d_out_kq, d_out_v = 3, 2, 4</span><br><span class="line">​</span><br><span class="line">W_query = nn.Parameter(torch.rand(d_in, d_out_kq))</span><br><span class="line">W_key   = nn.Parameter(torch.rand(d_in, d_out_kq))</span><br><span class="line">W_value = nn.Parameter(torch.rand(d_in, d_out_v))</span><br><span class="line">​</span><br><span class="line">x = embedded_sentence</span><br><span class="line">​</span><br><span class="line">keys = x @ W_key</span><br><span class="line">queries = x @ W_query</span><br><span class="line">values = x @ W_value</span><br><span class="line">​</span><br><span class="line"># attn_scores are the &quot;omegas&quot;, </span><br><span class="line"># the unnormalized attention weights</span><br><span class="line">attn_scores = queries @ keys.T </span><br><span class="line">​</span><br><span class="line">print(attn_scores)</span><br><span class="line">print(attn_scores.shape)</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-<p><strong>Out:</strong></p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">tensor([[ 0.0613, -0.3491,  0.1443, -0.0437, -0.1303,  0.1076],</span><br><span class="line">        [-0.6004,  3.4707, -1.5023,  0.4991,  1.2903, -1.3374],</span><br><span class="line">        [ 0.2432, -1.3934,  0.5869, -0.1851, -0.5191,  0.4730],</span><br><span class="line">        [-0.0794,  0.4487, -0.1807,  0.0518,  0.1677, -0.1197],</span><br><span class="line">        [-0.1510,  0.8626, -0.3597,  0.1112,  0.3216, -0.2787],</span><br><span class="line">        [ 0.4344, -2.5037,  1.0740, -0.3509, -0.9315,  0.9265]],</span><br><span class="line">       grad_fn=&lt;MmBackward0&gt;)</span><br><span class="line">torch.Size([6, 6])</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-<p>Similar to the <em>Self-Attention</em> section before, the output
-above is a 6×6 tensor containing these pairwise unnormalized attention
-weights (also called attention scores) for the 6 input tokens.</p>
-<p>Previously, we then computed the scaled dot-product attention via the
-softmax function as follows:</p>
-<p><strong>In:</strong></p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">attn_weights = torch.softmax(attn_scores / d_out_kq**0.5, dim=1)</span><br><span class="line">print(attn_weights)</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-<p><strong>Out:</strong></p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">tensor([[0.1772, 0.1326, 0.1879, 0.1645, 0.1547, 0.1831],</span><br><span class="line">        [0.0386, 0.6870, 0.0204, 0.0840, 0.1470, 0.0229],</span><br><span class="line">        [0.1965, 0.0618, 0.2506, 0.1452, 0.1146, 0.2312],</span><br><span class="line">        [0.1505, 0.2187, 0.1401, 0.1651, 0.1793, 0.1463],</span><br><span class="line">        [0.1347, 0.2758, 0.1162, 0.1621, 0.1881, 0.1231],</span><br><span class="line">        [0.1973, 0.0247, 0.3102, 0.1132, 0.0751, 0.2794]],</span><br><span class="line">       grad_fn=&lt;SoftmaxBackward0&gt;)</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-<p>The 6×6 output above represents the attention weights, which we also
-computed in the <em>Self-Attention</em> section before.</p>
-<p>Now, in GPT-like LLMs, we train the model to read and generate one
-token (or word) at a time, from left to right. If we have a training
-text sample like "Life is short eat desert first" we have the following
-setup, where the context vectors for the word to the right side of the
-arrow should only incorporate itself and the previous words:</p>
-<ul>
-<li><p>"Life" → "is"</p></li>
-<li><p>"Life is" → "short"</p></li>
-<li><p>"Life is short" → "eat"</p></li>
-<li><p>"Life is short eat" → "desert"</p></li>
-<li><p>"Life is short eat desert" → "first"</p></li>
-</ul>
-<p>The simplest way to achieve this setup above is to mask out all
-future tokens by applying a mask to the attention weight matrix above
-the diagonal, as illustrated in the figure below. This way, “future”
-words will not be included when creating the context vectors, which are
-created as a attention-weighted sum over the inputs.</p>
-<p><a href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fe1317a05-3542-4158-94bf-085109a5793a_1220x702.png"><img src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fe1317a05-3542-4158-94bf-085109a5793a_1220x702.png"></a>Attention
-weights above the diagonal should be masked out</p>
-<p>In code, we can achieve this via PyTorch's <a href="https://pytorch.org/docs/stable/generated/torch.tril.html#">tril</a>
-function, which we first use to create a mask of 1's and 0's:</p>
-<p><strong>In:</strong></p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">block_size = attn_scores.shape[0]</span><br><span class="line">mask_simple = torch.tril(torch.ones(block_size, block_size))</span><br><span class="line">print(mask_simple)</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-<p><strong>Out:</strong></p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">tensor([[1., 0., 0., 0., 0., 0.],</span><br><span class="line">        [1., 1., 0., 0., 0., 0.],</span><br><span class="line">        [1., 1., 1., 0., 0., 0.],</span><br><span class="line">        [1., 1., 1., 1., 0., 0.],</span><br><span class="line">        [1., 1., 1., 1., 1., 0.],</span><br><span class="line">        [1., 1., 1., 1., 1., 1.]])</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-<p>Next, we multiply the attention weights with this mask to zero out
-all the attention weights above the diagonal:</p>
-<p><strong>In:</strong></p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">masked_simple = attn_weights*mask_simple</span><br><span class="line">print(masked_simple)</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-<p><strong>Out:</strong></p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">tensor([[0.1772, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000],</span><br><span class="line">        [0.0386, 0.6870, 0.0000, 0.0000, 0.0000, 0.0000],</span><br><span class="line">        [0.1965, 0.0618, 0.2506, 0.0000, 0.0000, 0.0000],</span><br><span class="line">        [0.1505, 0.2187, 0.1401, 0.1651, 0.0000, 0.0000],</span><br><span class="line">        [0.1347, 0.2758, 0.1162, 0.1621, 0.1881, 0.0000],</span><br><span class="line">        [0.1973, 0.0247, 0.3102, 0.1132, 0.0751, 0.2794]],</span><br><span class="line">       grad_fn=&lt;MulBackward0&gt;)</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-<p>While the above is one way to mask out future words, notice that the
-attention weights in each row don't sum to one anymore. To mitigate
-that, we can normalize the rows such that they sum up to 1 again, which
-is a standard convention for attention weights:</p>
-<p><strong>In:</strong></p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">row_sums = masked_simple.sum(dim=1, keepdim=True)</span><br><span class="line">masked_simple_norm = masked_simple / row_sums</span><br><span class="line">print(masked_simple_norm)</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-<p><strong>Out:</strong></p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">tensor([[1.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000],</span><br><span class="line">        [0.0532, 0.9468, 0.0000, 0.0000, 0.0000, 0.0000],</span><br><span class="line">        [0.3862, 0.1214, 0.4924, 0.0000, 0.0000, 0.0000],</span><br><span class="line">        [0.2232, 0.3242, 0.2078, 0.2449, 0.0000, 0.0000],</span><br><span class="line">        [0.1536, 0.3145, 0.1325, 0.1849, 0.2145, 0.0000],</span><br><span class="line">        [0.1973, 0.0247, 0.3102, 0.1132, 0.0751, 0.2794]],</span><br><span class="line">       grad_fn=&lt;DivBackward0&gt;)</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-<p>As we can see, the attention weights in each row now sum up to 1.</p>
-<p>Normalizing attention weights in neural networks, such as in
-transformer models, is advantageous over unnormalized weights for two
-main reasons. First, normalized attention weights that sum to 1 resemble
-a probability distribution. This makes it easier to interpret the
-model's attention to various parts of the input in terms of proportions.
-Second, by constraining the attention weights to sum to 1, this
-normalization helps control the scale of the weights and gradients to
-improve the training dynamics.</p>
-<p><strong>More efficient masking without renormalization</strong></p>
-<p>In the causal self-attention procedure we coded above, we first
-compute the attention scores, then compute the attention weights, mask
-out attention weights above the diagonal, and lastly renormalize the
-attention weights. This is summarized in the figure below:</p>
-<p><a href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F7fcce180-cda2-4094-bb7c-32ea12e60c9a_1468x274.png"><img src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F7fcce180-cda2-4094-bb7c-32ea12e60c9a_1468x274.png"></a>The
-previously implemented causal self-attention procedure</p>
-<p>Alternatively, there is a more efficient way to achieve the same
-results. In this approach, we take the attention scores and replace the
-values above the diagonal with negative infinity before the values are
-input into the softmax function to compute the attention weights. This
-is summarized in the figure below:</p>
-<p><a href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fa94e36c7-ec67-43d6-96c0-7f9781f402b5_1054x270.png"><img src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fa94e36c7-ec67-43d6-96c0-7f9781f402b5_1054x270.png"></a>An
-alternative, more efficient approach to implementing causal
-self-attention</p>
-<p>We can code up this procedure in PyTorch as follows, starting with
-masking the attention scores above the diagonal:</p>
-<p><strong>In:</strong></p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">mask = torch.triu(torch.ones(block_size, block_size), diagonal=1)</span><br><span class="line">masked = attn_scores.masked_fill(mask.bool(), -torch.inf)</span><br><span class="line">print(masked)</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-<p>The code above first creates a <code>mask</code> with 0s below the
-diagonal, and 1s above the diagonal. Here, <code>torch.triu</code>
-(<strong>u</strong>pper <strong>tri</strong>angle) retains the elements
-on and above the main diagonal of a matrix, zeroing out the elements
-below it, thus preserving the upper triangular portion. In contrast,
-<code>torch.tril</code> (<strong>l</strong>ower
-<strong>t</strong>riangle) keeps the elements on and below the main
-diagonal.</p>
-<p>The <code>masked_fill</code> method then replaces all the elements
-above the diagonal via positive mask values (1s) with
-<code>-torch.inf</code>, with the results being shown below.</p>
-<p><strong>Out:</strong></p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">tensor([[ 0.0613,    -inf,    -inf,    -inf,    -inf,    -inf],</span><br><span class="line">        [-0.6004,  3.4707,    -inf,    -inf,    -inf,    -inf],</span><br><span class="line">        [ 0.2432, -1.3934,  0.5869,    -inf,    -inf,    -inf],</span><br><span class="line">        [-0.0794,  0.4487, -0.1807,  0.0518,    -inf,    -inf],</span><br><span class="line">        [-0.1510,  0.8626, -0.3597,  0.1112,  0.3216,    -inf],</span><br><span class="line">        [ 0.4344, -2.5037,  1.0740, -0.3509, -0.9315,  0.9265]],</span><br><span class="line">       grad_fn=&lt;MaskedFillBackward0&gt;)</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-<p>Then, all we have to do is to apply the softmax function as usual to
-obtain the normalized and masked attention weights:</p>
-<p><strong>In:</strong></p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">attn_weights = torch.softmax(masked / d_out_kq**0.5, dim=1)</span><br><span class="line">print(attn_weights)</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-<p><strong>Out:</strong></p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">tensor([[1.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000],</span><br><span class="line">        [0.0532, 0.9468, 0.0000, 0.0000, 0.0000, 0.0000],</span><br><span class="line">        [0.3862, 0.1214, 0.4924, 0.0000, 0.0000, 0.0000],</span><br><span class="line">        [0.2232, 0.3242, 0.2078, 0.2449, 0.0000, 0.0000],</span><br><span class="line">        [0.1536, 0.3145, 0.1325, 0.1849, 0.2145, 0.0000],</span><br><span class="line">        [0.1973, 0.0247, 0.3102, 0.1132, 0.0751, 0.2794]],</span><br><span class="line">       grad_fn=&lt;SoftmaxBackward0&gt;)  </span><br><span class="line"></span><br></pre></td></tr></table></figure>
-<p>Why does this work? The softmax function, applied in the last step,
-converts the input values into a probability distribution. When
-<code>-inf</code> is present in the inputs, softmax effectively treats
-them as zero probability. This is because <code>e^(-inf)</code>
-approaches 0, and thus these positions contribute nothing to the output
-probabilities.</p>
-<p>In this article, we explored the inner workings of self-attention
-through a step-by-step coding approach. Using this as a foundation, we
-then looked into multi-head attention, a fundamental component of large
-language transformers.</p>
-<p>We then also coded cross-attention, a variant of self-attention that
-is particularly effective when applied between two distinct sequences.
-And lastly, we coded causal self-attention, a concept crucial for
-generating coherent and contextually appropriate sequences in
-decoder-style LLMs such as GPT and Llama.</p>
-<p>By coding these complex mechanisms from scratch, you hopefully gained
-a good understanding of the inner workings of the self-attention
-mechanism used in transformers and LLMs.</p>
-<p>(Note that the code presented in this article is intended for
-illustrative purposes. If you plan to implement self-attention for
-training LLMs, I recommend considering optimized implementations like <a href="https://arxiv.org/abs/2307.08691">Flash Attention</a>, which
-reduce memory footprint and computational load.)</p>
-<p>In the code walkthrough above, the sections on Self-Attention and
-Causal-Attention, we set <em><strong>d_q = d_k = 2</strong></em> and
-<em><strong>d_v = 4</strong></em>. In other words, we used the same
-dimensions for query and key sequences. While the value matrix
-<em><strong>W_v</strong></em> is often chosen to have the same dimension
-as the query and key matrices (such as in PyTorch's <a href="https://pytorch.org/docs/stable/generated/torch.nn.MultiheadAttention.html">MultiHeadAttention</a>
-class), we can select an arbitrary number size for the value
-dimensions…</p>
-]]></content>
-      <tags>
-        <tag>自注意力机制</tag>
-        <tag>大语言模型</tag>
       </tags>
   </entry>
   <entry>
@@ -1409,225 +810,228 @@ f(b)-f(a)=f^\prime(\xi)(b-a)
       </tags>
   </entry>
   <entry>
-    <title>机器视觉之基本概念</title>
-    <url>/posts/781628f/</url>
-    <content><![CDATA[<p>  主要记录机器视觉领域的一些基本概念及一些实践中的tricks。
-<span id="more"></span></p>
-<h2 id="ccd">CCD</h2>
-<p>  CCD（Charge-Coupled
-Device）即电荷耦合器件,通常称为CCD图像传感器，是一种半导体器件，当入射光线照射到CCD芯片上的感光单元（微小光敏物质，即像素（Pixel）），光子会被转为电子，这些电子在像素内累计形成电荷。一块CCD芯片上包含的感光单元越多，其成像分辨率也就越高。其成像过程如下：</p>
-<ul>
-<li><p>光电转换</p>
-<p>入射光线通过光电二极管转换为电荷</p></li>
-<li><p>电荷积累</p>
-<p>光敏元件根据光强的不同积累不同数量的电荷</p></li>
-<li><p>电荷转移</p>
-<p>通过电荷转移机制，逐行、逐列将电荷移至输出放大器</p></li>
-<li><p>电压转换</p>
-<p>输出放大器将电荷信号转为电压信号，并传递给模数转换器（ADC），生成数字图像数据</p></li>
-</ul>
-<h2 id="cmos">CMOS</h2>
-<p>  CMOS（Complementary Metal-Oxide
-Semiconductor，互补金属氧化物半导体）成像原理与CCD成像原理类似，但CMOS成像器件的电荷转移和电压转换过程在同一块硅片上完成，因此CMOS成像器件的结构更加简单，成本更低，功耗更低，适用于高分辨率、低功耗的成像应用。</p>
-<p>CCD与CMOS成像器件的对比如下：</p>
-<table>
-<thead>
-<tr>
-<th style="text-align: center;">特性</th>
-<th style="text-align: center;">CCD</th>
-<th style="text-align: center;">CMOS</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td style="text-align: center;">图像质量</td>
-<td style="text-align: center;">高、噪声低，均匀性好</td>
-<td style="text-align: center;">略低，噪声高</td>
-</tr>
-<tr>
-<td style="text-align: center;">制造成本</td>
-<td style="text-align: center;">高</td>
-<td style="text-align: center;">低</td>
-</tr>
-<tr>
-<td style="text-align: center;">功耗</td>
-<td style="text-align: center;">高</td>
-<td style="text-align: center;">低</td>
-</tr>
-<tr>
-<td style="text-align: center;">读取速度</td>
-<td style="text-align: center;">较慢</td>
-<td style="text-align: center;">快</td>
-</tr>
-<tr>
-<td style="text-align: center;">动态范围</td>
-<td style="text-align: center;">宽</td>
-<td style="text-align: center;">较窄</td>
-</tr>
-<tr>
-<td style="text-align: center;">弱光性能</td>
-<td style="text-align: center;">优</td>
-<td style="text-align: center;">稍弱</td>
-</tr>
-</tbody>
-</table>
-<p>通常来说，CCD通常用于高端相机、科学研究和天文观测等对图像质量要求极高的领域，而CMOS则广泛应用于消费类设备（如智能手机摄像头）、监控设备和工业检测等场景，其成本低、功耗低和速度快更具优势。需要注意的是由于CCD采用全局曝光，而CMOS相机使用卷帘曝光，所以在拍摄运动目标时，优先考虑CCD传感器。</p>
-<blockquote>
-<p>Note 1.
-全局曝光是传感器上所有像素在同一时刻开启曝光并在同一时刻曝光结束，将物体某时刻的状态成像，对运动物体而言，类似于将物体冻结了，所以适合拍摄高速运动的物体。</p>
-</blockquote>
-<blockquote>
-<p>Note 2.
-卷帘曝光是逐行（hang）顺序开启曝光，不同行间曝光的开启时刻有个很小的延迟，所以不适合运动物体的拍摄。</p>
-</blockquote>
-<h2 id="像素">像素</h2>
-<p>  像素是构成数字图像的基本单位，相机靶面上的一个感光单元为一个像素，每个像素点都拥有色调和嫉恶调等色彩信息，规则排列的像素集合可以形成一张完整的图像。</p>
-<h2 id="像素直径">像素直径</h2>
-<p>  像素直径，也称像元尺寸指每个CCD元件的大小，通常使用<span class="math inline">\(\mu
-m\)</span>作为单位，严谨的说，此处的大小中包含了感光单元和信号传输通路，其与像素间距（即某个像素的中心到邻近一个像素的中心的距离）相同。如果像素直径较小，则图像将通过较小的像素进行描绘，因此可以获得更加精细的图像，显然通过像素间距和有效像素数可以直接求出CCD元件中感光区域的大小（即CCD元件的总面积）</p>
-<h2 id="相机靶面尺寸">相机靶面尺寸</h2>
-<p>  相机靶面尺寸指用于接收光信号的传感器的尺寸，指的是传感器（工作区域为矩形）对角线长度。一般分为采用英寸单位表示和采用APS-C大小等规格表示这2种方式。采用英寸表示时，该尺寸并不是拍摄的实际尺寸，而是相当于摄像管的对角长度。比如1/2英寸的CCD表示<strong>拥有相当于1/2英寸的摄像管的拍摄范围</strong>。z之所以会如此计算，是由于当初制造CCD的目的就是用于代替电视机、录像机的摄像管。而想要继续使用镜头等光学器件的需求比较强烈，由此诞生了这种奇怪的规格，主要的英寸规格如下表所示。</p>
-<table>
-<thead>
-<tr>
-<th style="text-align: center;">尺寸(英寸)</th>
-<th style="text-align: center;">对角长度(mm)</th>
-<th style="text-align: center;">拍摄区域(wxh,mm)</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td style="text-align: center;">2/3</td>
-<td style="text-align: center;">11</td>
-<td style="text-align: center;">8.8x6.6</td>
-</tr>
-<tr>
-<td style="text-align: center;">1/2</td>
-<td style="text-align: center;">8</td>
-<td style="text-align: center;">6.4x4.8</td>
-</tr>
-<tr>
-<td style="text-align: center;">1/3</td>
-<td style="text-align: center;">6</td>
-<td style="text-align: center;">4.8x3.6</td>
-</tr>
-<tr>
-<td style="text-align: center;">1/4</td>
-<td style="text-align: center;">4.5</td>
-<td style="text-align: center;">3.6x2.0</td>
-</tr>
-</tbody>
-</table>
-<h2 id="快门速度">快门速度</h2>
-<p>  快门速度在工业视觉中也称为曝光时间，表示CCD或CMOS感光元件中积累电荷的时间，单位为秒。快门速度越快，感光元件中积累电荷的时间越短，图像的亮度越低，图像的细节越少，图像的噪点越多。快门速度越慢，感光元件中积累电荷的时间越长，图像的亮度越高，图像的细节越多，图像的噪点越少。直观来看，快门速度可以用于调整光量。</p>
-<h2 id="曝光值">曝光值</h2>
-<p>  曝光值（EV，Exposure
-Value）是用于衡量图像整体亮度的一个综合指标，由一下三个主要因素决定：</p>
-<ul>
-<li>快门速度</li>
-</ul>
-<p>  控制光线进入的时间，决定了运动模糊的程度，曝光时间过长，如果相机的感光元件在曝光期间，被拍摄的物体发生了运动，导致在单帧中记录下了物体的移动轨迹。</p>
-<ul>
-<li>光圈（F值）</li>
-</ul>
-<p>  控制进入光线的量，决定了相机的景深</p>
-<ul>
-<li>感光度(ISO)</li>
-</ul>
-<p>  控制感光元件对光线的灵敏度</p>
-<p>其定义公式如下： <span class="math display">\[
-E_v = \log_2 \frac{N^2}{t}
-\]</span></p>
-<h2 id="增益">增益</h2>
-<p>  增益，是指将图像信号进行电子增幅的过程，增益越大，图像的亮度越高，但噪声也会随之增加。在暗区拍摄图像时，往往通过增加增益来提高图像的亮度，但也会导致图像噪声的增加。因此，在拍摄图像时，需要根据实际情况合理选择增益值，以达到最佳的图像质量。</p>
-<h2 id="面阵相机">面阵相机</h2>
-<p>  面阵相机（Area Scan
-Camera）指感光单元（像素）按矩阵形式排列的相机，其一次拍摄即可捕获整个二维图像，常见视觉检测场景基本都是使用面阵相机，也常用于结构光三维重建。</p>
-<h2 id="线阵相机">线阵相机</h2>
-<p>  线阵相机（Line Scan
-Camera）指感光单元（像素）按线性形式排列的相机，其一次拍摄只能捕获一行图像，成像时，需要通过移动相机或被检测物体来获取整个二维图像。相较于面阵相机，其拥有更高的分辨率，成像质量更高，同时需要配合编码器来配合触发拍照，并使用线型光源，常用于纸张、纺织品、金属板等表面缺陷检测场景。</p>
-<h2 id="通讯方式">通讯方式</h2>
-<h3 id="usb接口">USB接口</h3>
-<p>  支持热插拔、标准统一，可连接多个设备，同时相机也可以通过USB线缆供电</p>
-<h3 id="gige千兆以太网接口">Gige千兆以太网接口</h3>
-<p>  可以简单方便的进行多相机设置，支持100米线材输出，是一种基于千兆以太网通信协议开发的相机接口标准</p>
-<h3 id="cameralink接口">Cameralink接口</h3>
-<p>  专门针对高速图像数据传输设计的通讯接口，是一种串行通讯协议，采用LVDS接口标准，传输速度快、抗干扰能力强、功耗低。</p>
-<h2 id="工作距离wd">工作距离（WD）</h2>
-<p>  指的是镜头的最下端到景物之间的距离。一般的镜头是可以看到无限远的，也就是说是没有上限的。</p>
-<figure>
-<img src="1.png" alt="相机成像结构">
-<figcaption aria-hidden="true">相机成像结构</figcaption>
-</figure>
-<h2 id="视场角fov">视场角（FOV）</h2>
-<p>  指镜头所能覆盖的范围。(相机实际拍摄到的区域尺寸)一个摄像机镜头能涵盖多大范围的景物，通常以角度来表示，这个角度就叫镜头的视角FOV。焦距越长，FOV越小，焦距越短，FOV越大</p>
-<h2 id="光圈">光圈</h2>
-<p>  光圈是一个用来控制光线透过镜头进入机身内感光面光量的装置。当光线不足时，我们把光圈调大，自然可以让更多光线进入相机，反之亦然。一般通过调整通光孔径大小来调节光圈，完整的光圈数值系列如下：F1，F1.4，F2，F2.8，F4，F5.6，F8，F11，F16，F22，F32，F44，F64。用F表示，以【镜头焦距f和通光孔径D的比值】(即，相对孔径的倒数，也就是“焦距÷有效孔径”)来衡量，每个镜头上都标有最大F值，例如：8mm/F1.4代表最大孔径D为5.7mm.
-&gt; F值越小、光圈越大、进光量越大；F值越大、光圈越小、进光量越小。</p>
-<h2 id="焦距">焦距</h2>
-<p>  焦距就是镜头到成像面的距离，比如：50mm镜头，8mm镜头还是75mm镜头等。这些就是镜头到成像面的距离，也就是焦距，单位是毫米。
-&gt;
-焦距的大小决定着视角大小，焦距越大，视角越小，观察范围越小；焦距越小，视角越大，观察范围也越大</p>
-<figure>
-<img src="2.png" alt="相机成像结构">
-<figcaption aria-hidden="true">相机成像结构</figcaption>
-</figure>
-<h2 id="景深">景深</h2>
-<p>  景深与视野相似，不同的是景深指的是纵深的范围，视野指的是横向的范围。在最小工作距离到最大工作距离之间的范围称为景深，景深内的物体都可以清晰成像。景深一般可以通过光圈调节，光圈越小，景深越大。景深与镜头使用光圈、镜头焦距、拍摄距离以及对像质的要求(表现为对容许弥散圆的大小)有关。在假定其它条件不变的情况下：</p>
-<ul>
-<li>光圈越大，景深越小；光圈越小，景深越大</li>
-<li>镜头焦距越长，景深越小；焦距越短，景深越大</li>
-<li>拍摄距离越远，景深越大；距离越近，景深越小</li>
-</ul>
-<p>  总而言之，对于对景深有要求的项目，尽可能使用小的光圈；在选择放大倍率的镜头时，在项目许可下尽可能选用低倍率镜头。如果项目要求比较苛刻时，倾向选择高景深的尖端镜头。</p>
-<h2 id="同轴光源">同轴光源</h2>
-<p>  同轴光照明,<code>是指经被测物反射的光线与镜头光轴平行的照明方式</code>,同轴光源是机器视觉光源里唯一一种能直接在镜头正下方使用的光源，能提供来自镜头方向的照明角度。</p>
-<div class="img-container">
-<img src="同轴光源.png" alt="同轴光源" style="display:block; margin:0 auto; width:30%">
-<div class="caption" style="text-align: center; font-family: sans-serif">
-<pre><code>同轴光源</code></pre>
-</div>
-</div>
-<hr>
-<div class="img-container">
-<img src="同轴光源成像.png" alt="同轴光源成像" style="display:block; margin:0 auto; width:60%">
-<div class="caption" style="text-align: center; font-family: sans-serif">
-<pre><code>同轴光源成像</code></pre>
-</div>
-</div>
-<p>  同轴光源的发光区在侧面，出射的光线经过有特殊涂层的分光镜或分光棱镜，一半光线透过后被吸光材料吸收，而另一半光线被反射后照射在被测物表面，经被测物表面反射后经镜头到相机芯片成像。根据实际需要，可设计为不同的发光尺寸。由于光学结构特殊，当扩大发光区宽度时，光源的高度也需要随之改变。
-  同轴光源可以消除物体表面不平整引起的阴影，从而减少干扰；部分采用分光镜设计，减少光损失，提高成像清晰度，均匀照射物体表面。应用领域:系列光源最适宜用于反射度极高的物体，如金属、玻璃、胶片、晶片等表面的划伤检测，芯片和硅晶片的破损检测，Mark点定位，包装条码识别。</p>
-<h2 id="背光源">背光源</h2>
-<p>  用高密度LED阵列面提供高强度背光照明，能突出物体的外形轮廓特征，尤其适合作为显微镜的载物台。红白两用背光源、红蓝多用背光源，能调配出不同颜色，满足不同被测物多色要求。应用领域:机械零件尺寸的测量，电子元件、IC的外型检测，胶片污点检测，透明物体划痕检测等。</p>
-<h2 id="条形光源">条形光源</h2>
-<p>  条形光源是较大方形结构被测物的首选光源；颜色可根据需求搭配，自由组合；照射角度与安装随意可调。应用领域:金属表面检查，图像扫描，表面裂缝检测，LCD面板检测等。</p>
-<h2 id="环形光源">环形光源</h2>
-<p>  环形光源提供不同照射角度、不同颜色组合，更能突出物体的三维信息；高密度LED阵列，高亮度；多种紧凑设计，节省安装空间；解决对角照射阴影问题；可选配漫射板导光，光线均匀扩散。应用领域:PCB基板检测，IC元件检测，显微镜照明，液晶校正，塑胶容器检测，集成电路印字检查</p>
-<h2 id="aoi专用光源">AOI专用光源</h2>
-<p>  不同角度的三色光照明，照射凸显焊锡三维信息；外加漫射板导光，减少反光；不同角度组合；应用领域:用于电路板焊锡检测。</p>
-<h2 id="球积分光源">球积分光源</h2>
-<p>  具有积分效果的半球面内壁，均匀反射从底部360度发射出的光线，使整个图像的照度十分均匀。应用领域:合于曲面，表面凹凸，弧形表面检测，或金属、玻璃表面反光较强的物体表面检测。</p>
-<h2 id="线形光源">线形光源</h2>
-<p>  超高亮度，采用柱面透镜聚光，适用于各种流水线连续检测场合。应用领域:阵相机照明专用，AOI专用。</p>
-<h2 id="点光源">点光源</h2>
-<p>  大功率LED，体积小，发光强度高；光纤卤素灯的替代品，尤其适合作为镜头的同轴光源等；高效散热装置，大大提高光源的使用寿命。应用领域:适合远心镜头使用，用于芯片检测，Mark点定位，晶片及液晶玻璃底基校正。</p>
-<h2 id="组合条形光源">组合条形光源</h2>
-<p>  
-四边配置条形光，每边照明独立可控；可根据被测物要求调整所需照明角度，适用性广。应用案例:CB基板检测，IC元件检测，焊锡检查，Mark点定位，显微镜照明，包装条码照明，球形物体照明等。</p>
-<h2 id="对位光源">对位光源</h2>
-<p>  对位速度快；视场大；精度高；体积小，便于检测集成；亮度高，可选配辅助环形光源。应用领域:VA系列光源是全自动电路板印刷机对位的专用光源。</p>
-]]></content>
-      <tags>
-        <tag>相机</tag>
-        <tag>视觉</tag>
-        <tag>图像</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>初探Transformer架构</title>
     <url>/posts/a65e2a56/</url>
     <content><![CDATA[
 ]]></content>
+  </entry>
+  <entry>
+    <title>卡尔曼滤波</title>
+    <url>/posts/b654ab75/</url>
+    <content><![CDATA[<p>  <strong>卡尔曼滤波</strong>（Kalman filter）是一种高效率的<a href="https://www.wikiwand.com/zh-hans/递归滤波器">递归滤波器</a>（<a href="https://www.wikiwand.com/zh-hans/自迴歸模型">自回归</a>滤波器），它能够从一系列的不完全及包含<a href="https://www.wikiwand.com/zh-hans/雜訊_(通訊學)">杂讯</a>的<a href="https://www.wikiwand.com/zh-hans/测量">测量</a>中，估计<a href="https://www.wikiwand.com/zh-hans/动态系统">动态系统</a>的状态。卡尔曼滤波会根据各测量量在不同时间下的值，考虑各时间下的<a href="https://www.wikiwand.com/zh-hans/联合分布">联合分布</a>，再产生对未知变数的估计，因此会比只以单一测量量为基础的估计方式要准。卡尔曼滤波得名自主要贡献者之一的<a href="https://www.wikiwand.com/zh-hans/鲁道夫·卡尔曼">鲁道夫·卡尔曼</a>，最早用于解决阿波罗计划的轨道预测问题。
+<span id="more"></span>
+  上面的定义摘自维基百科，是对卡尔曼滤波的专业阐述，为了便于理解通过下面两个例子来对卡尔曼滤波有个大致的了解。</p>
+<p>  航天器的发动机能够在足够高的温度下燃烧燃料，为航天器提供足够的动力，航天器发动机燃烧室在燃烧时温度可以达到数千摄氏度，过高的温度可能会损坏发动机的机械部件，导致火箭发射失败，因此需要密切关注火箭燃烧室的内部温度，显然在燃烧室内部放置温度传感器会直接被融化。此时，无法直接测量燃烧室的内部温度，基于这种情况，可以在燃烧室外放置一个温度传感器测量燃烧室的外部温度，使用卡尔曼滤波器利用外部温度来估算燃烧室的内部温度。</p>
+<p>  这是卡尔曼滤波器一种使用方式：</p>
+<blockquote>
+<p>  当系统的状态无法通过直接测量得到但是可以间接测量时，可以使用卡尔曼滤波通过间接测量值来估算系统的状态。
+总所周知，汽车的导航系统使用<code>车载传感器（Onboard sensors）</code>得到汽车的当前位置并导航到目的地。常用的车载传感器有：<code>惯性测量单元（Inertial measurement unit,IMU）</code>使用加速度计和陀螺仪来测量汽车的加速度和角速度；<code>里程表(Odometer)</code>测量汽车的相对行驶距离；<code>GPS接收器(GPS receiver)</code>接收来自GPS卫星的信号，来确定汽车在地球表面的位置。</p>
+</blockquote>
+<blockquote>
+<p>  IMU中的加速度计提供了汽车当前的加速度大小及方向，但是想要获得汽车的位置，需要对加速度进行两次积分（<span class="math inline">\(s =\iint
+a(t)dt\)</span>）得到汽车的位置，数值积分算法在计算位置时会存在微小的误差并且会随着时间的累积会不断，最终产生积分漂移，完全偏离汽车的正确位置；里程表容易受到轮胎压力和道路状况的影响；而GPS位置跟新速度慢，而且会存在一定噪声，最大问题还是在车辆通过隧道或车库时，信号很差，甚至无法接收到信号。三种车载传感器各自有各自的局限和优势，只用单独一种传感器进行定位效果都不尽如人意，此时可以使用卡尔曼滤波融合三种传感器得到汽车位置的最优估计值。</p>
+</blockquote>
+<p>  这是卡尔曼滤波的另一种使用方式：</p>
+<blockquote>
+<p>组合各种可能受到噪声影响的传感器测量值，得到一个最优的估计值。</p>
+</blockquote>
+<p>  卡尔曼滤波主要应用于高精度传感系统中，在时下大热的机器人、无人机、自动导航都有着应用，由于其递归的特性（即只要获知上一时刻状态的估计值以及当前状态的观测值就可以计算出当前状态的估计值），因此不需要记录观测或者估计的历史信息。与大多数滤波器不同之处，卡尔曼滤波器是一种纯粹的<a href="https://www.wikiwand.com/zh-hans/時域">时域</a>滤波器，它不需要像<a href="https://www.wikiwand.com/zh-hans/低通滤波器">低通滤波器</a>等<a href="https://www.wikiwand.com/zh-hans/频域">频域</a>滤波器那样，需要在频域设计再转换到时域实现。</p>
+<p>  其本质思想是采用信号与噪声的状态空间模型，利用前一时刻地估计值和现时刻的观测值来更新对状态变量的估计，求出现时刻的估计值，它适合于实时处理和计算机运算。下面我们一步步来解开卡尔曼滤波的神秘面纱。</p>
+<hr>
+<h3 id="隐马尔可夫">隐马尔可夫</h3>
+<h4 id="随机过程">随机过程</h4>
+<p>  随机过程被认为是概率论的“动力学”部分，其研究对象是随时间演变的随机现象。对于这种现象，已不能用随机变量或多维随机变量来合理表达，而需要一族（无限多个）随机变量来描述。高等教育出版社的《概率论和数理统计》第四版是这样定义随机过程：</p>
+<blockquote>
+<p>  设<span class="math inline">\(T\)</span>是一无限实数集，我们把依赖于参数<span class="math inline">\(t\in
+T\)</span>的一族随机变量称为<code>随机过程</code>，记为<span class="math inline">\(\{X(t),t\in T\}\)</span>,其中对<span class="math inline">\(\forall t \in T,X(t)\)</span>是一随机变量，<span class="math inline">\(T\)</span>叫做<code>参数集</code>。通常把<span class="math inline">\(t\)</span>看作时间，称<span class="math inline">\(X(t)\)</span>为时刻<span class="math inline">\(t\)</span>时过程的状态，而<span class="math inline">\(X(t_1)=x,x \in R\)</span>定义为<span class="math inline">\(t=t_1\)</span>时过程处于状态<span class="math inline">\(x\)</span>，对于<span class="math inline">\(\forall t\in
+T,X(t)\)</span>的所有可能取一切值的全体称为随机过程的<code>状态空间</code>，<code>泊松过程</code>和<code>维纳过程</code>都是典型的随机过程，篇幅有限这里不做进一步展开，有兴趣的读者可以自行Google。</p>
+</blockquote>
+<h4 id="马尔可夫过程">马尔可夫过程</h4>
+<p>  一个随机过程在时刻<span class="math inline">\(t_0\)</span>所处的状态为已知的条件下，随机过程在时刻<span class="math inline">\(t（t&gt;t_0)\)</span>所处的状态与其在时刻<span class="math inline">\(t_0\)</span>之前所处的状态无关。简而言之，就是“将来”仅依赖于”现在”与“过去”无关。我们称这种特性为<code>马尔可夫性</code>或无后效性。而这种具有马尔可夫性质的随机过程称之为<code>马尔可夫过程</code>，可以推出，泊松过程是时间连续状态离散的马尔可夫过程，而维纳过程则是时间状态都连续的马尔可夫过程。对于时间和状态都是离散的马尔可夫过程就是构成卡尔曼滤波的重要基石<code>马尔可夫链</code>：</p>
+<p>  对于随机过程<span class="math inline">\({X_n,n=1,2,\cdots}\)</span>,若其条件概率分布满足:
+<span class="math display">\[
+P\{X_{n+1}=x_{n+1}|X_n=x_n,\cdots,X_1=x_1\}=P\{X_{n+1}=x_{n+1}|X_n=x_n\}
+\]</span>，则称此随机过程为马尔可夫链。</p>
+<h4 id="状态转移矩阵">状态转移矩阵</h4>
+<p>  在马尔可夫链中，从一个状态转移到另一个状态的概率称为状态转移概率，如果系统的可能状态是有限的，例如有<span class="math inline">\(K\)</span>个状态，则状态转移概率构成一个<span class="math inline">\(K\times K\)</span>的状态转移矩阵： <span class="math display">\[P=\left[ \begin{matrix}   p_{11} &amp; p_{12}
+&amp; \cdots &amp; p_{1K} \\ p_{21} &amp; p_{22} &amp; \cdots &amp;
+p_{2K}\\ \cdots &amp; \cdots &amp; \cdots &amp;\cdots \\ p_{K1} &amp;
+p_{K2} &amp; \cdots &amp; p_{KK}\end{matrix}  \right]\]</span>
+其中矩阵的每一行的和为1，该矩阵是一个随机矩阵，任何一个随机矩阵都可以作为状态转移矩阵
+。</p>
+<h4 id="隐马尔可夫模型">隐马尔可夫模型</h4>
+<p>  在马尔可夫模型中，系统的状态是直接可见的，这样状态的转移概率就可以构成该系统的全部参数。但是，在实际生活中更多的情况是：系统状态并不是直接可见，我们往往只能观测到受状态影响的某些变量。显然对这些可观测到的变量使用马尔可夫模型对系统进行状态分析是不严谨的。为此，对于这种含有隐含未知参数的马尔可夫过程，数学家通过随机过程可观察的参数确定该过程的隐含参数，然后利用这些参数来作进一步分析，这也是大名鼎鼎的<code>隐马尔可夫模型（Hidden Markov model，HMM）</code>的本质，至于隐马尔可夫模型的更多详细内容，如果进行展开的话，需要花费大量篇幅，在此先不做展开。隐马尔可夫模型在语音识别和模式识别领域都有着应用，而卡尔曼滤波也是构建在隐马尔可夫模型之上的。</p>
+<h3 id="线性卡尔曼滤波">线性卡尔曼滤波</h3>
+<p>  <code>卡尔曼滤波是一个递归滤波器，其算法本质是通过动态系统的有限个观测值，估计动态系统的隐藏状态。</code>接下来，我们从动态系统的状态空间模型开始，一步步推导卡尔曼滤波算法。</p>
+<h4 id="状态空间模型">状态空间模型</h4>
+<p>  动态系统都具有一个基本特征：系统的状态，那么什么是系统的状态呢，其定义如下：</p>
+<blockquote>
+<p>  一个随机动态系统的状态被定义为最少量的信息，这些信息包含过去作用于该系统的输入的影响，并足以完全描述系统将来的行为。（该定义截取自机械工业出版社译制的《神经网络与机器学习》第三版
+第十四章 动态系统状态估计的贝叶斯滤波）</p>
+</blockquote>
+<p>  通常我们使用状态空间模型来描述动态系统状态对外部世界的影响，一般而言，状态空间模型分为两个部分：</p>
+<blockquote>
+<ul>
+<li><p>系统模型</p>
+<p>  系统模型使用时域函数来描述动态系统状态的演变，其数学表示为一阶马尔可夫链：<span class="math inline">\(x_{n+1}=\zeta_{n}(x_n,\omega_n)\)</span>，其中<span class="math inline">\(n\)</span>表示离散时间，向量<span class="math inline">\(x_n\)</span>表示动态系统当前的状态，向量<span class="math inline">\(x_{n+1}\)</span>表示下一状态的值，向量<span class="math inline">\(\omega_n\)</span>表示过程噪声，<span class="math inline">\(\zeta\)</span>为<span class="math inline">\(x_n,\omega_n\)</span>的向量函数，会随时间改变。</p></li>
+<li><p>测量模型</p>
+<p>  测量模型描述了动态系统状态对外部世界的影响，公式如下：<span class="math inline">\(y_n = \xi(x_n,v_n)\)</span>，其中向量<span class="math inline">\(y_n\)</span>表示外部世界对动态系统的一组观测值，向量<span class="math inline">\(v_n\)</span>是外部世界噪声的测量值，<span class="math inline">\(\xi\)</span>是<span class="math inline">\(x_n,v_n\)</span>的向量函数，会随时间改变。</p></li>
+</ul>
+</blockquote>
+<p>  对于状态空间模型，有着如下假设：</p>
+<blockquote>
+<ul>
+<li>动态系统的任意时刻<span class="math inline">\(k\)</span>,其过程噪声<span class="math inline">\(\omega_k\)</span>与初始状态<span class="math inline">\(x_0\)</span>无关；</li>
+<li>动态系统的过程噪声<span class="math inline">\(\omega_n\)</span>于测量噪声<span class="math inline">\(v_n\)</span>是统计独立，也就是说对<span class="math inline">\(\forall i,j\)</span>都有<span class="math inline">\(E[\omega_iv_j^T]=0\)</span>成立；</li>
+</ul>
+</blockquote>
+<p>  一般而言，跟状态与状态之间的是否为线性关系及过程噪声、测量噪声二者是否服从高斯分布将状态空间模型分为四大类：</p>
+<blockquote>
+<ul>
+<li>线性高斯模型</li>
+<li>线性非高斯模型</li>
+<li>非线性高斯模型</li>
+<li>非线性非高斯模型</li>
+</ul>
+</blockquote>
+<p>  显然不管是非线性还是非高斯或二者兼之的状态空间模型，其处理难度是远高于线性高斯模型的，我们先来处理最简单的状态空间模型——线性高斯模型。</p>
+<h4 id="线性卡尔曼滤波的理论推导">线性卡尔曼滤波的理论推导</h4>
+<p>对于线性高斯模型，其状态空间模型可设为如下形式：</p>
+<p><span class="math display">\[
+\begin{cases}
+x_{n}=A_{n}x_{n-1}+\omega_{n} \\
+y_n = H_nx_n+v_n
+\end{cases}
+\]</span>   其中<span class="math inline">\(\omega_n\sim N(0,Q),v_n\sim
+N(0,R)\)</span>，<span class="math inline">\(A_{n+1}\)</span>是动态系统从状态<span class="math inline">\(x_n\)</span>到<span class="math inline">\(x_{n+1}\)</span>的状态转移矩阵，<span class="math inline">\(H_n\)</span>是测量矩阵，表示系统状态<span class="math inline">\(x_n\)</span>对<span class="math inline">\(y_n\)</span>的增益，将系统状态映射到外部世界。</p>
+<p>  考虑到动态系统会受到系统中已知的控制器的控制信息的影响，需要在系统模型中加入这部分信息，修正后的状态空间模型如下：</p>
+<p><span class="math display">\[
+\begin{cases}
+x_{n}=A_{n}x_{n-1}+B_{n}\mu_{n}+\omega_{n} \\ y_n = H_nx_n+v_n
+\end{cases}
+\]</span> 其中<span class="math inline">\(\mu_n\)</span>是系统的控制器向量，<span class="math inline">\(B_n\)</span>是系统的控制向量。</p>
+<p>  为方便进行推导，定义<span class="math inline">\(\hat{x}^{-}_k \in
+R^n\)</span>（<span class="math inline">\(^-\)</span>代表先验,^代表估计）为在已知第<span class="math inline">\(k\)</span>步以前状态情况下第<span class="math inline">\(k\)</span>步的先验状态估计。定义<span class="math inline">\(\hat{x}_k\in R^n\)</span>为已知观测变量<span class="math inline">\(y_k\)</span>时，第<span class="math inline">\(k\)</span>步的后验估计状态，由此定义先验估计误差和后验估计误差：</p>
+<p><span class="math display">\[
+\begin{cases}
+  e_k^-\equiv{x_k-\hat{x}_k^-} \\ e_k\equiv{x_k-\hat{x}_k}
+\end{cases}
+\]</span> 先验估计误差的协方差为：</p>
+<p><span class="math display">\[
+P_k^-=E[e_k^-{e_k^-}^T]
+\]</span> 后验误差估计的协方差为： <span class="math display">\[
+P_k=E[e_ke_k^T]
+\]</span>   显然<span class="math inline">\(P_k^-\)</span>是真实值和预测值之间的协方差，<span class="math inline">\(P_k\)</span>是真实值和最优估计值之间的协方差。卡尔曼滤波的核心就是如何根据<span class="math inline">\(k-1\)</span>时刻的最优状态估计<span class="math inline">\(\hat{x}_{k-1}\)</span>和第<span class="math inline">\(k\)</span>时刻的观测值<span class="math inline">\(y_k\)</span>得到<span class="math inline">\(k\)</span>时刻的最优状态估计值<span class="math inline">\(\hat{x}_k\)</span>,显然根据定义<span class="math inline">\(P_k\)</span>越小，估计值越接近于真实值，此时，只需求解当前条件下使得<span class="math inline">\(P_k\)</span>最小的状态估计值即是当前时刻状态的最优估计值。利用上文修正后的状态空间模型的系统模型得到<span class="math inline">\(k\)</span>时刻状态的预测值<span class="math inline">\(\hat{x}_k^-=A\hat{x}_{k-1}+B\mu_k\)</span>，为了得到<span class="math inline">\(k\)</span>时刻的最小协方差<span class="math inline">\(P_k\)</span>，卡尔曼滤波定义参数卡尔曼增益<span class="math inline">\(K=\frac{\hat{x}_k-\hat{x}_k^-}{y_k-H\hat{x}_k^-}\)</span>，其中，观测向量及其预测之差<span class="math inline">\(y_k-H\hat{x}_k^-\)</span>被称为测量过程的新息或残余。新息反应了预测值和实际值之间的不一致程度，为零时表明二者完全吻合，推导过程如下。</p>
+<hr>
+<p>由卡尔曼增益的定义式变形得到:</p>
+<p><span class="math display">\[\hat{x}_k=\hat{x}_k^-+K(y_k-H\hat{x}_k^-)\]</span></p>
+<p>将状态空间模型的观测模型代入得到:</p>
+<p><span class="math display">\[\hat{x}_k=\hat{x}_k^-+K(Hx_k
++v_k-H\hat{x}_k^-)\]</span></p>
+<p>进一步整理变换得到:</p>
+<p><span class="math display">\[\hat{x}_k-x_k=\hat{x}_k^—x_k+KH(x_k-\hat{x}_k^-)+Kv_k\]</span></p>
+<p>结合先验估计误差和后验估计误差的定义可知:</p>
+<p><span class="math display">\[e_k=(I-KH)e_k^-+Kv_k\]</span></p>
+<p>代入后验误差协方差的定义计算得到:</p>
+<p><span class="math display">\[P_k=E[e_ke_k^T]=
+E[[(I-KH)e_k^—Kv_k][(I-KH)e_k^—Kv_k]^T]\]</span></p>
+<p>展开可知:</p>
+<p><span class="math display">\[P_k=P^-_k-KHP^-_k-P^-_kH^TK^T+K(HP^-_kH^T+R)K^T=P(K)\]</span></p>
+<p>要求<span class="math inline">\(P_k\)</span>的最小值，结合上式对卡尔曼增益<span class="math inline">\(K\)</span>求偏导，得到：</p>
+<p><span class="math display">\[\frac{\partial{P_k}}{\partial{K}}=-2P^-_kH^T+2KHP_k^-H^T+2KR\]</span></p>
+<blockquote>
+<p>  需要注意的是，因为涉及到矩阵导数，与常规导数求导略有不同，有兴趣的读者，可以结合下面的矩阵求导规则进行求导：</p>
+<p>若<span class="math inline">\(Y=AX\)</span>,则<span class="math inline">\(\frac{d{Y}}{d{X}}=A^T\)</span>；</p>
+<p>若<span class="math inline">\(Y=XA\)</span>,则<span class="math inline">\(\frac{d{Y}}{d{X}}=A\)</span>；</p>
+<p>若<span class="math inline">\(Y=A^TXB\)</span>,则<span class="math inline">\(\frac{d{Y}}{d{X}}=AB^T\)</span>；</p>
+<p>若<span class="math inline">\(Y=A^TX^TB\)</span>,则<span class="math inline">\(\frac{d{Y}}{d{X}}=BA^T\)</span>；</p>
+<p>若<span class="math inline">\(Y=X^TX\)</span>,则<span class="math inline">\(\frac{d{Y}}{d{X}}=\)</span>X；</p>
+<p>若<span class="math inline">\(Y=AX^T\)</span>,则<span class="math inline">\(\frac{d{Y}}{d{X}}=A\)</span>；</p>
+<p>若<span class="math inline">\(Y=u(X)^Tv(X)\)</span>,则<span class="math inline">\(\frac{d{uv}}{d{X}}=\frac{du^T}{dX}v+\frac{dv^T}{X}u\)</span>；</p>
+</blockquote>
+<p>令<span class="math inline">\(\frac{\partial{P_k}}{\partial{K}}=0\)</span>，求解得到:</p>
+<p><span class="math display">\[K=\frac{P^-_kH^T}{HP^-_KH^T+R}\]</span></p>
+<blockquote>
+<p>直观来看，一方面：</p>
+<p><span class="math display">\[\lim\limits_{R\to0}K=\lim\limits_{R\to0}\frac{P_k^-H^T}{HP_k^-H^T+R}=H^{-1}\]</span></p>
+<p>即，随着观测噪声协方差 <span class="math inline">\(R\)</span>的减小，卡尔曼增益逐渐增大，当<span class="math inline">\(R=0\)</span>时，取得最大值<span class="math inline">\(H^{-1}\)</span>;</p>
+<p>另一方面：</p>
+<p><span class="math display">\[\lim\limits_{P_k^-\to0}K=0\]</span></p>
+<p>即，随着先验估计协方差<span class="math inline">\(P_k^-\)</span>的减小，卡尔曼增益随之减小，当<span class="math inline">\(P_k^-=0\)</span>时，取得最小值0；</p>
+<p>结合卡尔曼增益的定义可知，<code>卡尔曼增益实际上表征了状态最优估计过程中模型预测误差与量测误差的比重，随着观测噪声协方差趋近于零，模型中预测误差的比重越来越大，此时模型更信任模型中观测值的信息；另一方面，随着先验估计误差协方差趋近于零，模型中预测误差的比重越来越小，此时模型更信任模型中预测值的信息。</code></p>
+</blockquote>
+<p>代入矩阵函数<span class="math inline">\(P(K)\)</span>得到：</p>
+<p><span class="math display">\[P_k=(I-KH)P_k^-\]</span></p>
+<p>至此，我们已经得到了第<span class="math inline">\(k\)</span>时刻最优状态估计值为：</p>
+<p><span class="math display">\[\hat{x}_k
+=\hat{x}_k^-+K(y_k-H\hat{x}_k^-)\]</span></p>
+<p>  但是，到了这一步问题仍然没有得到解决，因为在计算<span class="math inline">\(k\)</span>时刻的卡尔曼增益时，仍有一个值未确定的：先验估计的协方差矩阵<span class="math inline">\(P_k^-\)</span>，在计算<span class="math inline">\(P_k^-\)</span>之前，需要先计算先验误差：</p>
+<p><span class="math display">\[
+e^-_k=x_k-\hat{x}_k^-=(Ax_{k-1}+B\mu_k+\omega_k)-(A\hat{x}_{k-1}+Bu_k)=Ae_{k-1}+\omega_k
+\]</span> 因为</p>
+<p><span class="math display">\[
+P_k^-=E[e_k^-{e_k^-}^T]=E[(Ae_{k-1}+\omega_k)(Ae_{k-1}+\omega_k)^T]=E[Ae_{k-1}e_{k-1}^TA^T]+E[\omega_k\omega_k^T]
+\]</span> 得到：</p>
+<p><span class="math display">\[P_k^-=AP_{k-1}A^T+Q\]</span></p>
+<p>到这步，卡尔曼滤波形成一个完整的理论闭环。</p>
+<h3 id="离散线性卡尔曼滤波算法">离散线性卡尔曼滤波算法</h3>
+<p>  卡尔曼滤波器采用反馈控制的方法来估计过程状态：滤波器估计过程某一时刻的状态，然后以（含噪声的）观测变量的方式获得反馈。因此卡尔曼滤波器可分为两个部分：</p>
+<h4 id="时间更新方程"><code>时间更新方程</code></h4>
+<p>  时间更新方程负责及时向前推算当前状态变量和误差协方差估计的值，以便为下一个时间状态构造先验估计，其数学表示如下：
+<span class="math display">\[
+\hat x_k^- = A \hat x_{k-1}+B\hat \mu_k+w_k \\
+P_{k}^-=AP_{k-1}A^T+Q
+\]</span></p>
+<h4 id="测量更新方程"><code>测量更新方程</code></h4>
+<p>  测量更新方程负责反馈——也就是说，它将先验估计
+和新的测量变量结合以构造改进的后验估计，其数学表示如下：</p>
+<p><span class="math display">\[K_k=P^-_kH^T(HP^-_kH^T+R)^{-1}\]</span></p>
+<p><span class="math display">\[Z_k=Hx_k+v_k\]</span></p>
+<p><span class="math display">\[\hat x = \hat x_k^{-}+K_k(Z_k-H\hat
+x_k^{-})\]</span></p>
+<p><span class="math display">\[P_k=(I-K_kH)P_k^{-}\]</span></p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">离散线性卡尔曼滤波器的递归计算过程如下图：</span><br></pre></td></tr></table></figure>
+<p><img src="1.jpg" alt="离散卡尔曼滤波的递归过程">
+  时间更新方程将当前状态变量作为先验估计及时地向前投射到测量更新方程，测量更新方程校正先验估计以获得状态的后验估计。完成时间更新方程和测量更新方程的一轮更新之后，再次重复这个过程，将上一次计算得到的后验估计作为下一次计算的先验估计。</p>
+<h4 id="卡尔曼滤波器参数分析">卡尔曼滤波器参数分析</h4>
+<p>  在实现卡尔曼滤波器算法时，会涉及到很多参数，如下：</p>
+<blockquote>
+<p><span class="math inline">\(x_0\)</span>：动态系统的初始状态变量<span class="math inline">\(x_0\)</span>一般直接取第一个测量值<span class="math inline">\(z_0\)</span>；</p>
+<p><span class="math inline">\(P_0\)</span>：系统初始状态变量<span class="math inline">\(x_0\)</span>的协方差，只要初始值不为零，初始协方差矩阵的取值对滤波效果影响很小，都能很快收敛；</p>
+<p><span class="math inline">\(A\)</span>：状态转移矩阵，是根据经验对下一个时间周期目标状态的
+一种预测。在某些情况下，这种预测是确定的，而另一些情况下
+这种预测是未知的；</p>
+<p><span class="math inline">\(B\)</span>：输入控制矩阵，作用在控制向量<span class="math inline">\(\mu_k\)</span>上的<span class="math inline">\(n\times1\)</span>输入控制矩阵，由于控制信息是已知的，一般很好确定；
+<span class="math inline">\(H\)</span>：<span class="math inline">\(m\times n\)</span>观测模型矩阵，
+负责将系统的真实状态映射到观测空间，根据动态系统很容易确定；</p>
+<p><span class="math inline">\(P ^-\)</span>：为<span class="math inline">\(n\times n\)</span>先验估计误差协方差矩阵，由<span class="math inline">\(P_0\)</span>递归即可得到；</p>
+<p><span class="math inline">\(P\)</span> ：为<span class="math inline">\(n×n\)</span>后验估计误差协方差矩阵，由<span class="math inline">\(P_0\)</span>递归即可得到；</p>
+<p><span class="math inline">\(Q\)</span>：<span class="math inline">\(n\times n\)</span>过程噪声<span class="math inline">\(\omega_n\)</span>是的协方差矩阵
+，当动态系统的状态转换过程确定时，<span class="math inline">\(Q\)</span>是一个确定的值，此时，可通过离线测试确定对于某个过程的最优<span class="math inline">\(Q\)</span>值，一般来说，当状态转换过程为已确定时，<span class="math inline">\(Q\)</span> 的取值越小越好。 当 <span class="math inline">\(Q\)</span>
+取值逐渐增大时，滤波收敛变慢，且状态变量的扰动变大。当系统的动态转换过程是不确定的，随时间变化，此时<span class="math inline">\(Q\)</span>不再是一个确定值，而是一个随时间变化的变量<span class="math inline">\(Q(k)\)</span>，此时的卡尔曼滤波为自适应卡尔曼滤波，关于自适应卡尔曼滤波的更详细内容请参考此文—<a href="http://read.pudn.com/downloads76/ebook/285147/Paper/pdf/y8576770004.pdf">自适应卡尔曼滤波技术</a>，在此不做进一步展开；</p>
+<p><span class="math inline">\(R\)</span>：<span class="math inline">\(m\times m\)</span>测量噪声<span class="math inline">\(v_n\)</span>协方差矩阵，
+跟系统外部环境的测量仪器相关，一般很难获得改值，根据平时的使用经历来看:</p>
+<blockquote>
+<p><span class="math inline">\(R\)</span>取值过小或过大都会使滤波效果变差；</p>
+<p><span class="math inline">\(R\)</span>取值越小收敛越快，反之收敛越慢；</p>
+<p>一般离线得到合适的<span class="math inline">\(R\)</span>值，再代入滤波器中；</p>
+</blockquote>
+<p><span class="math inline">\(I\)</span>：<span class="math inline">\(n\times n\)</span> 单位矩阵</p>
+<p><span class="math inline">\(K\)</span>:<span class="math inline">\(n×m\)</span>阶矩阵， 卡尔曼增益</p>
+</blockquote>
+<p>  关于卡尔曼滤波参数的更详细内容，由于篇幅有限，只做了简单的描述，但是卡尔曼滤波器参数的确定却是重中之重，直接影响到算法的效果，要进行实际应用的读者可结合<a href="http://file.elecfans.com/web1/M00/80/05/pIYBAFwnp8uAL-vDAAZFhhuu8y8385.pdf">卡尔曼滤波器参数分析与应用方法研究</a>一文，来做进一步讨论。</p>
+<h3 id="发散现象及平方根滤波">发散现象及平方根滤波</h3>
+<h4 id="发散现象">发散现象</h4>
+<p>  线性卡尔曼滤波基于线性高斯状态空间模型的假设推导的，但是在实际应用时动态系统不一定完全满足这些假定，这会儿导致卡尔曼滤波的不稳定，这也叫卡尔曼滤波的发散现象，另外在计算时如果数值不太精确也会产生发散现象。</p>
+<h4 id="平方根滤波">平方根滤波</h4>
+<p>  一个数学上优美且计算可行的，解决卡尔曼滤波发散问题的方法是使用平方根滤波，其本质思想是对卡尔曼滤波进行修正，在算法的每一次循环中使用数值稳定的正交变换。具体而言，就是使用乔里斯基分解将卡尔曼滤波的误差协方差矩阵转换为其平方根形式。理论推导部分可以参考机械工业出版社的《神经网络与机器学习》
+第十四章 动态系统状态估计的贝叶斯滤波
+中的平方根滤波部分，在此不做推导。</p>
+]]></content>
+      <tags>
+        <tag>卡尔曼滤波</tag>
+        <tag>马尔可夫链</tag>
+      </tags>
   </entry>
   <entry>
     <title>奇异值分解</title>
@@ -1861,6 +1265,552 @@ decomposition）。</p>
         <tag>svd</tag>
         <tag>特征分解</tag>
         <tag>特征向量</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>机器视觉之基本概念</title>
+    <url>/posts/781628f/</url>
+    <content><![CDATA[<p>  主要记录机器视觉领域的一些基本概念及一些实践中的tricks。
+<span id="more"></span></p>
+<h2 id="ccd">CCD</h2>
+<p>  CCD（Charge-Coupled
+Device）即电荷耦合器件,通常称为CCD图像传感器，是一种半导体器件，当入射光线照射到CCD芯片上的感光单元（微小光敏物质，即像素（Pixel）），光子会被转为电子，这些电子在像素内累计形成电荷。一块CCD芯片上包含的感光单元越多，其成像分辨率也就越高。其成像过程如下：</p>
+<ul>
+<li><p>光电转换</p>
+<p>入射光线通过光电二极管转换为电荷</p></li>
+<li><p>电荷积累</p>
+<p>光敏元件根据光强的不同积累不同数量的电荷</p></li>
+<li><p>电荷转移</p>
+<p>通过电荷转移机制，逐行、逐列将电荷移至输出放大器</p></li>
+<li><p>电压转换</p>
+<p>输出放大器将电荷信号转为电压信号，并传递给模数转换器（ADC），生成数字图像数据</p></li>
+</ul>
+<h2 id="cmos">CMOS</h2>
+<p>  CMOS（Complementary Metal-Oxide
+Semiconductor，互补金属氧化物半导体）成像原理与CCD成像原理类似，但CMOS成像器件的电荷转移和电压转换过程在同一块硅片上完成，因此CMOS成像器件的结构更加简单，成本更低，功耗更低，适用于高分辨率、低功耗的成像应用。</p>
+<p>CCD与CMOS成像器件的对比如下：</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: center;">特性</th>
+<th style="text-align: center;">CCD</th>
+<th style="text-align: center;">CMOS</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;">图像质量</td>
+<td style="text-align: center;">高、噪声低，均匀性好</td>
+<td style="text-align: center;">略低，噪声高</td>
+</tr>
+<tr>
+<td style="text-align: center;">制造成本</td>
+<td style="text-align: center;">高</td>
+<td style="text-align: center;">低</td>
+</tr>
+<tr>
+<td style="text-align: center;">功耗</td>
+<td style="text-align: center;">高</td>
+<td style="text-align: center;">低</td>
+</tr>
+<tr>
+<td style="text-align: center;">读取速度</td>
+<td style="text-align: center;">较慢</td>
+<td style="text-align: center;">快</td>
+</tr>
+<tr>
+<td style="text-align: center;">动态范围</td>
+<td style="text-align: center;">宽</td>
+<td style="text-align: center;">较窄</td>
+</tr>
+<tr>
+<td style="text-align: center;">弱光性能</td>
+<td style="text-align: center;">优</td>
+<td style="text-align: center;">稍弱</td>
+</tr>
+</tbody>
+</table>
+<p>通常来说，CCD通常用于高端相机、科学研究和天文观测等对图像质量要求极高的领域，而CMOS则广泛应用于消费类设备（如智能手机摄像头）、监控设备和工业检测等场景，其成本低、功耗低和速度快更具优势。需要注意的是由于CCD采用全局曝光，而CMOS相机使用卷帘曝光，所以在拍摄运动目标时，优先考虑CCD传感器。</p>
+<blockquote>
+<p>Note 1.
+全局曝光是传感器上所有像素在同一时刻开启曝光并在同一时刻曝光结束，将物体某时刻的状态成像，对运动物体而言，类似于将物体冻结了，所以适合拍摄高速运动的物体。</p>
+</blockquote>
+<blockquote>
+<p>Note 2.
+卷帘曝光是逐行（hang）顺序开启曝光，不同行间曝光的开启时刻有个很小的延迟，所以不适合运动物体的拍摄。</p>
+</blockquote>
+<h2 id="像素">像素</h2>
+<p>  像素是构成数字图像的基本单位，相机靶面上的一个感光单元为一个像素，每个像素点都拥有色调和嫉恶调等色彩信息，规则排列的像素集合可以形成一张完整的图像。</p>
+<h2 id="像素直径">像素直径</h2>
+<p>  像素直径，也称像元尺寸指每个CCD元件的大小，通常使用<span class="math inline">\(\mu
+m\)</span>作为单位，严谨的说，此处的大小中包含了感光单元和信号传输通路，其与像素间距（即某个像素的中心到邻近一个像素的中心的距离）相同。如果像素直径较小，则图像将通过较小的像素进行描绘，因此可以获得更加精细的图像，显然通过像素间距和有效像素数可以直接求出CCD元件中感光区域的大小（即CCD元件的总面积）</p>
+<h2 id="相机靶面尺寸">相机靶面尺寸</h2>
+<p>  相机靶面尺寸指用于接收光信号的传感器的尺寸，指的是传感器（工作区域为矩形）对角线长度。一般分为采用英寸单位表示和采用APS-C大小等规格表示这2种方式。采用英寸表示时，该尺寸并不是拍摄的实际尺寸，而是相当于摄像管的对角长度。比如1/2英寸的CCD表示<strong>拥有相当于1/2英寸的摄像管的拍摄范围</strong>。z之所以会如此计算，是由于当初制造CCD的目的就是用于代替电视机、录像机的摄像管。而想要继续使用镜头等光学器件的需求比较强烈，由此诞生了这种奇怪的规格，主要的英寸规格如下表所示。</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: center;">尺寸(英寸)</th>
+<th style="text-align: center;">对角长度(mm)</th>
+<th style="text-align: center;">拍摄区域(wxh,mm)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;">2/3</td>
+<td style="text-align: center;">11</td>
+<td style="text-align: center;">8.8x6.6</td>
+</tr>
+<tr>
+<td style="text-align: center;">1/2</td>
+<td style="text-align: center;">8</td>
+<td style="text-align: center;">6.4x4.8</td>
+</tr>
+<tr>
+<td style="text-align: center;">1/3</td>
+<td style="text-align: center;">6</td>
+<td style="text-align: center;">4.8x3.6</td>
+</tr>
+<tr>
+<td style="text-align: center;">1/4</td>
+<td style="text-align: center;">4.5</td>
+<td style="text-align: center;">3.6x2.0</td>
+</tr>
+</tbody>
+</table>
+<h2 id="快门速度">快门速度</h2>
+<p>  快门速度在工业视觉中也称为曝光时间，表示CCD或CMOS感光元件中积累电荷的时间，单位为秒。快门速度越快，感光元件中积累电荷的时间越短，图像的亮度越低，图像的细节越少，图像的噪点越多。快门速度越慢，感光元件中积累电荷的时间越长，图像的亮度越高，图像的细节越多，图像的噪点越少。直观来看，快门速度可以用于调整光量。</p>
+<h2 id="曝光值">曝光值</h2>
+<p>  曝光值（EV，Exposure
+Value）是用于衡量图像整体亮度的一个综合指标，由一下三个主要因素决定：</p>
+<ul>
+<li>快门速度</li>
+</ul>
+<p>  控制光线进入的时间，决定了运动模糊的程度，曝光时间过长，如果相机的感光元件在曝光期间，被拍摄的物体发生了运动，导致在单帧中记录下了物体的移动轨迹。</p>
+<ul>
+<li>光圈（F值）</li>
+</ul>
+<p>  控制进入光线的量，决定了相机的景深</p>
+<ul>
+<li>感光度(ISO)</li>
+</ul>
+<p>  控制感光元件对光线的灵敏度</p>
+<p>其定义公式如下： <span class="math display">\[
+E_v = \log_2 \frac{N^2}{t}
+\]</span></p>
+<h2 id="增益">增益</h2>
+<p>  增益，是指将图像信号进行电子增幅的过程，增益越大，图像的亮度越高，但噪声也会随之增加。在暗区拍摄图像时，往往通过增加增益来提高图像的亮度，但也会导致图像噪声的增加。因此，在拍摄图像时，需要根据实际情况合理选择增益值，以达到最佳的图像质量。</p>
+<h2 id="面阵相机">面阵相机</h2>
+<p>  面阵相机（Area Scan
+Camera）指感光单元（像素）按矩阵形式排列的相机，其一次拍摄即可捕获整个二维图像，常见视觉检测场景基本都是使用面阵相机，也常用于结构光三维重建。</p>
+<h2 id="线阵相机">线阵相机</h2>
+<p>  线阵相机（Line Scan
+Camera）指感光单元（像素）按线性形式排列的相机，其一次拍摄只能捕获一行图像，成像时，需要通过移动相机或被检测物体来获取整个二维图像。相较于面阵相机，其拥有更高的分辨率，成像质量更高，同时需要配合编码器来配合触发拍照，并使用线型光源，常用于纸张、纺织品、金属板等表面缺陷检测场景。</p>
+<h2 id="通讯方式">通讯方式</h2>
+<h3 id="usb接口">USB接口</h3>
+<p>  支持热插拔、标准统一，可连接多个设备，同时相机也可以通过USB线缆供电</p>
+<h3 id="gige千兆以太网接口">Gige千兆以太网接口</h3>
+<p>  可以简单方便的进行多相机设置，支持100米线材输出，是一种基于千兆以太网通信协议开发的相机接口标准</p>
+<h3 id="cameralink接口">Cameralink接口</h3>
+<p>  专门针对高速图像数据传输设计的通讯接口，是一种串行通讯协议，采用LVDS接口标准，传输速度快、抗干扰能力强、功耗低。</p>
+<h2 id="工作距离wd">工作距离（WD）</h2>
+<p>  指的是镜头的最下端到景物之间的距离。一般的镜头是可以看到无限远的，也就是说是没有上限的。</p>
+<figure>
+<img src="1.png" alt="相机成像结构">
+<figcaption aria-hidden="true">相机成像结构</figcaption>
+</figure>
+<h2 id="视场角fov">视场角（FOV）</h2>
+<p>  指镜头所能覆盖的范围。(相机实际拍摄到的区域尺寸)一个摄像机镜头能涵盖多大范围的景物，通常以角度来表示，这个角度就叫镜头的视角FOV。焦距越长，FOV越小，焦距越短，FOV越大</p>
+<h2 id="光圈">光圈</h2>
+<p>  光圈是一个用来控制光线透过镜头进入机身内感光面光量的装置。当光线不足时，我们把光圈调大，自然可以让更多光线进入相机，反之亦然。一般通过调整通光孔径大小来调节光圈，完整的光圈数值系列如下：F1，F1.4，F2，F2.8，F4，F5.6，F8，F11，F16，F22，F32，F44，F64。用F表示，以【镜头焦距f和通光孔径D的比值】(即，相对孔径的倒数，也就是“焦距÷有效孔径”)来衡量，每个镜头上都标有最大F值，例如：8mm/F1.4代表最大孔径D为5.7mm.
+&gt; F值越小、光圈越大、进光量越大；F值越大、光圈越小、进光量越小。</p>
+<h2 id="焦距">焦距</h2>
+<p>  焦距就是镜头到成像面的距离，比如：50mm镜头，8mm镜头还是75mm镜头等。这些就是镜头到成像面的距离，也就是焦距，单位是毫米。
+&gt;
+焦距的大小决定着视角大小，焦距越大，视角越小，观察范围越小；焦距越小，视角越大，观察范围也越大</p>
+<figure>
+<img src="2.png" alt="相机成像结构">
+<figcaption aria-hidden="true">相机成像结构</figcaption>
+</figure>
+<h2 id="景深">景深</h2>
+<p>  景深与视野相似，不同的是景深指的是纵深的范围，视野指的是横向的范围。在最小工作距离到最大工作距离之间的范围称为景深，景深内的物体都可以清晰成像。景深一般可以通过光圈调节，光圈越小，景深越大。景深与镜头使用光圈、镜头焦距、拍摄距离以及对像质的要求(表现为对容许弥散圆的大小)有关。在假定其它条件不变的情况下：</p>
+<ul>
+<li>光圈越大，景深越小；光圈越小，景深越大</li>
+<li>镜头焦距越长，景深越小；焦距越短，景深越大</li>
+<li>拍摄距离越远，景深越大；距离越近，景深越小</li>
+</ul>
+<p>  总而言之，对于对景深有要求的项目，尽可能使用小的光圈；在选择放大倍率的镜头时，在项目许可下尽可能选用低倍率镜头。如果项目要求比较苛刻时，倾向选择高景深的尖端镜头。</p>
+<h2 id="同轴光源">同轴光源</h2>
+<p>  同轴光照明,<code>是指经被测物反射的光线与镜头光轴平行的照明方式</code>,同轴光源是机器视觉光源里唯一一种能直接在镜头正下方使用的光源，能提供来自镜头方向的照明角度。</p>
+<div class="img-container">
+<img src="同轴光源.png" alt="同轴光源" style="display:block; margin:0 auto; width:30%">
+<div class="caption" style="text-align: center; font-family: sans-serif">
+<pre><code>同轴光源</code></pre>
+</div>
+</div>
+<hr>
+<div class="img-container">
+<img src="同轴光源成像.png" alt="同轴光源成像" style="display:block; margin:0 auto; width:60%">
+<div class="caption" style="text-align: center; font-family: sans-serif">
+<pre><code>同轴光源成像</code></pre>
+</div>
+</div>
+<p>  同轴光源的发光区在侧面，出射的光线经过有特殊涂层的分光镜或分光棱镜，一半光线透过后被吸光材料吸收，而另一半光线被反射后照射在被测物表面，经被测物表面反射后经镜头到相机芯片成像。根据实际需要，可设计为不同的发光尺寸。由于光学结构特殊，当扩大发光区宽度时，光源的高度也需要随之改变。
+  同轴光源可以消除物体表面不平整引起的阴影，从而减少干扰；部分采用分光镜设计，减少光损失，提高成像清晰度，均匀照射物体表面。应用领域:系列光源最适宜用于反射度极高的物体，如金属、玻璃、胶片、晶片等表面的划伤检测，芯片和硅晶片的破损检测，Mark点定位，包装条码识别。</p>
+<h2 id="背光源">背光源</h2>
+<p>  用高密度LED阵列面提供高强度背光照明，能突出物体的外形轮廓特征，尤其适合作为显微镜的载物台。红白两用背光源、红蓝多用背光源，能调配出不同颜色，满足不同被测物多色要求。应用领域:机械零件尺寸的测量，电子元件、IC的外型检测，胶片污点检测，透明物体划痕检测等。</p>
+<h2 id="条形光源">条形光源</h2>
+<p>  条形光源是较大方形结构被测物的首选光源；颜色可根据需求搭配，自由组合；照射角度与安装随意可调。应用领域:金属表面检查，图像扫描，表面裂缝检测，LCD面板检测等。</p>
+<h2 id="环形光源">环形光源</h2>
+<p>  环形光源提供不同照射角度、不同颜色组合，更能突出物体的三维信息；高密度LED阵列，高亮度；多种紧凑设计，节省安装空间；解决对角照射阴影问题；可选配漫射板导光，光线均匀扩散。应用领域:PCB基板检测，IC元件检测，显微镜照明，液晶校正，塑胶容器检测，集成电路印字检查</p>
+<h2 id="aoi专用光源">AOI专用光源</h2>
+<p>  不同角度的三色光照明，照射凸显焊锡三维信息；外加漫射板导光，减少反光；不同角度组合；应用领域:用于电路板焊锡检测。</p>
+<h2 id="球积分光源">球积分光源</h2>
+<p>  具有积分效果的半球面内壁，均匀反射从底部360度发射出的光线，使整个图像的照度十分均匀。应用领域:合于曲面，表面凹凸，弧形表面检测，或金属、玻璃表面反光较强的物体表面检测。</p>
+<h2 id="线形光源">线形光源</h2>
+<p>  超高亮度，采用柱面透镜聚光，适用于各种流水线连续检测场合。应用领域:阵相机照明专用，AOI专用。</p>
+<h2 id="点光源">点光源</h2>
+<p>  大功率LED，体积小，发光强度高；光纤卤素灯的替代品，尤其适合作为镜头的同轴光源等；高效散热装置，大大提高光源的使用寿命。应用领域:适合远心镜头使用，用于芯片检测，Mark点定位，晶片及液晶玻璃底基校正。</p>
+<h2 id="组合条形光源">组合条形光源</h2>
+<p>  
+四边配置条形光，每边照明独立可控；可根据被测物要求调整所需照明角度，适用性广。应用案例:CB基板检测，IC元件检测，焊锡检查，Mark点定位，显微镜照明，包装条码照明，球形物体照明等。</p>
+<h2 id="对位光源">对位光源</h2>
+<p>  对位速度快；视场大；精度高；体积小，便于检测集成；亮度高，可选配辅助环形光源。应用领域:VA系列光源是全自动电路板印刷机对位的专用光源。</p>
+]]></content>
+      <tags>
+        <tag>相机</tag>
+        <tag>视觉</tag>
+        <tag>图像</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>理解自注意力机制</title>
+    <url>/posts/15775ef77/</url>
+    <content><![CDATA[<p>  自Transformer架构的开山之作《<a href="https://arxiv.org/abs/1706.03762">Attention Is All You
+Need</a>》发表以来，自注意力机制已成为深度学习模型的基石技术，尤其在自然语言处理领域展现革命性突破。鉴于该机制已渗透至各类先进模型架构，深入理解其运作原理变得至关重要。</p>
+<span id="more"></span>
+<p>  注意力机制的概念源起于神经机器翻译中对长序列处理的探索<a href="https://arxiv.org/abs/1409.0473"></a>。传统逐字翻译的局限在于：不同语言特有的语法结构与语义逻辑（如中文"吃食堂"的动宾搭配）在直译中易被破坏，导致语义失真。</p>
+<hr>
+<div class="img-container">
+<img src="sample-01.png" alt="sample" style="display:block; margin:0 auto; width:60%">
+<div class="caption" style="text-align: center; font-family: sans-serif">
+<pre><code>逐字翻译（上）与注意力机制翻译（下）效果对比：后者能捕捉&quot;making&quot;与&quot;more&quot;&quot;difficult&quot;的语义关联</code></pre>
+</div>
+</div>
+<hr>
+<p>  Transformer架构的革命性突破在于完全摒弃了循环神经网络的时序依赖。其提出的自注意力机制，通过动态计算序列元素间的关联权重，使模型能够：
+1. <strong>全局感知</strong>：每个位置都可以直接访问全部序列信息 2.
+<strong>动态聚焦</strong>：根据上下文自动强化关键特征 3.
+<strong>并行计算</strong>：突破RNN的序列计算瓶颈，支持并行计算</p>
+<hr>
+<div class="img-container">
+<img src="sample-02.jpg" alt="sample" style="display:block; margin:0 auto; width:80%">
+<div class="caption" style="text-align: center; font-family: sans-serif">
+<pre><code>论文中的注意力热力图直观呈现了单词&quot;making&quot;与上下文的多维关联（颜色深度表示注意力权重强度）</code></pre>
+</div>
+</div>
+<hr>
+<p>  从数学视角看，自注意力机制实质是构建动态特征增强网络：通过<span class="math inline">\((q,k,v)\)</span>之间的矩阵运算，将原始词嵌入向量转换为包含上下文信息的增强表征向量。这种特性使其天然适配语言任务，例如"bank"在"river
+bank"与"bank loan"中通过注意力权重获得截然不同的语义编码。</p>
+<p>  尽管后续研究涌现出稀疏注意力、局部注意力等改进变体，但原始缩放点积注意力仍是工业界首选，其优势在于：</p>
+<ul>
+<li>计算复杂度O(n²)在大规模分布式训练中可通过并行化缓解<br>
+</li>
+<li>相比近似方法保留完整语义关联<br>
+</li>
+<li>与硬件优化技术（如FlashAttention）高度适配</li>
+</ul>
+<p>本文将以经典论文公式为框架展开解析： <span class="math display">\[
+Attention(Q,K,V)=softmax(\dfrac{QK^T}{\sqrt{d} + \epsilon})V
+\]</span> 对该公式的逐项解构将揭示自注意力机制的本质特性。</p>
+<hr>
+<p>扩展阅读推荐：<br>
+- 演进脉络：《<a href="https://arxiv.org/abs/2009.06732">高效Transformers综述</a>》<br>
+- 工程实践：《<a href="https://arxiv.org/abs/2302.01107">高效训练技术解析</a>》<br>
+- 最新突破：<a href="https://arxiv.org/abs/2205.14135">FlashAttention</a>系列优化技术</p>
+<hr>
+<h3 id="embedding-an-input-sentence">Embedding an Input Sentence</h3>
+<p>  接下来以句子<code>Life is short, eat dessert first</code>为例，解释自注意力机制的原理。在处理文本时，由于计算机无法直接处理字符，一般会将字符映射到数域<span class="math inline">\(\phi\)</span>中来处理。为了简单起见，在这个例子中数域<span class="math inline">\(\phi\)</span>仅基于当前输入句子中的单词构建，在实际应用中，一般使用训练数据集中的所有单词来构建数域。</p>
+<p><strong>Code</strong></p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">sentence = <span class="string">&#x27;Life is short, eat dessert first&#x27;</span></span><br><span class="line">dc = &#123;s:i <span class="keyword">for</span> i,s <span class="keyword">in</span> <span class="built_in">enumerate</span>(<span class="built_in">sorted</span>(sentence.replace(<span class="string">&#x27;,&#x27;</span>, <span class="string">&#x27;&#x27;</span>).split()))&#125;</span><br><span class="line"><span class="built_in">print</span>(dc)</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p><strong>输出</strong></p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">&#123;<span class="string">&#x27;Life&#x27;</span>: 0, <span class="string">&#x27;dessert&#x27;</span>: 1, <span class="string">&#x27;eat&#x27;</span>: 2, <span class="string">&#x27;first&#x27;</span>: 3, <span class="string">&#x27;is&#x27;</span>: 4, <span class="string">&#x27;short&#x27;</span>: 5&#125;</span><br></pre></td></tr></table></figure>
+<p>接下来，我们使用这个字典为每个单词分配一个整数索引：</p>
+<p><strong>Code</strong></p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> torch</span><br><span class="line"></span><br><span class="line">sentence_int = torch.tensor(</span><br><span class="line">    [dc[s] <span class="keyword">for</span> s <span class="keyword">in</span> sentence.replace(<span class="string">&#x27;,&#x27;</span>, <span class="string">&#x27;&#x27;</span>).split()]</span><br><span class="line">)</span><br><span class="line"><span class="built_in">print</span>(sentence_int)</span><br></pre></td></tr></table></figure>
+<p><strong>输出</strong></p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">tensor([0, 4, 5, 2, 1, 3])</span><br></pre></td></tr></table></figure>
+<p>  现在，得到输入句子向量形式，接下来使用嵌入层将输入编码为实向量嵌入。在这里，我们将使用一个简单的三维嵌入层，使得每个输入词都由一个三维向量表示。请注意，嵌入层的大小通常在几百到几千之间。例如，Llama2使用的嵌入大小为4096。为了方便说明在这里使用三维嵌入，这样我们就可以快速查看单个向量。例句由6个单词组成，输入通过嵌入层映射为<span class="math inline">\(6 \times 3\)</span>的张量：</p>
+<p><strong>Code</strong> <figure class="highlight python"><table><tr><td class="code"><pre><span class="line">vocab_size = <span class="number">6</span></span><br><span class="line">torch.manual_seed(<span class="number">123</span>)</span><br><span class="line">embed = torch.nn.Embedding(vocab_size, <span class="number">3</span>)</span><br><span class="line">embedded_sentence = embed(sentence_int).detach()</span><br><span class="line">​</span><br><span class="line"><span class="built_in">print</span>(embedded_sentence)</span><br><span class="line"><span class="built_in">print</span>(embedded_sentence.shape)</span><br></pre></td></tr></table></figure></p>
+<p><strong>输出</strong> <figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">tensor([[ 0.3374, -0.1778, -0.3035],</span><br><span class="line">        [ 0.1794,  1.8951,  0.4954],</span><br><span class="line">        [ 0.2692, -0.0770, -1.0205],</span><br><span class="line">        [-0.2196, -0.3792,  0.7671],</span><br><span class="line">        [-0.5880,  0.3486,  0.6603],</span><br><span class="line">        [-1.1925,  0.6984, -1.4097]])</span><br><span class="line">torch.Size([6, 3])</span><br></pre></td></tr></table></figure> ## Defining the Weight Matrices
+  完成了输入数据的高维映射后，我们将深入探讨Transformer架构的核心组件之一：缩放点积注意力（Scaled
+Dot-Product Attention）。该机制由三个可训练权重矩阵<span class="math inline">\(W_q、W_k、W_v\)</span>构成，这些矩阵作为模型的参数在训练过程中进行优化。通过这三个矩阵，输入序列被分别投影到对应的查询（query）、键（key）和值（value）向量空间。</p>
+<p>  具体而言，查询、键和值序列的生成可通过以下方式实现：将输入嵌入向量x分别与权重矩阵<span class="math inline">\(W_q、W_k、W_v\)</span>进行矩阵乘法运算，公式表达为：</p>
+<ul>
+<li>query向量</li>
+</ul>
+<p><span class="math display">\[q^{(i)} = x^{(i)}\cdot W_q \quad
+i\in[1,T]\]</span></p>
+<ul>
+<li>key向量</li>
+</ul>
+<p><span class="math display">\[k^{(i)} = x^{(i)}\cdot W_k \quad
+i\in[1,T]\]</span></p>
+<ul>
+<li>value向量</li>
+</ul>
+<p><span class="math display">\[v^{(i)} = x^{(i)}\cdot W_v \quad
+i\in[1,T]\]</span></p>
+<p>索引<span class="math inline">\(i\)</span>指输入序列中的标记索引位置，其长度为<span class="math inline">\(T\)</span> 。</p>
+<div class="img-container">
+<img src="sample-03.png" alt="sample" style="display:block; margin:0 auto; width:30%">
+<div class="caption" style="text-align: center; font-family: sans-serif">
+<pre><code>计算query、key和value</code></pre>
+</div>
+</div>
+<p>  其中，<span class="math inline">\(q^{(i)}\)</span>和<span class="math inline">\(k^{(i)}\)</span>维度为<span class="math inline">\(d_k\)</span>。投影矩阵<span class="math inline">\(W_q\)</span>和<span class="math inline">\(W_k\)</span>的维度为<span class="math inline">\(d
+\times d_k\)</span> ，而<span class="math inline">\(W_v\)</span>维度为<span class="math inline">\(d
+\times d_v\)</span>。需要注意的是，<span class="math inline">\(d\)</span>代表每个词向量<span class="math inline">\(x\)</span>的大小。由于我们计算的是查询向量和键向量之间的点积，因此这两个向量必须包含相同数量的元素
+( <span class="math inline">\(d_q=d_k\)</span>)。在LLM中，我们对值向量使用相同的大小，例如<span class="math inline">\(d_q=d_k=d_v\)</span>然而，值向量<span class="math inline">\(v(i)\)</span>中的元素数量（它决定了最终上下文向量的大小）可以是任意的。</p>
+<p>因此，对于以下代码演练，我们将设置<span class="math inline">\(d_q=d_k=2\)</span>并使用<span class="math inline">\(d_v = 4\)</span>，初始化投影矩阵如下：</p>
+<p><strong>Code</strong></p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">torch.manual_seed(<span class="number">123</span>)</span><br><span class="line">​</span><br><span class="line">d = embedded_sentence.shape[<span class="number">1</span>]</span><br><span class="line">​<span class="comment"># 与之前的词嵌入向量类似，$d_q、d_k、d_v$通常会比较大，为了便于说明，我们在这里使用较小的数字。</span></span><br><span class="line">d_q, d_k, d_v = <span class="number">2</span>, <span class="number">2</span>, <span class="number">4</span></span><br><span class="line">​</span><br><span class="line">W_query = torch.nn.Parameter(torch.rand(d, d_q))</span><br><span class="line">W_key = torch.nn.Parameter(torch.rand(d, d_k))</span><br><span class="line">W_value = torch.nn.Parameter(torch.rand(d, d_v))</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<h2 id="computing-the-unnormalized-attention-weights">Computing the
+Unnormalized Attention Weights</h2>
+<p>以<span class="math inline">\(x^{(2)}\)</span>的<span class="math inline">\(qkv\)</span>计算为例：</p>
+<div class="img-container">
+<img src="sample-04.jpg" alt="sample" style="display:block; margin:0 auto; width:30%">
+<div class="caption" style="text-align: center; font-family: sans-serif">
+<pre><code>注意力计算</code></pre>
+</div>
+</div>
+<p>代码实现如下：</p>
+<p><strong>Code</strong></p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">x_2 = embedded_sentence[<span class="number">1</span>]</span><br><span class="line">query_2 = x_2 @ W_query</span><br><span class="line">key_2 = x_2 @ W_key</span><br><span class="line">value_2 = x_2 @ W_value</span><br><span class="line">​</span><br><span class="line"><span class="built_in">print</span>(query_2.shape)</span><br><span class="line"><span class="built_in">print</span>(key_2.shape)</span><br><span class="line"><span class="built_in">print</span>(value_2.shape)</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p><strong>输出</strong></p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">torch.Size([2])</span><br><span class="line">torch.Size([2])</span><br><span class="line">torch.Size([4])</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>  为了下一步计算非标准化注意力权重，计算所有输入的<span class="math inline">\(qkv\)</span></p>
+<p><strong>Code</strong></p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">keys = embedded_sentence @ W_key</span><br><span class="line">values = embedded_sentence @ W_value</span><br><span class="line">​</span><br><span class="line"><span class="built_in">print</span>(<span class="string">&quot;keys.shape:&quot;</span>, keys.shape)</span><br><span class="line"><span class="built_in">print</span>(<span class="string">&quot;values.shape:&quot;</span>, values.shape)</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p><strong>输出</strong></p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">keys.shape: torch.Size([6, 2])</span><br><span class="line">values.shape: torch.Size([6, 4])</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>得到了所有输入的<span class="math inline">\(qkv\)</span>，接下来开始计算非标准化注意力权重<span class="math inline">\(\omega\)</span>，如下图所示：</p>
+<div class="img-container">
+<img src="sample-05.jpg" alt="sample" style="display:block; margin:0 auto; width:40%">
+<div class="caption" style="text-align: center; font-family: sans-serif">
+<pre><code>计算非标准化注意力权重ω</code></pre>
+</div>
+</div>
+<p>如上图所示，我们计算<span class="math inline">\(\omega_{i,j}\)</span>作为查询和键序列之间的点积:</p>
+<p><span class="math display">\[\omega_{i,j}
+=q^{(i)}k^{(j)}\]</span></p>
+<p>例如，我们可以按如下方式计算查询和第5个输入元素（对应于索引位置4）的非规范化注意力权重：</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">omega_24 = query_2.dot(keys[<span class="number">4</span>])</span><br><span class="line"><span class="built_in">print</span>(omega_24)</span><br></pre></td></tr></table></figure>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">tensor(1.2903)</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>由于我们稍后需要这些未标准化的注意力权重<span class="math inline">\(\omega\)</span>来计算实际的注意力权重，因此让我们计算所有输入标记的<span class="math inline">\(\omega\)</span>值，如上图所示：</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">omega_2 = query_2 @ keys.T</span><br><span class="line"><span class="built_in">print</span>(omega_2)</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">tensor([-0.6004,  3.4707, -1.5023,  0.4991,  1.2903, -1.3374])</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<h2 id="computing-the-attention-weights">Computing the Attention
+Weights</h2>
+<p>  自注意力机制的后续步骤是应用softmax函数对未归一化的注意力权重<span class="math inline">\(\omega\)</span>进行归一化从而获得归一化的注意力权重<span class="math inline">\(\alpha\)</span>。此外，在通过softmax函数进行归一化之前，先使用<span class="math inline">\(\dfrac{1}{\sqrt{d_k}}\)</span>对<span class="math inline">\(\omega\)</span>进行缩放，如下所示：</p>
+<div class="img-container">
+<img src="sample-06.png" alt="sample" style="display:block; margin:0 auto; width:80%">
+<div class="caption" style="text-align: center; font-family: sans-serif">
+<pre><code>计算标准化注意力权重α</code></pre>
+</div>
+</div>
+<p>通过<span class="math inline">\(d_k\)</span>进行缩放可确保权重向量的欧氏长度大致相同。这有助于防止注意力权重过小或过大，从而避免数值不稳定或影响模型在训练期间的收敛能力。</p>
+<p>在代码中，我们可以按如下方式实现注意力权重的计算：</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> torch.nn.functional <span class="keyword">as</span> F</span><br><span class="line">​</span><br><span class="line">attention_weights_2 = F.softmax(omega_2 / d_k**<span class="number">0.5</span>, dim=<span class="number">0</span>)</span><br><span class="line"><span class="built_in">print</span>(attention_weights_2)</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">tensor([0.0386, 0.6870, 0.0204, 0.0840, 0.1470, 0.0229])</span><br></pre></td></tr></table></figure>
+<p>最后一步是计算上下文向量<span class="math inline">\(z^{(2)}\)</span>
+，它是原始查询输入<span class="math inline">\(x_{(2)}\)</span>的注意力加权版本，通过注意力权重将所有其他输入元素作为其上下文：</p>
+<div class="img-container">
+<img src="sample-07.jpg" alt="sample" style="display:block; margin:0 auto; width:80%">
+<div class="caption" style="text-align: center; font-family: sans-serif">
+<pre><code>注意力权重特定于某个输入元素。这里，我们选择了输入元素x(2)</code></pre>
+</div>
+</div>
+<p>在代码中，它看起来如下所示：</p>
+<p><strong>代码</strong></p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">context_vector_2 = attention_weights_2 @ values</span><br><span class="line">​</span><br><span class="line">print(context_vector_2.shape)</span><br><span class="line">print(context_vector_2)</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p><strong>输出</strong></p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">torch.Size([4])</span><br><span class="line">tensor([0.5313, 1.3607, 0.7891, 1.3110])</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>请注意，由于我们之前指定了<span class="math inline">\(d_v &gt;
+d\)</span> ，因此此输出向量具有比原始输入向量（<span class="math inline">\(d=3\)</span>）更多的维度(<span class="math inline">\(d_v=4\)</span>),但是，嵌入大小选择<span class="math inline">\(d_v\)</span>是任意的。</p>
+<h2 id="self-attention">Self-Attention</h2>
+<p>现在，为了总结上面章节中自注意力机制的代码实现，我们可以将前面的代码总结在一个紧凑的<code>SelfAttention</code>类中：</p>
+<p><strong>代码</strong></p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> torch.nn <span class="keyword">as</span> nn</span><br><span class="line">​</span><br><span class="line"><span class="keyword">class</span> <span class="title class_">SelfAttention</span>(nn.Module):</span><br><span class="line">​</span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">__init__</span>(<span class="params">self, d_in, d_out_kq, d_out_v</span>):</span><br><span class="line">        <span class="built_in">super</span>().__init__()</span><br><span class="line">        <span class="variable language_">self</span>.d_out_kq = d_out_kq</span><br><span class="line">        <span class="variable language_">self</span>.W_query = nn.Parameter(torch.rand(d_in, d_out_kq))</span><br><span class="line">        <span class="variable language_">self</span>.W_key   = nn.Parameter(torch.rand(d_in, d_out_kq))</span><br><span class="line">        <span class="variable language_">self</span>.W_value = nn.Parameter(torch.rand(d_in, d_out_v))</span><br><span class="line">​</span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">forward</span>(<span class="params">self, x</span>):</span><br><span class="line">        keys = x @ <span class="variable language_">self</span>.W_key</span><br><span class="line">        queries = x @ <span class="variable language_">self</span>.W_query</span><br><span class="line">        values = x @ <span class="variable language_">self</span>.W_value</span><br><span class="line">        </span><br><span class="line">        attn_scores = queries @ keys.T  <span class="comment"># unnormalized attention weights    </span></span><br><span class="line">        attn_weights = torch.softmax(</span><br><span class="line">            attn_scores / <span class="variable language_">self</span>.d_out_kq**<span class="number">0.5</span>, dim=-<span class="number">1</span></span><br><span class="line">        )</span><br><span class="line">        </span><br><span class="line">        context_vec = attn_weights @ values</span><br><span class="line">        <span class="keyword">return</span> context_vec</span><br></pre></td></tr></table></figure>
+<p>按照 PyTorch
+的约定，<code>SelfAttention</code>上述类在方法中初始化自注意力参数<code>__init__</code>，并通过该方法计算所有输入的注意力权重和上下文向量<code>forward</code>。我们可以按如下方式使用此类：</p>
+<p><strong>代码</strong></p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">torch.manual_seed(123)</span><br><span class="line">​</span><br><span class="line"># reduce d_out_v from 4 to 1, because we have 4 heads</span><br><span class="line">d_in, d_out_kq, d_out_v = 3, 2, 4</span><br><span class="line">​</span><br><span class="line">sa = SelfAttention(d_in, d_out_kq, d_out_v)</span><br><span class="line">print(sa(embedded_sentence))</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p><strong>输出</strong></p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">tensor([[-0.1564,  0.1028, -0.0763, -0.0764],</span><br><span class="line">        [ 0.5313,  1.3607,  0.7891,  1.3110],</span><br><span class="line">        [-0.3542, -0.1234, -0.2627, -0.3706],</span><br><span class="line">        [ 0.0071,  0.3345,  0.0969,  0.1998],</span><br><span class="line">        [ 0.1008,  0.4780,  0.2021,  0.3674],</span><br><span class="line">        [-0.5296, -0.2799, -0.4107, -0.6006]], grad_fn=&lt;MmBackward0&gt;)</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>如果您查看第二行，您会发现它与<code>context_vector_2</code>上一节中的值完全匹配：<code>tensor([0.5313, 1.3607, 0.7891, 1.3110])</code>。</p>
+<h2 id="multi-head-attention">Multi-Head Attention</h2>
+<p>  Transformer使用了多头注意力的模块。这个“多头”注意力模块与我们上面讨论过的自注意力机制（尺度点积注意力）有何关系？在自注意力机制中，输入序列使用三个矩阵进行变换，分别代表查询、键和值。在多头注意力机制中，这三个矩阵可以被视为一个注意力头。下图总结了我们之前介绍和实现的这个注意力头：</p>
+<div class="img-container">
+<img src="sample-08.jpg" alt="sample" style="display:block; margin:0 auto; width:80%">
+<div class="caption" style="text-align: center; font-family: sans-serif">
+<pre><code>总结之前实现的自注意力机制</code></pre>
+</div>
+</div>
+<p>顾名思义，多头注意力机制包含多个这样的头，每个头由查询、键和值矩阵组成。这一概念类似于在卷积神经网络中使用多个核，从而生成具有多个输出通道的特征图。</p>
+<div class="img-container">
+<img src="sample-09.jpg" alt="sample" style="display:block; margin:0 auto; width:80%">
+<div class="caption" style="text-align: center; font-family: sans-serif">
+<pre><code>多头注意力</code></pre>
+</div>
+</div>
+<p>为了在代码中说明这一点，我们可以<code>MultiHeadAttentionWrapper</code>为之前的<code>SelfAttention</code>类编写一个类：</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">MultiHeadAttentionWrapper</span>(nn.Module):</span><br><span class="line">​</span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">__init__</span>(<span class="params">self, d_in, d_out_kq, d_out_v, num_heads</span>):</span><br><span class="line">        <span class="built_in">super</span>().__init__()</span><br><span class="line">        <span class="variable language_">self</span>.heads = nn.ModuleList(</span><br><span class="line">            [SelfAttention(d_in, d_out_kq, d_out_v) </span><br><span class="line">             <span class="keyword">for</span> _ <span class="keyword">in</span> <span class="built_in">range</span>(num_heads)]</span><br><span class="line">        )</span><br><span class="line">​</span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">forward</span>(<span class="params">self, x</span>):</span><br><span class="line">        <span class="keyword">return</span> torch.cat([head(x) <span class="keyword">for</span> head <span class="keyword">in</span> <span class="variable language_">self</span>.heads], dim=-<span class="number">1</span>)</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>这些<code>d_*</code>参数与之前的类中相同<code>SelfAttention</code>——这里唯一的新输入参数是注意力头的数量：</p>
+<ul>
+<li><p><code>d_in</code>：输入特征向量的维数。</p></li>
+<li><p><code>d_out_kq</code>：query和key输出的维度。</p></li>
+<li><p><code>d_out_v</code>：value输出的维度。</p></li>
+<li><p><code>num_heads</code>：注意力头的数量。</p></li>
+</ul>
+<p>  我们使用这些输入参数初始化类<code>SelfAttention</code>时间<code>num_heads</code>。并使用
+PyTorch<code>nn.ModuleList</code>来存储这些多个<code>SelfAttention</code>实例。然后，<code>forward</code>过程涉及将每个<code>SelfAttention</code>头（存储在
+中<code>self.heads</code>）独立地应用于输入<code>x</code>。然后，每个头的结果沿着最后一个维度（<code>dim=-1</code>）连接起来。让我们在下面看看它的实际效果！</p>
+<p>首先，为了便于说明，假设我们有一个输出维度为 1 的自注意力头：</p>
+<p><strong>Code</strong></p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">torch.manual_seed(<span class="number">123</span>)</span><br><span class="line">​</span><br><span class="line">d_in, d_out_kq, d_out_v = <span class="number">3</span>, <span class="number">2</span>, <span class="number">1</span></span><br><span class="line">​</span><br><span class="line">sa = SelfAttention(d_in, d_out_kq, d_out_v)</span><br><span class="line"><span class="built_in">print</span>(sa(embedded_sentence))</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p><strong>输出</strong></p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">tensor([[-0.0185],</span><br><span class="line">        [ 0.4003],</span><br><span class="line">        [-0.1103],</span><br><span class="line">        [ 0.0668],</span><br><span class="line">        [ 0.1180],</span><br><span class="line">        [-0.1827]], grad_fn=&lt;MmBackward0&gt;)</span><br></pre></td></tr></table></figure>
+<p>现在，让我们将其扩展到 4 个注意力头：</p>
+<p><strong>Code</strong></p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">torch.manual_seed(<span class="number">123</span>)</span><br><span class="line">​</span><br><span class="line">block_size = embedded_sentence.shape[<span class="number">1</span>]</span><br><span class="line">mha = MultiHeadAttentionWrapper(</span><br><span class="line">    d_in, d_out_kq, d_out_v, num_heads=<span class="number">4</span></span><br><span class="line">)</span><br><span class="line">​</span><br><span class="line">context_vecs = mha(embedded_sentence)</span><br><span class="line">​</span><br><span class="line"><span class="built_in">print</span>(context_vecs)</span><br><span class="line"><span class="built_in">print</span>(<span class="string">&quot;context_vecs.shape:&quot;</span>, context_vecs.shape)</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p><strong>输出</strong></p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">tensor([[-0.0185,  0.0170,  0.1999, -0.0860],</span><br><span class="line">        [ 0.4003,  1.7137,  1.3981,  1.0497],</span><br><span class="line">        [-0.1103, -0.1609,  0.0079, -0.2416],</span><br><span class="line">        [ 0.0668,  0.3534,  0.2322,  0.1008],</span><br><span class="line">        [ 0.1180,  0.6949,  0.3157,  0.2807],</span><br><span class="line">        [-0.1827, -0.2060, -0.2393, -0.3167]], grad_fn=&lt;CatBackward0&gt;)</span><br><span class="line">context_vecs.shape: torch.Size([6, 4])</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>  从上面的输出可以看出，之前创建的单头注意力机制的输出张量现在对应于多头注意力输出张量的第一列。</p>
+<p>  需要注意的是，多头注意力的输出是一个<span class="math inline">\(6\times4\)</span>的张量：因为有6个输入token和4个自注意力头，其中每个自注意力头返回一个一维输出。在前面的自注意力计算中，同样生成了一个<span class="math inline">\(6 \times
+4\)</span>的张量，那是因为在该实例中输出维度被设置为4而不是1。在实践中，如果可以在<code>SelfAttention</code>类中也可以调节输出维度的大小，那么使用多头注意力的意义是什么呢？</p>
+<p>  单自注意力头增加输出维度和使用多头注意力之间的区别在于模型处理和学习数据的方式。虽然，二者都能增加模型表示数据不同特征的能力，但它们本质上是不同的方法。</p>
+<p>  多头注意力中的每个注意力都有可能学会关注输入序列的不同分布，捕捉数据中各个维度的关系，这种表现的多样性是多头注意力机制成功的关键。</p>
+<p>  多头注意力在并行计算方面也更加高效。每个头都可以单独处理，这使得它非常适合使用GPU或TPU等硬件加速器来加速计算。</p>
+<p>  简而言之，多头注意力的使用不只是为了让模型的能力更强，更显著增强了其学习数据中各种特征和关系的能力。在7B的Llama2模型中，使用32个自注意力头。</p>
+<h3 id="技术原理的深层解读">技术原理的深层解读</h3>
+<p>​+ 特征解耦</p>
+<p>  每个头的查询、键、值矩阵（Q/K/V）通过独立线性变换生成，使不同头能学习到输入序列的不同投影空间。例如，一个头可能聚焦局部词序依赖，另一个头可能捕捉长距离语义关联。</p>
+<ul>
+<li>​容错机制</li>
+</ul>
+<p>  实验表明，即使某些头的注意力权重失效，其他头仍能提供有效特征，增强了模型鲁棒性。
++ ​计算效率</p>
+<p>  虽然总参数量与单头扩展维度相当，但多头拆分维度（如512维拆分为32头×16维）可降低单个矩阵乘法的计算复杂度。</p>
+<ul>
+<li>工程实践启示</li>
+</ul>
+<p>  在Transformer架构中，头的数量需平衡模型容量与计算资源。例如，ViT模型通常采用12-16头，而百亿参数大模型可能使用128头。值得注意的是，头数超过输入嵌入维度时会出现维度碎片化问题，因此现代模型常采用分组查询注意力（GQA）进行优化。</p>
+<h2 id="causal-self-attention">Causal Self-Attention</h2>
+<p>  为了在gpt（解码器风格）的文本生成大模型中应用注意力机制，在本节中，我们将引入<code>Causal Self-Attention</code>，本质上是对前文讨论的自注意机制进行适应性改造，以贴合使用场景。在原始的Transformer结构中，它对应于“屏蔽多头注意”模块，为了简单起见，我们将在本节中查看单个注意头，但是相同的概念可以推广到多个注意头。</p>
+<div class="img-container">
+<img src="sample-10.jpg" alt="sample" style="display:block; margin:0 auto; width:80%">
+<div class="caption" style="text-align: center; font-family: sans-serif">
+The causal self-attention module in the original transformer
+architecture (via “Attention Is All You Need”,
+https://arxiv.org/abs/1706.03762)
+</div>
+</div>
+<p>  <code>Causal Self-Attention</code>确保序列中某个位置的预测输出仅依赖于先前位置的已知输出，跟未来位置的输出无关。简单来说，它确保对下一个单词的预测只依赖于前面的单词。为了在gpt这类大语言模型中实现这一点，在处理每个token时，屏蔽输入文本中位于当前token之后的token，我们将这种这种屏蔽策略称为<code>causal mask</code>。</p>
+  下面的图示说明了<code>causal mask</code>如何作用于注意力权重中，以隐藏输出中的未来输入token。
+<div class="img-container">
+<img src="sample-11.jpg" alt="sample" style="display:block; margin:0 auto; width:80%">
+<div class="caption" style="text-align: center; font-family: sans-serif">
+
+</div>
+</div>
+<p>  为了方便说明和实现<code>Causal Self-Attention</code>力，我们使用前一节中的未加权注意力分数和注意力权重，首先，我们快速回顾一下前面Self-Attention部分的注意力分数的计算：</p>
+<p><strong>Code</strong></p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">torch.manual_seed(<span class="number">123</span>)</span><br><span class="line">​</span><br><span class="line">d_in, d_out_kq, d_out_v = <span class="number">3</span>, <span class="number">2</span>, <span class="number">4</span></span><br><span class="line">​</span><br><span class="line">W_query = nn.Parameter(torch.rand(d_in, d_out_kq))</span><br><span class="line">W_key   = nn.Parameter(torch.rand(d_in, d_out_kq))</span><br><span class="line">W_value = nn.Parameter(torch.rand(d_in, d_out_v))</span><br><span class="line">​</span><br><span class="line">x = embedded_sentence</span><br><span class="line">​</span><br><span class="line">keys = x @ W_key</span><br><span class="line">queries = x @ W_query</span><br><span class="line">values = x @ W_value</span><br><span class="line">​</span><br><span class="line"><span class="comment"># attn_scores are the &quot;omegas&quot;, </span></span><br><span class="line"><span class="comment"># the unnormalized attention weights</span></span><br><span class="line">attn_scores = queries @ keys.T </span><br><span class="line">​</span><br><span class="line"><span class="built_in">print</span>(attn_scores)</span><br><span class="line"><span class="built_in">print</span>(attn_scores.shape)</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p><strong>输出</strong></p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">tensor([[ 0.0613, -0.3491,  0.1443, -0.0437, -0.1303,  0.1076],</span><br><span class="line">        [-0.6004,  3.4707, -1.5023,  0.4991,  1.2903, -1.3374],</span><br><span class="line">        [ 0.2432, -1.3934,  0.5869, -0.1851, -0.5191,  0.4730],</span><br><span class="line">        [-0.0794,  0.4487, -0.1807,  0.0518,  0.1677, -0.1197],</span><br><span class="line">        [-0.1510,  0.8626, -0.3597,  0.1112,  0.3216, -0.2787],</span><br><span class="line">        [ 0.4344, -2.5037,  1.0740, -0.3509, -0.9315,  0.9265]],</span><br><span class="line">       grad_fn=&lt;MmBackward0&gt;)</span><br><span class="line">torch.Size([6, 6])</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>  与之前的Self-Attention部分类似，上面的输出是一个6×6张量，其中包含6个输入令牌的成对非标准化注意权重（也称为注意分数）。之前，我们通过softmax函数计算缩放后的点积注意力，如下所示：</p>
+<p><strong>Code</strong></p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">attn_weights = torch.softmax(attn_scores / d_out_kq**<span class="number">0.5</span>, dim=<span class="number">1</span>)</span><br><span class="line"><span class="built_in">print</span>(attn_weights)</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p><strong>输出</strong></p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">tensor([[0.1772, 0.1326, 0.1879, 0.1645, 0.1547, 0.1831],</span><br><span class="line">        [0.0386, 0.6870, 0.0204, 0.0840, 0.1470, 0.0229],</span><br><span class="line">        [0.1965, 0.0618, 0.2506, 0.1452, 0.1146, 0.2312],</span><br><span class="line">        [0.1505, 0.2187, 0.1401, 0.1651, 0.1793, 0.1463],</span><br><span class="line">        [0.1347, 0.2758, 0.1162, 0.1621, 0.1881, 0.1231],</span><br><span class="line">        [0.1973, 0.0247, 0.3102, 0.1132, 0.0751, 0.2794]],</span><br><span class="line">       grad_fn=&lt;SoftmaxBackward0&gt;)</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>  上面的6×6输出表示注意权重。</p>
+<p>  现在，在gpt这类的LLM模型中中，我们训练模型从左到右一次读取和生成一个令牌（或单词）。如果我们有一个训练文本样本，比如"Life
+is short eat desert
+first"，我们有以下设置，其中箭头右侧单词的上下文向量应该只包含它自己和前面的单词：</p>
+<ul>
+<li><p>"Life" → "is"</p></li>
+<li><p>"Life is" → "short"</p></li>
+<li><p>"Life is short" → "eat"</p></li>
+<li><p>"Life is short eat" → "desert"</p></li>
+<li><p>"Life is short eat desert" → "first"</p></li>
+</ul>
+<p>  实现上述设置的最简单方法是通过对对角线上方的注意力权重矩阵应用掩码来屏蔽所有未来的标记，如下图所示。这样，在创建上下文向量时就不会包含“未来”词，上下文向量是作为输入的注意力加权和而创建的。</p>
+<div class="img-container">
+<img src="sample-12.jpg" alt="sample" style="display:block; margin:0 auto; width:80%">
+<div class="caption" style="text-align: center; font-family: sans-serif">
+Attention weights above the diagonal should be masked out
+</div>
+</div>
+<p>  在下面的代码中，我们可以通过PyTorch的<a href="https://pytorch.org/docs/stable/generated/torch.tril.html#">tril</a>函数来实现这一点，我们首先使用它来创建一个1和0的掩码：</p>
+<p><strong>Code</strong></p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">block_size = attn_scores.shape[<span class="number">0</span>]</span><br><span class="line">mask_simple = torch.tril(torch.ones(block_size, block_size))</span><br><span class="line"><span class="built_in">print</span>(mask_simple)</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p><strong>输出</strong></p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">tensor([[1., 0., 0., 0., 0., 0.],</span><br><span class="line">        [1., 1., 0., 0., 0., 0.],</span><br><span class="line">        [1., 1., 1., 0., 0., 0.],</span><br><span class="line">        [1., 1., 1., 1., 0., 0.],</span><br><span class="line">        [1., 1., 1., 1., 1., 0.],</span><br><span class="line">        [1., 1., 1., 1., 1., 1.]])</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>接下来，我们将注意力权重与这个蒙版相乘，将对角线上方的所有注意力权重归零：</p>
+<p><strong>Code</strong></p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">masked_simple = attn_weights*mask_simple</span><br><span class="line"><span class="built_in">print</span>(masked_simple)</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p><strong>输出</strong></p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">tensor([[0.1772, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000],</span><br><span class="line">        [0.0386, 0.6870, 0.0000, 0.0000, 0.0000, 0.0000],</span><br><span class="line">        [0.1965, 0.0618, 0.2506, 0.0000, 0.0000, 0.0000],</span><br><span class="line">        [0.1505, 0.2187, 0.1401, 0.1651, 0.0000, 0.0000],</span><br><span class="line">        [0.1347, 0.2758, 0.1162, 0.1621, 0.1881, 0.0000],</span><br><span class="line">        [0.1973, 0.0247, 0.3102, 0.1132, 0.0751, 0.2794]],</span><br><span class="line">       grad_fn=&lt;MulBackward0&gt;)</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>  虽然以上是一种屏蔽将来单词的方法，但请注意，每一行的注意力权重之和不再为1。为此，进行行归一化操作，使它们的权重总和为1，这是注意力权重的标准约定：</p>
+<p><strong>Code</strong></p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">row_sums = masked_simple.<span class="built_in">sum</span>(dim=<span class="number">1</span>, keepdim=<span class="literal">True</span>)</span><br><span class="line">masked_simple_norm = masked_simple / row_sums</span><br><span class="line"><span class="built_in">print</span>(masked_simple_norm)</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p><strong>输出</strong></p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">tensor([[1.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000],</span><br><span class="line">        [0.0532, 0.9468, 0.0000, 0.0000, 0.0000, 0.0000],</span><br><span class="line">        [0.3862, 0.1214, 0.4924, 0.0000, 0.0000, 0.0000],</span><br><span class="line">        [0.2232, 0.3242, 0.2078, 0.2449, 0.0000, 0.0000],</span><br><span class="line">        [0.1536, 0.3145, 0.1325, 0.1849, 0.2145, 0.0000],</span><br><span class="line">        [0.1973, 0.0247, 0.3102, 0.1132, 0.0751, 0.2794]],</span><br><span class="line">       grad_fn=&lt;DivBackward0&gt;)</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>  可以看到，现在每一行的注意力权重之和为1。</p>
+<p>  在Transformer模型中，规范化的注意力权重比非规范化的权重更有优势，主要有两个原因。首先，归一化的注意力权重之和为1，类似于概率分布。这样就可以更容易地根据比例来解释模型对输入的各个部分的关注。其次，通过约束注意权值求和为1，这种归一化有助于控制权值和梯度的尺度，从而提高训练的动态性。</p>
+<p><strong>More efficient masking without renormalization</strong></p>
+<p>  在上面编码的<code>Causal Self-Attention</code>过程中，我们首先计算注意得分，然后计算注意权重，掩盖对角线上方的注意权重，最后重新规范化注意权重。如下图所示：</p>
+<div class="img-container">
+<img src="sample-13.jpg" alt="sample" style="display:block; margin:0 auto; width:80%">
+<div class="caption" style="text-align: center; font-family: sans-serif">
+The previously implemented causal self-attention procedure
+</div>
+</div>
+<p>  在实际实现时，还有一种更有效的方法可以达到同样的效果。在这种方法中，我们对角线上的值替换为负无穷，然后将这些值输入softmax函数以计算注意力权重。如下图所示：</p>
+<div class="img-container">
+<img src="sample-14.jpg" alt="sample" style="display:block; margin:0 auto; width:80%">
+<div class="caption" style="text-align: center; font-family: sans-serif">
+<p>An alternative, more efficient approach to implementing causal
+self-attention</p>
+</div>
+</div>
+<p>我们可以在PyTorch中按照如下方式编写这个过程，首先屏蔽对角线上方的注意力得分：</p>
+<p><strong>Code</strong></p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">mask = torch.triu(torch.ones(block_size, block_size), diagonal=<span class="number">1</span>)</span><br><span class="line">masked = attn_scores.masked_fill(mask.<span class="built_in">bool</span>(), -torch.inf)</span><br><span class="line"><span class="built_in">print</span>(masked)</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>  在上面的代码中，首先创建了一个对角线以下都是0，对角线以上都是1的<code>mask</code>。这里，<code>torch.triu</code>（上三角）保留了矩阵主对角线上的元素，并将下面的元素置零，从而保留了上三角部分。相比之下，<code>torch.tril</code>（下三角）则保留了主对角线上的元素以及下面的元素。然后，使用<code>masked_fill</code>方法通过正的mask值（1s）将上三角的所有元素替换为<code>-torch.inf</code>，结果如下所示。</p>
+<p><strong>输出</strong></p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">tensor([[ 0.0613,    -inf,    -inf,    -inf,    -inf,    -inf],</span><br><span class="line">        [-0.6004,  3.4707,    -inf,    -inf,    -inf,    -inf],</span><br><span class="line">        [ 0.2432, -1.3934,  0.5869,    -inf,    -inf,    -inf],</span><br><span class="line">        [-0.0794,  0.4487, -0.1807,  0.0518,    -inf,    -inf],</span><br><span class="line">        [-0.1510,  0.8626, -0.3597,  0.1112,  0.3216,    -inf],</span><br><span class="line">        [ 0.4344, -2.5037,  1.0740, -0.3509, -0.9315,  0.9265]],</span><br><span class="line">       grad_fn=&lt;MaskedFillBackward0&gt;)</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>然后，我们所要做的就是像往常一样应用softmax函数来获得归一化和屏蔽的注意力权重：</p>
+<p><strong>Code</strong></p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">attn_weights = torch.softmax(masked / d_out_kq**<span class="number">0.5</span>, dim=<span class="number">1</span>)</span><br><span class="line"><span class="built_in">print</span>(attn_weights)</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p><strong>输出</strong></p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">tensor([[1.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000],</span><br><span class="line">        [0.0532, 0.9468, 0.0000, 0.0000, 0.0000, 0.0000],</span><br><span class="line">        [0.3862, 0.1214, 0.4924, 0.0000, 0.0000, 0.0000],</span><br><span class="line">        [0.2232, 0.3242, 0.2078, 0.2449, 0.0000, 0.0000],</span><br><span class="line">        [0.1536, 0.3145, 0.1325, 0.1849, 0.2145, 0.0000],</span><br><span class="line">        [0.1973, 0.0247, 0.3102, 0.1132, 0.0751, 0.2794]],</span><br><span class="line">       grad_fn=&lt;SoftmaxBackward0&gt;)  </span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>  为什么会这样呢？在最后一步中应用的softmax函数将输入值转换为概率分布。当输入中存在<code>-inf</code>时，因为e^（-inf）接近于0，因此这些位置对输出概率没有贡献。</p>
+<h2 id="conclusion">Conclusion</h2>
+<p>  在这篇文章里，我们一步步通过编程的方式，探索了自注意力机制的内部运作。基于此，我们又研究了多头注意力，这是大型语言转换器的一个基本组成部分。</p>
+<p>  然后我们还编了交叉注意力，这是自注意力的一种变体，当应用于两个不同的序列之间时特别有效。最后，我们还编了<code>Causal Self-Attention</code>力，这个概念对于在GPT和Llama这样的解码器风格LLM中生成连贯且上下文适当的序列至关重要。</p>
+<p>  通过从头开始编写这些复杂的机制，你或许对转换器和LLM中使用的自注意力机制的内部运作有了很好的理解。</p>
+<p>(请注意，本文中提供的代码仅用于说明目的。如果您计划在培训llm时实现自我关注，我建议考虑像[Flash
+Attention]（https://arxiv.org/abs/2307.08691）这样的优化实现，它可以减少内存占用和计算负载。</p>
+<h2 id="bonus-topic-cross-attention">Bonus Topic: Cross-Attention</h2>
+<p>  在上面的代码讲解里，咱们设置了Self-Attention和Causal-Attention这两部分，把_d_q和_d_k都设成了2，_d_v设成了4。也就是说，咱们让查询序列和键序列用了同样的维度。虽然通常情况下，值矩阵W_v都会选择和查询矩阵、键矩阵一样的维度（比如PyTorch里的MultiHeadAttention类就是这样），但其实咱们也可以给值维度选个任意的数字大小……</p>
+<p>本文翻译自<a href="https://magazine.sebastianraschka.com/p/understanding-and-coding-self-attention">Understanding
+and Coding Self-Attention, Multi-Head Attention, Causal-Attention, and
+Cross-Attention in LLMs</a></p>
+]]></content>
+      <tags>
+        <tag>自注意力机制</tag>
+        <tag>大语言模型</tag>
       </tags>
   </entry>
 </search>
