@@ -23,13 +23,12 @@
     var CONFIG = {"hostname":"wcjb.github.io","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":true,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
   </script>
 
-  <meta name="description" content="自Transformer架构的开山之作《Attention Is All You Need》发表以来，自注意力机制已成为深度学习模型的基石技术，尤其在自然语言处理领域展现革命性突破。鉴于该机制已渗透至各类先进模型架构，深入理解其运作原理变得至关重要。">
-<meta property="og:type" content="article">
+  <meta property="og:type" content="article">
 <meta property="og:title" content="理解自注意力机制">
 <meta property="og:url" content="https://wcjb.github.io/posts/15775ef77/index.html">
 <meta property="og:site_name" content="老学庵">
-<meta property="og:description" content="自Transformer架构的开山之作《Attention Is All You Need》发表以来，自注意力机制已成为深度学习模型的基石技术，尤其在自然语言处理领域展现革命性突破。鉴于该机制已渗透至各类先进模型架构，深入理解其运作原理变得至关重要。">
 <meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://wcjb.github.io/posts/15775ef77/sample-07.jpg">
 <meta property="og:image" content="https://wcjb.github.io/posts/15775ef77/sample-01.png">
 <meta property="og:image" content="https://wcjb.github.io/posts/15775ef77/sample-02.jpg">
 <meta property="og:image" content="https://wcjb.github.io/posts/15775ef77/sample-03.png">
@@ -45,12 +44,12 @@
 <meta property="og:image" content="https://wcjb.github.io/posts/15775ef77/sample-13.jpg">
 <meta property="og:image" content="https://wcjb.github.io/posts/15775ef77/sample-14.jpg">
 <meta property="article:published_time" content="2025-04-10T09:23:36.000Z">
-<meta property="article:modified_time" content="2025-04-18T01:04:39.008Z">
+<meta property="article:modified_time" content="2025-04-18T03:42:51.009Z">
 <meta property="article:author" content="殉道者">
 <meta property="article:tag" content="自注意力机制">
 <meta property="article:tag" content="大语言模型">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:image" content="https://wcjb.github.io/posts/15775ef77/sample-01.png">
+<meta name="twitter:image" content="https://wcjb.github.io/posts/15775ef77/sample-07.jpg">
 
 <link rel="canonical" href="https://wcjb.github.io/posts/15775ef77/">
 
@@ -257,7 +256,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2025-04-18 09:04:39" itemprop="dateModified" datetime="2025-04-18T09:04:39+08:00">2025-04-18</time>
+                <time title="修改时间：2025-04-18 11:42:51" itemprop="dateModified" datetime="2025-04-18T11:42:51+08:00">2025-04-18</time>
               </span>
 
           
@@ -292,9 +291,15 @@
     <div class="post-body" itemprop="articleBody">
 
       
-        <p>  自Transformer架构的开山之作《<a target="_blank" rel="noopener" href="https://arxiv.org/abs/1706.03762">Attention Is All You
-Need</a>》发表以来，自注意力机制已成为深度学习模型的基石技术，尤其在自然语言处理领域展现革命性突破。鉴于该机制已渗透至各类先进模型架构，深入理解其运作原理变得至关重要。</p>
+        <div class="img-container">
+<img src="sample-07.jpg" alt="sample" style="display:block; margin:0 auto; width:80%">
+<div class="caption" style="text-align: center; font-family: sans-serif">
+
+</div>
+</div>
 <span id="more"></span>
+<p>  自Transformer架构的开山之作《<a target="_blank" rel="noopener" href="https://arxiv.org/abs/1706.03762">Attention Is All You
+Need</a>》发表以来，自注意力机制已成为深度学习模型的基石技术，尤其在自然语言处理领域展现革命性突破。鉴于该机制已渗透至各类先进模型架构，深入理解其运作原理变得至关重要。</p>
 <p>  注意力机制的概念源起于神经机器翻译中对长序列处理的探索<a target="_blank" rel="noopener" href="https://arxiv.org/abs/1409.0473"></a>。传统逐字翻译的局限在于：不同语言特有的语法结构与语义逻辑（如中文"吃食堂"的动宾搭配）在直译中易被破坏，导致语义失真。</p>
 <hr>
 <div class="img-container">
@@ -800,7 +805,7 @@ Weights</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href
     <span class="post-meta-item-icon">
       <i class="fa fa-chart-area"></i>
     </span>
-    <span title="站点总字数">33k</span>
+    <span title="站点总字数">34k</span>
     <span class="post-meta-divider">|</span>
     <span class="post-meta-item-icon">
       <i class="fa fa-coffee"></i>
