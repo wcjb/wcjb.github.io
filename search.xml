@@ -326,6 +326,9 @@ Attention]（https://arxiv.org/abs/2307.08691）这样的优化实现，它可�
 and Coding Self-Attention, Multi-Head Attention, Causal-Attention, and
 Cross-Attention in LLMs</a></p>
 ]]></content>
+      <categories>
+        <category>LLM</category>
+      </categories>
       <tags>
         <tag>自注意力机制</tag>
         <tag>大语言模型</tag>
@@ -384,6 +387,9 @@ Cache通过空间换时间的策略，已成为大模型推理优化的标配技
 大模型推理加速：看图学KV Cache</a> <a href="https://huggingface.co/docs/transformers/main/en/main_classes/cache">[1]
 Transformers官方文档</a></p>
 ]]></content>
+      <categories>
+        <category>LLM</category>
+      </categories>
       <tags>
         <tag>-- Trasformer -- 大模型推理 -- 性能优化</tag>
       </tags>
@@ -430,6 +436,9 @@ Transformer with Rotary Position Embedding</a></p>
 <p><a href="https://www.zhihu.com/tardis/zm/art/647109286?source_id=1003">[3]
 十分钟读懂旋转编码（RoPE)</a></p>
 ]]></content>
+      <categories>
+        <category>LLM</category>
+      </categories>
       <tags>
         <tag>— 位置编码 - LLM - 模型训练</tag>
       </tags>
@@ -619,6 +628,9 @@ Qwen1.5技术报告大模型综述：A Survey of Large Language
 Models</a></p></li>
 </ul>
 ]]></content>
+      <categories>
+        <category>LLM</category>
+      </categories>
       <tags>
         <tag>LLM</tag>
         <tag>模型训练</tag>
@@ -697,6 +709,9 @@ w_{new} = w_{old} - \eta \ \Delta J(w)
 <p><figure class="highlight c++"><table><tr><td class="code"><pre><span class="line">from torch.optim.lr_scheduler <span class="keyword">import</span> CosineAnnealingWarmRestarts</span><br><span class="line"></span><br><span class="line"># 创建带热重启的余弦退火调度器</span><br><span class="line"># T_0是第一次重启前的迭代次数</span><br><span class="line"># T_mult是控制重启周期如何变化的因子</span><br><span class="line">scheduler = <span class="built_in">CosineAnnealingWarmRestarts</span>(</span><br><span class="line">    optimizer, </span><br><span class="line">    T_0=<span class="number">1000</span>,  # 第一个周期的长度</span><br><span class="line">    T_mult=<span class="number">2</span>,  # 每次重启后周期长度翻倍</span><br><span class="line">    eta_min=<span class="number">0.0001</span>  # 最小学习率</span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"># 在训练循环中使用</span><br><span class="line"><span class="keyword">for</span> epoch in <span class="built_in">range</span>(num_epochs):</span><br><span class="line">    <span class="keyword">for</span> batch in data_loader:</span><br><span class="line">        # 训练步骤</span><br><span class="line">        optimizer.<span class="built_in">zero_grad</span>()</span><br><span class="line">        outputs = <span class="built_in">model</span>(inputs)</span><br><span class="line">        loss = <span class="built_in">criterion</span>(outputs, targets)</span><br><span class="line">        loss.<span class="built_in">backward</span>()</span><br><span class="line">        optimizer.<span class="built_in">step</span>()</span><br><span class="line">        </span><br><span class="line">        # 更新学习率</span><br><span class="line">        scheduler.<span class="built_in">step</span>()</span><br></pre></td></tr></table></figure></p></li>
 </ul>
 ]]></content>
+      <categories>
+        <category>LLM</category>
+      </categories>
       <tags>
         <tag>LLM</tag>
         <tag>学习率</tag>
@@ -917,6 +932,9 @@ x_k^{-})\]</span></p>
 第十四章 动态系统状态估计的贝叶斯滤波
 中的平方根滤波部分，在此不做推导。</p>
 ]]></content>
+      <categories>
+        <category>机器学习</category>
+      </categories>
       <tags>
         <tag>卡尔曼滤波</tag>
         <tag>马尔可夫链</tag>
@@ -1352,6 +1370,9 @@ f(b)-f(a)=f^\prime(\xi)(b-a)
 <p>  若函数<span class="math inline">\(f(x)\)</span>的导数恒为零，则<span class="math inline">\(f(x)\)</span>为常值函数，即<span class="math inline">\(f(x)=C,C \in R\)</span>。</p>
 </blockquote>
 ]]></content>
+      <categories>
+        <category>数学理论</category>
+      </categories>
       <tags>
         <tag>傅立叶</tag>
         <tag>希尔伯特空间</tag>
@@ -1567,17 +1588,14 @@ Camera）指感光单元（像素）按线性形式排列的相机，其一次�
 <h2 id="对位光源">对位光源</h2>
 <p>  对位速度快；视场大；精度高；体积小，便于检测集成；亮度高，可选配辅助环形光源。应用领域:VA系列光源是全自动电路板印刷机对位的专用光源。</p>
 ]]></content>
+      <categories>
+        <category>机器视觉</category>
+      </categories>
       <tags>
         <tag>相机</tag>
         <tag>视觉</tag>
         <tag>图像</tag>
       </tags>
-  </entry>
-  <entry>
-    <title>初探Transformer架构</title>
-    <url>/posts/a65e2a56/</url>
-    <content><![CDATA[
-]]></content>
   </entry>
   <entry>
     <title>奇异值分解</title>
@@ -1807,6 +1825,9 @@ decomposition）。</p>
 </ul></li>
 </ul>
 ]]></content>
+      <categories>
+        <category>数学理论</category>
+      </categories>
       <tags>
         <tag>svd</tag>
         <tag>特征分解</tag>
