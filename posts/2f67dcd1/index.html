@@ -1,0 +1,1039 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.3.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+  <meta name="google-site-verification" content="rRxEGVoWcPPII6Ts-TzSapPe0XCHwuoRZsTwX9kKSEM">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="https://fonts.lug.ustc.edu.cn/css?family=Noto Serif SC:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+  <link rel="stylesheet" href="/lib/pace/pace-theme-mac-osx.min.css">
+  <script src="/lib/pace/pace.min.js"></script>
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"wcjb.github.io","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":true,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="Attention 模块是现在几乎所有大模型的核心模块，因此也有很多工作致力于提升注意力计算的性能和效果。其中MHA（Multi-Head Attention）、MQA（Multi-Query Attention）和 GQA（Grouped-Query Attention）这一路线的思路和做法被很多主流模型所采用，因此简单地梳理一些这几个变体的思路和做法，以及会涉及到的KV Cache相关内容">
+<meta property="og:type" content="article">
+<meta property="og:title" content="理解Attention从起源到MHA、MQA和GQA">
+<meta property="og:url" content="https://wcjb.github.io/posts/2f67dcd1/index.html">
+<meta property="og:site_name" content="老学庵">
+<meta property="og:description" content="Attention 模块是现在几乎所有大模型的核心模块，因此也有很多工作致力于提升注意力计算的性能和效果。其中MHA（Multi-Head Attention）、MQA（Multi-Query Attention）和 GQA（Grouped-Query Attention）这一路线的思路和做法被很多主流模型所采用，因此简单地梳理一些这几个变体的思路和做法，以及会涉及到的KV Cache相关内容">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://pica.zhimg.com/v2-0ff0717e8656bd02ee2bdfb89fe48a4e_r.jpg">
+<meta property="og:image" content="https://pic2.zhimg.com/v2-ae99b12d4b9231acd9184122c54ee381_r.jpg">
+<meta property="og:image" content="https://pic3.zhimg.com/v2-69d79bd4696d4b8fec4343edcdf4524e_r.jpg">
+<meta property="og:image" content="https://picx.zhimg.com/v2-5b5689f81577acbbfc439f99fe7c53ab_r.jpg">
+<meta property="og:image" content="https://picx.zhimg.com/v2-3bacabfaa3e408c030f976a6ec916c0d_r.jpg">
+<meta property="og:image" content="https://pic2.zhimg.com/v2-bf5a6e816b80bf5a00945d8af9887d75_r.jpg">
+<meta property="og:image" content="https://pic2.zhimg.com/v2-ac4d5a38ff67d7e6b2ab04715b077533_r.jpg">
+<meta property="og:image" content="https://pic3.zhimg.com/v2-1300387875bb218c40c9c56a517cacb2_r.jpg">
+<meta property="og:image" content="https://pic3.zhimg.com/v2-7a69115d5c4337e7ec26434bc0d96098_r.jpg">
+<meta property="og:image" content="https://picx.zhimg.com/v2-15580348885d70fd6a11c683eac151af_r.jpg">
+<meta property="og:image" content="https://picx.zhimg.com/v2-0f831b35b55cb838f966891f95a25eef_r.jpg">
+<meta property="og:image" content="https://pic1.zhimg.com/v2-98a3525b9ce728be66903fe35f3a143c_r.jpg">
+<meta property="og:image" content="https://pic1.zhimg.com/v2-90c8caf647b040b1987f9bf3024a5828_r.jpg">
+<meta property="og:image" content="https://pic3.zhimg.com/v2-d42ddafcf14e3f865fe4fd9765d21bd8_r.jpg">
+<meta property="og:image" content="https://pic1.zhimg.com/v2-ca4682e17c6914cb5c0c9c9dadec7212_r.jpg">
+<meta property="og:image" content="https://pic2.zhimg.com/v2-152555107b3ad3ad0b4f97b0972eb123_r.jpg">
+<meta property="og:image" content="https://picx.zhimg.com/v2-79080c0b8afa595f2ed639b1171bc819_r.jpg">
+<meta property="og:image" content="https://pic2.zhimg.com/v2-aa6302478f6dab8cf4b4cc400a406f79_r.jpg">
+<meta property="article:published_time" content="2025-04-20T05:55:43.000Z">
+<meta property="article:modified_time" content="2025-04-23T07:47:24.567Z">
+<meta property="article:author" content="殉道者">
+<meta property="article:tag" content="-- Attention -- MHA -- GQA -- MQA -- LLM">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://pica.zhimg.com/v2-0ff0717e8656bd02ee2bdfb89fe48a4e_r.jpg">
+
+<link rel="canonical" href="https://wcjb.github.io/posts/2f67dcd1/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>理解Attention从起源到MHA、MQA和GQA | 老学庵</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+<link rel="alternate" href="/atom.xml" title="老学庵" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">老学庵</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">天行健，君子以自强不息；地势坤，君子以厚德载物！</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+        <li class="menu-item menu-item-rss">
+
+    <a href="/atom.xml" rel="section"><i class="fa fa-rss fa-fw"></i>RSS</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+  
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://wcjb.github.io/posts/2f67dcd1/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/uploads/avatar.png">
+      <meta itemprop="name" content="殉道者">
+      <meta itemprop="description" content="幼而学者,如日出之光；老而学者，如秉烛夜行，犹贤乎瞑目而无见者也！">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="老学庵">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          理解Attention从起源到MHA、MQA和GQA
+        </h1>
+
+        <div class="post-meta">
+
+          
+            <i class="fa fa-thumb-tack"></i>
+            <font color=7D26CD>置顶</font>
+            <span class="post-meta-divider">|</span>
+          
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2025-04-20 13:55:43" itemprop="dateCreated datePublished" datetime="2025-04-20T13:55:43+08:00">2025-04-20</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2025-04-23 15:47:24" itemprop="dateModified" datetime="2025-04-23T15:47:24+08:00">2025-04-23</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/LLM/" itemprop="url" rel="index"><span itemprop="name">LLM</span></a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span><br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>7.6k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>28 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>  Attention
+模块是现在几乎所有大模型的核心模块，因此也有很多工作致力于提升注意力计算的性能和效果。其中MHA（Multi-Head
+Attention）、MQA（Multi-Query Attention）和 GQA（Grouped-Query
+Attention）这一路线的思路和做法被很多主流模型所采用，因此简单地梳理一些这几个变体的思路和做法，以及会涉及到的KV
+Cache相关内容。思路比较直白，但也有一些细节和原理值得思考。</p>
+<span id="more"></span>
+<p>  当然针对 Attention
+优化，也有很多其他优秀的方案和思路，如线性注意力、FlashAttention和Sliding
+Window Attention等，这些在后续再开篇梳理。</p>
+<hr>
+<p>了解一个概念的诞生和演进，有助于我们更深入去理解它。我们先简单回顾下
+attention 从起源到最初的实现。</p>
+<h2 id="从-rnn-说起">1.1. 从 RNN 说起</h2>
+<p>  注意力机制最初起源是为了解决序列问题。回想在还没有 Transformer
+的上一世代，使用 RNN 的 <a target="_blank" rel="noopener" href="https://zhida.zhihu.com/search?content_id=240607756&amp;content_type=Article&amp;match_order=1&amp;q=Seq2Seq&amp;zhida_source=entity">Seq2Seq</a>
+是这样的</p>
+<div class="img-container">
+<img src="https://pica.zhimg.com/v2-0ff0717e8656bd02ee2bdfb89fe48a4e_r.jpg" alt="sample" style="display:block; margin:0 auto; width:60%">
+<div class="caption" style="text-align: center; font-family: sans-serif">
+
+</div>
+</div>
+<div class="img-container">
+<img src="https://pic2.zhimg.com/v2-ae99b12d4b9231acd9184122c54ee381_r.jpg" alt="sample" style="display:block; margin:0 auto; width:60%">
+<div class="caption" style="text-align: center; font-family: sans-serif">
+
+</div>
+</div>
+<div class="img-container">
+<img src="https://pic3.zhimg.com/v2-69d79bd4696d4b8fec4343edcdf4524e_r.jpg" alt="sample" style="display:block; margin:0 auto; width:60%">
+<div class="caption" style="text-align: center; font-family: sans-serif">
+
+</div>
+</div>
+<p>（图来自 <a href="https://link.zhihu.com/?target=https%3A//theaisummer.com/attention/">AI
+Summer</a>）</p>
+<p>  每个RNN cell接收两个输入，输出一个hidden
+state。比如在翻译任务中，RNN
+encoder把所有输入迭代地编码成context向量<span class="math inline">\(z\)</span> ，然后由RNN decoder基于<span class="math inline">\(z\)</span>
+迭代地解码。一般来说，这里decoder的第一个输入是一个特殊token，如[start]，表示解码开始。</p>
+<p>  这样会有一个问题，<span class="math inline">\(z\)</span>能编码的长度显然有限，而且由于模型结构问题，会更加关注靠近尾部的输入。这样如果关键信息出现在开头，就容易被忽略。并且时间步骤上的传播由于有多次迭代相乘，梯度很容易就过小，导致梯度消失问题。</p>
+<p>  当然我们有LSMT和GRU等变体来增强长距离记忆的能力，也缓解了梯度问题，但这些方案还是没有产生质变的能力。</p>
+<p>  回到问题的核心，我们想要<span class="math inline">\(z\)</span>能够编码所有前面的内容，但是显然，<span class="math inline">\(z\)</span>的生成方式天然会让它更容易注意到靠后的内容，而容易忽略靠前的输入。</p>
+<p>  一个直觉的想法就是，我们需要想个办法跳过<span class="math inline">\(z\)</span>，和前面的每个输入建立直接的联系。我们希望模型能够有机会学习到去“注意”关键的输入，不管这个输入是在前面还是后面。</p>
+<p>  实际上神经网络天生就具有“注意力”的天赋。</p>
+<p>  比如在CNN分类中，如果我们画出分类层前的heatmap，会是如下图这个样子</p>
+<div class="img-container">
+<img src="https://picx.zhimg.com/v2-5b5689f81577acbbfc439f99fe7c53ab_r.jpg" alt="sample" style="display:block; margin:0 auto; width:40%">
+<div class="caption" style="text-align: center; font-family: sans-serif">
+
+</div>
+</div>
+<p>  可以看到，值比较高的地方是在猫的鼻子胡子嘴巴区域，次之是身上和头上的花纹。直观来说，就是模型主要通过脸部的特征和身上的花纹，来识别出这是一只猫。这就是CNN学习到的注意力，这样的特征是神经网络implicitly学到的。</p>
+<p>  回归到Seq2Seq，我们怎么来实现注意力，并且让这种implicit的机制变得explicit：单独抽离出来并具备一定可控制性？</p>
+<p>  回想翻译场景，在RNN中，每一个时间步骤<span class="math inline">\(i\)</span>都会产生一个隐向量，<span class="math inline">\(h_i\)</span>向量，我们把这些<span class="math inline">\(h_i\)</span>保存起来，在最后要生成新的输出的时候，我们让模型回头看一下之前的这每一个
+<span class="math inline">\(h_i\)</span>，再决定要生成什么内容。相比原来只利用最后一个hidden
+state，现在我们可以访问之前所有的中间状态，如果发现前面有关键信息，就可以直接用上了，而不用担心输入太长而被覆盖了。</p>
+<p>  那么问题又来了，我们怎么知道前面某一个中间状态对于当前的生成来说是否重要？如果我们不知道怎么定义是否重要，那我们就把这个问题交给模型自己解决好了--通过网络参数来学习识别某个输入状态是否重要，学习是否要“注意”到它，要给予多少的“注意力”。</p>
+<p>  具体来说，我们定义在解码第<span class="math inline">\(i\)</span>个输出是，decoder当前隐状态<span class="math inline">\(y_{i-1}\)</span>和 encoder的所有隐状态<span class="math inline">\(\mathbf{h}\)</span>之间的一个score计算:</p>
+<p><span class="math display">\[\mathbf{e}_i=\text{attention}_{\mathrm{net}}\left(y_{i-1},\mathbf{h}\right)\in
+R^n \\\]</span></p>
+<p>其中</p>
+<p><span class="math display">\[e_{ij}=\text{attentiom}_{\text{net
+}(\mathbf{y}_{i-1},h_j)} \\\]</span></p>
+<p>  注意力网络通过<span class="math inline">\(\mathbf{y}_{i-1}\)</span>和<span class="math inline">\(h_j\)</span>来计算一个值<span class="math inline">\(e_{ij}\)</span>，这里的注意力网络可以设计各种操作，比如对输入进行拼接再通过fc层进行计算等。</p>
+<p>  这里<span class="math inline">\(e_{ij}\)</span>是一个标量，但它还不是一个可用的权重值，还需要通过一个函数，把
+attention net对各个encoder hidden
+state的输出值转成一个分布：softmax。</p>
+<p><span class="math display">\[\alpha_{ij}=\frac{\exp\left(e_{ij}\right)}{\sum_{k=1}^{T_x}\exp\left(e_{ik}\right)}
+\\\]</span></p>
+<p>  最后通过加权计算，获得最终输入给 decoder 的隐变量。</p>
+<p><span class="math display">\[z_i=\sum_{j=1}^T\alpha_{ij}\mathbf{h}_j
+\\\]</span></p>
+<div class="img-container">
+<img src="https://picx.zhimg.com/v2-3bacabfaa3e408c030f976a6ec916c0d_r.jpg" alt="sample" style="display:block; margin:0 auto; width:30%">
+<div class="caption" style="text-align: center; font-family: sans-serif">
+
+</div>
+</div>
+<p>  可以看到，这里的attention net的任务就是找到decoder上一个hidden
+state 和encoder hidden state之间的 “相关”
+关系，使得模型能够将更多的注意力放在对应的输入信息上。</p>
+<p>  实际上，上面这种attention的计算方式并不是唯一的，attention的计算方式有许多种</p>
+<div class="img-container">
+<img src="https://pic2.zhimg.com/v2-bf5a6e816b80bf5a00945d8af9887d75_r.jpg" alt="sample" style="display:block; margin:0 auto; width:70%">
+<div class="caption" style="text-align: center; font-family: sans-serif">
+
+</div>
+</div>
+<p>  这些attention的一般形式可以写作<span class="math inline">\(\mathrm{Attention}(s, h)=\mathrm{Score}(s,h)\cdot
+h\)</span> 。这里的<span class="math inline">\(s\)</span>就是
+decoder的hidden state（也就是前文的 <span class="math inline">\(y\)</span>），<span class="math inline">\(h\)</span>就是encoder的hidden
+state。当然从结果上看，是 scaled dot-product
+attention经受住了历史的考验，成为了主流。</p>
+<h2 id="transformer-的-attention">1.2.Transformer 的 attention</h2>
+<p>  从RNN attention到transformer
+attention，所做的事情就如论文题目所说：《Attention Is All You
+Need》，彻底抛弃RNN的在time step上的迭代计算，完全拥抱
+attention机制，只用最简单粗暴的方式同步计算出每个输入的hidden
+state，其他的就交给 attention来解决。</p>
+<div class="img-container">
+<img src="https://pic2.zhimg.com/v2-ac4d5a38ff67d7e6b2ab04715b077533_r.jpg" alt="sample" style="display:block; margin:0 auto; width:40%">
+<div class="caption" style="text-align: center; font-family: sans-serif">
+
+</div>
+</div>
+<p>  这里还是保留有encoder和decoder的结构，encoder中的attention都是
+self-attention，decoder则除了self-attention还有cross-attention。</p>
+<p>  transformer结构下，attention的一般形式可以写作<span class="math inline">\(\mathrm{Attention}(Q,K,V)=\mathrm{Score}(Q,K)V\)</span>，这里有<span class="math inline">\(Q=W_{Q}Y，K=W_{K}X，V=W_{V}X\)</span>。对于
+cross-attention，<span class="math inline">\(X\)</span>是encoder的hidden
+states，<span class="math inline">\(Y\)</span>是decoder的hidden
+states，而对于self-attention，则有<span class="math inline">\(X=Y\)</span>。</p>
+<p>  具体到我们熟悉的scaled dot-product
+attention，使用softmax计算，有</p>
+<p><span class="math display">\[\operatorname{Attention}(Q,K,V)=\operatorname{softmax}(\frac{QK^T}{\sqrt{d}})V
+\\\]</span></p>
+<p>  到这里，终于见到我们熟悉的attention计算。</p>
+<p>  用一张很直观的图来展示整个计算</p>
+<div class="img-container">
+<img src="https://pic3.zhimg.com/v2-1300387875bb218c40c9c56a517cacb2_r.jpg" alt="sample" style="display:block; margin:0 auto; width:50%">
+<div class="caption" style="text-align: center; font-family: sans-serif">
+
+</div>
+</div>
+<p>  这里的「query」，「key」和「value」的名称也暗示了整个attention计算的思路。类比到一个数据库查询+预测的例子。假设我们现在有一个“文章-阅读量”数据库，记录了每篇文章在发布30天内的阅读量。每篇文章就是一个key，对应的阅读量就是value。</p>
+<p>  我们现在有一篇将要发布的文章，想要预测这篇文章在30天内的阅读量，那我们就把这篇新的文章，作为query，去和数据库里的文章（key）做一个相关性计算，取最相关的5篇文章。</p>
+<p>  假设top5篇文章的相关性分别是<span class="math inline">\([8,4,4,2,2]\)</span>，对应阅读量是<span class="math inline">\([5\text{w},2\text{w},8\text{w},3\text{w},6\text{w}]\)</span>。</p>
+<p>  那我们把相关性得分归一化成和为1的概率值<span class="math inline">\([0.4,0.2,0.2,0.1,0.1]\)</span>，那我们就可以预测新文章30天内的阅读量是<span class="math inline">\(0.4\times5+0.2\times2+0.2\times8+0.1\times3+0.1\times6=4.9\text{w}\)</span>。</p>
+<p>  这个例子中，我们计算相关性就相当于transformer attention中的<span class="math inline">\(QK^T\)</span>
+，归一化就是softmax，然后通过加权求和取得最后的阅读量/特征向量。</p>
+<p>  对于self-attention，<span class="math inline">\(Q、K、V\)</span>都来自输入<span class="math inline">\(X\)</span>，sequence自己计算自己每个token的之间的相关性。而对于cross-attention，decoder中的输出sequence就是上面这个例子中的“将要发布的文章”，通过把这篇新的文章和数据库中的文章做相关计算，我们得到了新的预测结果。</p>
+<p>  对于self-attention，由于<span class="math inline">\(Q、K、V\)</span>都来自输入<span class="math inline">\(X\)</span>，在计算<span class="math inline">\(QK^T\)</span>，模型很容易关注到自身的位置上，也就是<span class="math inline">\(QK^T\)</span>对角线上的激活值会明显比较大。这样的情况其实不是很好，因为这会削弱模型关注其他高价值位置的能力，也就限制模型的理解和表达能力。后面讲的MHA对这个问题会有一些缓解作用。</p>
+<p>  顺着这样的思路梳理下来，会发现attention的大思路还是很好理解的。而计算上，怎么去获得更好的效果，就是接下来要分析的几个内容，MHA，MQA和GQA所关注的。代码上，实现也很容易，直接看
+pytorch forcasting]的代码</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">ScaledDotProductAttention</span>(nn.Module):</span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">__init__</span>(<span class="params">self, dropout: <span class="built_in">float</span> = <span class="literal">None</span>, scale: <span class="built_in">bool</span> = <span class="literal">True</span></span>):</span><br><span class="line">        <span class="built_in">super</span>(ScaledDotProductAttention, <span class="variable language_">self</span>).__init__()</span><br><span class="line">        <span class="keyword">if</span> dropout <span class="keyword">is</span> <span class="keyword">not</span> <span class="literal">None</span>:</span><br><span class="line">            <span class="variable language_">self</span>.dropout = nn.Dropout(p=dropout)</span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            <span class="variable language_">self</span>.dropout = dropout</span><br><span class="line">        <span class="variable language_">self</span>.softmax = nn.Softmax(dim=<span class="number">2</span>)</span><br><span class="line">        <span class="variable language_">self</span>.scale = scale</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">forward</span>(<span class="params">self, q, k, v, mask=<span class="literal">None</span></span>):</span><br><span class="line">        attn = torch.bmm(q, k.permute(<span class="number">0</span>, <span class="number">2</span>, <span class="number">1</span>))  <span class="comment"># query-key overlap</span></span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> <span class="variable language_">self</span>.scale:</span><br><span class="line">            dimension = torch.as_tensor(k.size(-<span class="number">1</span>), dtype=attn.dtype, device=attn.device).sqrt()</span><br><span class="line">            attn = attn / dimension</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> mask <span class="keyword">is</span> <span class="keyword">not</span> <span class="literal">None</span>:</span><br><span class="line">            attn = attn.masked_fill(mask, -<span class="number">1e9</span>)</span><br><span class="line">        attn = <span class="variable language_">self</span>.softmax(attn)</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> <span class="variable language_">self</span>.dropout <span class="keyword">is</span> <span class="keyword">not</span> <span class="literal">None</span>:</span><br><span class="line">            attn = <span class="variable language_">self</span>.dropout(attn)</span><br><span class="line">        output = torch.bmm(attn, v)</span><br><span class="line">        <span class="keyword">return</span> output, attn</span><br><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<h2 id="关于-scaling">1.3. 关于 scaling</h2>
+<p>  BTW，为什么计算中 <span class="math inline">\(QK^T\)</span>之后还要除以 <span class="math inline">\(\sqrt{d}\)</span> ？</p>
+<p>  简单来说，就是需要压缩softmax输入值，以免输入值过大，进入了softmax的饱和区，导致梯度值太小而难以训练。</p>
+<div class="img-container">
+<img src="https://pic3.zhimg.com/v2-7a69115d5c4337e7ec26434bc0d96098_r.jpg" alt="sample" style="display:block; margin:0 auto; width:30%">
+<div class="caption" style="text-align: center; font-family: sans-serif">
+
+</div>
+</div>
+<p>  苏剑林的<a href="https://link.zhihu.com/?target=https%3A//spaces.ac.cn/archives/8620">博客</a>中也有详细分析，并提到如果不对attention值进行scaling，也可以通过在参数初始化是将方差除以一个<span class="math inline">\(\sqrt{d}\)</span>
+，同样可以起到预防softmax饱和的效果。类似地，通过
+normalization也可以做到类似的效果。不过实现上在attention里做scaling还是比较稳定高效的。</p>
+<h2 id="mha">2.MHA</h2>
+<p>  只要理解了attention计算的细节，MHA（multi-head
+attention）其实就很好明白。</p>
+<p>  MHA在2017年就随着《Attention Is All You
+Need》一起提出，主要干的就是一个事：把原来一个attention计算，拆成多个小份的attention，并行计算，分别得出结果，最后再合回原来的维度。</p>
+<p><span class="math display">\[\mathrm{MultiHeadAttention}(Q,K,V)=\mathrm{Concat}(head_1,\ldots,head_h)
+\\\]</span></p>
+<p><span class="math display">\[head_i=\text{Attention}(W_i^QQ,W_i^KK,W_i^VV)
+\\\]</span></p>
+<p>  假设原来模型的hidden size是<span class="math inline">\(d\)</span>
+，在MHA中，会把投影后的<span class="math inline">\(Q、K、V\)</span>在
+hidden state的维度上切成<span class="math inline">\(head_{num}\)</span>份，每个头的维度是<span class="math inline">\(d_{head}\)</span> 。这<span class="math inline">\(head_{num}\)</span>组小 <span class="math inline">\(Q、K、V\)</span>分别独立地进行attention计算，之后把得到的<span class="math inline">\(head_{num}\)</span>份维度<span class="math inline">\(d_{head}\)</span>的输出concat起来。</p>
+<p>  直接看这个amazing的图，很直观</p>
+<div class="img-container">
+<img src="https://picx.zhimg.com/v2-15580348885d70fd6a11c683eac151af_r.jpg" alt="sample" style="display:block; margin:0 auto; width:60%">
+<div class="caption" style="text-align: center; font-family: sans-serif">
+
+</div>
+</div>
+<p>  操作是这么个操作，多头注意力相比单头有什么好处呢？《Attention Is
+All You Need》文章中给出的说法是</p>
+<blockquote>
+<p>Multi-head attention allows the model to jointly attend to
+information from different representation subspaces at different
+positions.</p>
+</blockquote>
+<p>  我们希望多个头能够在训练中学会注意到不同的内容。例如在翻译任务里，一些
+attention head可以关注语法特征，另一些 attention
+head可以关注单词特性。这样模型就可以从不同角度来分析和理解输入信息，获得更好的效果了。</p>
+<p>  这有点类似CNN中，不同的卷积核来学习不同的信息。比如一个 <span class="math inline">\(3\times3\times128\)</span>的卷积，有128个<span class="math inline">\(3\times3\)</span>参数组，假设我们的输入是一个灰度图，其中一组<span class="math inline">\(3\times3\)</span>的参数是这样的</p>
+<p><span class="math display">\[\left.\left[\begin{matrix}1&amp;0&amp;-1\\1&amp;0&amp;-1\\1&amp;0&amp;-1\end{matrix}\right.\right]
+\\\]</span></p>
+<p>  那么这是一个检测纵向边界的卷积，而另外一组参数长这样</p>
+<p><span class="math display">\[\left.\left[\begin{matrix}1&amp;1&amp;1\\0&amp;0&amp;0\\-1&amp;-1&amp;-1\end{matrix}\right.\right]
+\\\]</span></p>
+<p>  这是一个检测横向边界的卷积。</p>
+<p>  这128组<span class="math inline">\(3\times3\)</span>就是128个不同特征的检测器，就同MHA中多个头一样，从不同的子空间学到不同的内容，最后再放到一起融合使用。</p>
+<p>  但是这是我们expect模型能做到的事情，实际情况是否真的是这样？</p>
+<p>  知乎上这篇<a target="_blank" rel="noopener" href="https://zhuanlan.zhihu.com/p/626820422">文章</a>里对此做了一些实验和分析。简单来说就是（1）每个头确实学到东西有所不同，但大部分头之间的差异没有我们想的那么大（比如一个学句法，一个学词义这样明显的区分）（2）多个头的情况下，确实有少部分头可以比较好地捕捉到各种文本信息，而不会过分关注自身位置，一定程度缓解了上文提到的计算
+<span class="math inline">\(QK^T\)</span>之后对角线元素过大的问题。</p>
+<p>  我们可以把MHA的多个attention计算视为多个独立的小模型，那么最终整体的attention计算相当于把来自多个小模型的结果进行了融合，这样效果比较好也是比较符合直觉的。</p>
+<p>  另外还有一个问题是，使用几个头比较好呢？</p>
+<p>  实际上这个问题比较难有确定性的答案，首先可以确定的是头的数量不是越多约好（毕竟头的数量多了，各个子空间小了，子空间能表达的内容就少了），具体多少要视模型规模，任务而定。另外<a href="https://link.zhihu.com/?target=https%3A//arxiv.org/pdf/1905.10650.pdf">《Are
+Sixteen Heads Really Better than One?》</a>中也指出 MHA
+并不总是优于单头的情况。</p>
+<p>  目前可以看到的趋势是，模型越大（也就是 hidden size
+越大），头数的增多越能带来平均效果上的收益（或者说允许注意力头增大而不影响子空间的学习能力）。目前LLM主流的头数视乎模型结构和规模，大致有12、16、24、48、96这样一些主流设置。这里面又有比较多的方向和工作，在此暂时不展开，挖个坑，以后专门开一篇讲。</p>
+<p>  最后看一下<a href="https://link.zhihu.com/?target=https%3A//nlp.seas.harvard.edu/2018/04/03/attention.html">The
+Annotated Transformer</a> 中的 MHA 代码实现</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">def</span> <span class="title function_">attention</span>(<span class="params">query, key, value, mask=<span class="literal">None</span>, dropout=<span class="literal">None</span></span>):</span><br><span class="line">    <span class="string">&quot;Compute &#x27;Scaled Dot Product Attention&#x27;&quot;</span></span><br><span class="line">    d_k = query.size(-<span class="number">1</span>)</span><br><span class="line">    scores = torch.matmul(query, key.transpose(-<span class="number">2</span>, -<span class="number">1</span>)) \</span><br><span class="line">             / math.sqrt(d_k)</span><br><span class="line">    <span class="keyword">if</span> mask <span class="keyword">is</span> <span class="keyword">not</span> <span class="literal">None</span>:</span><br><span class="line">        scores = scores.masked_fill(mask == <span class="number">0</span>, -<span class="number">1e9</span>)</span><br><span class="line">    p_attn = F.softmax(scores, dim = -<span class="number">1</span>)</span><br><span class="line">    <span class="keyword">if</span> dropout <span class="keyword">is</span> <span class="keyword">not</span> <span class="literal">None</span>:</span><br><span class="line">        p_attn = dropout(p_attn)</span><br><span class="line">    <span class="keyword">return</span> torch.matmul(p_attn, value), p_attn</span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">MultiHeadedAttention</span>(nn.Module):</span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">__init__</span>(<span class="params">self, h, d_model, dropout=<span class="number">0.1</span></span>):</span><br><span class="line">        <span class="string">&#x27;&#x27;&#x27;</span></span><br><span class="line"><span class="string">        h: head number</span></span><br><span class="line"><span class="string">        &#x27;&#x27;&#x27;</span></span><br><span class="line">        <span class="built_in">super</span>(MultiHeadedAttention, <span class="variable language_">self</span>).__init__()</span><br><span class="line">        <span class="keyword">assert</span> d_model % h == <span class="number">0</span></span><br><span class="line">        <span class="comment"># We assume d_v always equals d</span></span><br><span class="line">        <span class="variable language_">self</span>.d = d_model // h</span><br><span class="line">        <span class="variable language_">self</span>.h = h</span><br><span class="line">        <span class="variable language_">self</span>.linears = clones(nn.Linear(d_model, d_model), <span class="number">4</span>)</span><br><span class="line">        <span class="variable language_">self</span>.attn = <span class="literal">None</span></span><br><span class="line">        <span class="variable language_">self</span>.dropout = nn.Dropout(p=dropout)</span><br><span class="line">        </span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">forward</span>(<span class="params">self, query, key, value, mask=<span class="literal">None</span></span>):</span><br><span class="line">        <span class="keyword">if</span> mask <span class="keyword">is</span> <span class="keyword">not</span> <span class="literal">None</span>:</span><br><span class="line">            <span class="comment"># Same mask applied to all h heads.</span></span><br><span class="line">            mask = mask.unsqueeze(<span class="number">1</span>)</span><br><span class="line">        nbatches = query.size(<span class="number">0</span>)</span><br><span class="line">        </span><br><span class="line">        <span class="comment"># 1) Do all the linear projections in batch from d_model =&gt; h x d </span></span><br><span class="line">        query, key, value = \</span><br><span class="line">            [l(x).view(nbatches, -<span class="number">1</span>, <span class="variable language_">self</span>.h, <span class="variable language_">self</span>.d).transpose(<span class="number">1</span>, <span class="number">2</span>)</span><br><span class="line">             <span class="keyword">for</span> l, x <span class="keyword">in</span> <span class="built_in">zip</span>(<span class="variable language_">self</span>.linears, (query, key, value))]</span><br><span class="line">        </span><br><span class="line">        <span class="comment"># 2) Apply attention on all the projected vectors in batch. </span></span><br><span class="line">        x, <span class="variable language_">self</span>.attn = attention(query, key, value, mask=mask, </span><br><span class="line">                                 dropout=<span class="variable language_">self</span>.dropout)</span><br><span class="line">        </span><br><span class="line">        <span class="comment"># 3) &quot;Concat&quot; using a view and apply a final linear. </span></span><br><span class="line">        x = x.transpose(<span class="number">1</span>, <span class="number">2</span>).contiguous() \</span><br><span class="line">             .view(nbatches, -<span class="number">1</span>, <span class="variable language_">self</span>.h * <span class="variable language_">self</span>.d)</span><br><span class="line">        <span class="keyword">return</span> <span class="variable language_">self</span>.linears[-<span class="number">1</span>](x)</span><br><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>  <a href="https://link.zhihu.com/?target=https%3A//github.com/huggingface/transformers">transformers</a>
+中的写法就更为成熟一点，不过里面兼容了比较多的功能，代码太长就不放上来了。</p>
+<ol start="3" type="1">
+<li>解码中的 KV Cache</li>
+</ol>
+<hr>
+<p>  在讲MQA和GQA之前，还需要了解一点背景，那就是解码的计算问题，以及KV
+Cache
+的方案。无论是encoder-decoder结构，还是现在我们最接近AGI的decoder-only的LLM，解码生成时都是自回归auto-regressive的方式。</p>
+<p>  也就是，解码的时候，先根据当前输入<span class="math inline">\(\text{input}_{i-1}\)</span>，生成下一个 <span class="math inline">\(\text{token}_{i}\)</span>，然后把新生成的<span class="math inline">\(\text{token}_{i}\)</span>拼接在<span class="math inline">\(\text{input}_{i-1}\)</span>
+后面，获得新的输入<span class="math inline">\(\text{input}_{i}\)</span>
+，再用<span class="math inline">\(\text{input}_{i}\)</span>生成<span class="math inline">\(\text{token}_{i+1}\)</span>，依此迭代，直到生成结束。</p>
+<p>  比如我们输入“窗前明月光下一句是”，那么模型每次生成一个
+token，输入输出会是这样（方便起见，默认每个token都是一个字符）</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">step0: 输入=[BOS]窗前明月光下一句是；输出=疑</span><br><span class="line">step1: 输入=[BOS]窗前明月光下一句是疑；输出=是</span><br><span class="line">step2: 输入=[BOS]窗前明月光下一句是疑是；输出=地</span><br><span class="line">step3: 输入=[BOS]窗前明月光下一句是疑是地；输出=上</span><br><span class="line">step4: 输入=[BOS]窗前明月光下一句是疑是地上；输出=霜</span><br><span class="line">step5: 输入=[BOS]窗前明月光下一句是疑是地上霜；输出=[EOS]</span><br></pre></td></tr></table></figure>
+<p>  [BOS]和[EOS]分别是起始符号和终止符号</p>
+<p>  仔细想一下，我们在生成 “疑” 字的时候，用的是输入序列中 “是”
+字的最后一层 hidden
+state，通过最后的分类头预测出来的。以此类推，后面每生成一个字，使用的都是输入序列中最后一个字的输出。</p>
+<p>  我们可以注意到，下一个step的输入其实包含了上一个step的内容，而且只在最后面多了一点点（一个
+token）。那么下一个step的计算应该也包含了上一个step的计算。</p>
+<p>  从公式上来看是这样的，回想一下我们attention的计算：</p>
+<p><span class="math display">\[\alpha_{i,j}=\text{softmax}(q_{i}k_{j}^\top)\\
+o_{i}=\sum_{j=0}^{i}{\alpha_{i,j}v_{j}} \\\]</span></p>
+<p>  注意对于decoder的时候，由于mask
+attention的存在，每个输入只能看到自己和前面的内容，而看不到后面的内容假设我们当前输入的长度是3，预测第4个字，那每层attention所做的计算有：</p>
+<p><span class="math display">\[\begin{aligned}
+o_{0}&amp;=\alpha_{0,0}v_{0}\\
+o_{1}&amp;=\alpha_{1,0}v_{0}+\alpha_{1,1}v_{1}\\
+o_{2}&amp;=\alpha_{2,0}v_{0}+\alpha_{2,1}v_{1}+\alpha_{2,2}v_{2}\\
+\end{aligned} \\\]</span></p>
+<p>  预测完第4个字，放到输入里，继续预测第5个字，每层attention所做的计算有：</p>
+<p><span class="math display">\[\begin{aligned}
+o_{0}&amp;=\alpha_{0,0}v_{0}\\
+o_{1}&amp;=\alpha_{1,0}v_{0}+\alpha_{1,1}v_{1}\\
+o_{2}&amp;=\alpha_{2,0}v_{0}+\alpha_{2,1}v_{1}+\alpha_{2,2}v_{2}\\
+o_{3}&amp;=\alpha_{3,0}v_{0}+\alpha_{3,1}v_{1}+\alpha_{3,2}v_{2}+\alpha_{3,3}v_{3}\\
+\end{aligned} \\\]</span></p>
+<p>  可以看到，在预测第5个字时，只有最后一步引入了新的计算，而<span class="math inline">\(o_{0}\)</span>到<span class="math inline">\(o_{2}\)</span>的计算和前面是完全重复的。</p>
+<p>  但是模型在推理的时候可不管这些，无论你是不是只要最后一个字的输出，它都把所有输入计算一遍，给出所有输出结果。</p>
+<p>  也就是说中间有很多我们用不到的计算，这样就造成了浪费。</p>
+<p>  而且随着生成的结果越来越多，输入的长度也越来越长，上面这个例子里，输入长度就从step0的10个，每步增长1，直到step5的15个。如果输入的instruction是让模型写作文，那可能就有800个step。这个情况下，step0被算了800次，step1被算了799次...这样浪费的计算资源确实不容忽视。</p>
+<p>  有没有什么办法可以重复利用上一个step里已经计算过的结果，减少浪费呢？</p>
+<p>  答案就是KV
+Cache，利用一个缓存，把需要重复利用的中间计算结果存下来，减少重复计算。</p>
+<p>  而<span class="math inline">\(k\)</span>和<span class="math inline">\(v\)</span>就是我要缓存的对象。
+  想象一下，在上面的例子中，假设我们一开始的输入就是3个字，我们第一次预测就是预测第4个字，那么由于一开始没有任何缓存，所有我们每一层还是要老实地计算一遍。然后把<span class="math inline">\(k\)</span>、<span class="math inline">\(v\)</span>值缓存起来。</p>
+<p>  则有</p>
+<p><span class="math display">\[\text{cache}_l=\text{None}
+\\\]</span></p>
+<p><span class="math display">\[\text{cache}_l=[(k_{0}, v_{0}),(k_{1},
+v_{1}),(k_{2}, v_{2})] \\\]</span></p>
+<p>  kv_cache的下标<span class="math inline">\(l\)</span>表示模型层数。</p>
+<p>  在进行第二次预测，也就是预测第5个字的时候，在第<span class="math inline">\(l\)</span>层的时候，由于前面我们缓存了<strong>每层</strong>的<span class="math inline">\(k\)</span>、<span class="math inline">\(v\)</span>值，那本层就只需要算新的<span class="math inline">\(o_{3}\)</span> ，而不用算<span class="math inline">\(o_{0}、o_{1}、o_{2}\)</span>。</p>
+<p>  因为第<span class="math inline">\(l\)</span>层的<span class="math inline">\(o_{0}、o_{1}、o_{2}\)</span>本来会经过FNN层之后进到<span class="math inline">\(l+1\)</span>层，再经过新的投影变换，成为<span class="math inline">\(l+1\)</span>层的<span class="math inline">\(k\)</span>、 <span class="math inline">\(v\)</span>值，但是<span class="math inline">\(l+1\)</span>层的<span class="math inline">\(k\)</span>、 <span class="math inline">\(v\)</span>值我们已经缓存过了！</p>
+<p>  然后我们把本次新增算出来的<span class="math inline">\(k\)</span>、
+<span class="math inline">\(v\)</span>值也存入缓存。</p>
+<p><span class="math display">\[\text{cache}_l=[(k_{0}, v_{0}),(k_{1},
+v_{1}),(k_{2}, v_{2})] \\\]</span></p>
+<p><span class="math display">\[\text{cache}_l=[(k_{0}, v_{0}),(k_{1},
+v_{1}),(k_{2}, v_{2}),(k_{3}, v_{3})] \\\]</span></p>
+<p>  这样就节省了attention和FFN的很多重复计算。</p>
+<p>  transformers中，生成的时候传入use_cache=True就会开启KV Cache。</p>
+<p>  也可以简单看下GPT2中的实现，中文注释的部分就是使用缓存结果和更新缓存结果</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br></pre></td><td class="code"><pre><span class="line">Class GPT2Attention(nn.Module):</span><br><span class="line">    ...</span><br><span class="line">    ...</span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">forward</span>(<span class="params"></span></span><br><span class="line"><span class="params">        self,</span></span><br><span class="line"><span class="params">        hidden_states: <span class="type">Optional</span>[<span class="type">Tuple</span>[torch.FloatTensor]],</span></span><br><span class="line"><span class="params">        layer_past: <span class="type">Optional</span>[<span class="type">Tuple</span>[torch.Tensor]] = <span class="literal">None</span>,</span></span><br><span class="line"><span class="params">        attention_mask: <span class="type">Optional</span>[torch.FloatTensor] = <span class="literal">None</span>,</span></span><br><span class="line"><span class="params">        head_mask: <span class="type">Optional</span>[torch.FloatTensor] = <span class="literal">None</span>,</span></span><br><span class="line"><span class="params">        encoder_hidden_states: <span class="type">Optional</span>[torch.Tensor] = <span class="literal">None</span>,</span></span><br><span class="line"><span class="params">        encoder_attention_mask: <span class="type">Optional</span>[torch.FloatTensor] = <span class="literal">None</span>,</span></span><br><span class="line"><span class="params">        use_cache: <span class="type">Optional</span>[<span class="built_in">bool</span>] = <span class="literal">False</span>,</span></span><br><span class="line"><span class="params">        output_attentions: <span class="type">Optional</span>[<span class="built_in">bool</span>] = <span class="literal">False</span>,</span></span><br><span class="line"><span class="params">    </span>) -&gt; <span class="type">Tuple</span>[<span class="type">Union</span>[torch.Tensor, <span class="type">Tuple</span>[torch.Tensor]], ...]:</span><br><span class="line">        <span class="keyword">if</span> encoder_hidden_states <span class="keyword">is</span> <span class="keyword">not</span> <span class="literal">None</span>:</span><br><span class="line">            <span class="keyword">if</span> <span class="keyword">not</span> <span class="built_in">hasattr</span>(<span class="variable language_">self</span>, <span class="string">&quot;q_attn&quot;</span>):</span><br><span class="line">                <span class="keyword">raise</span> ValueError(</span><br><span class="line">                    <span class="string">&quot;If class is used as cross attention, the weights `q_attn` have to be defined. &quot;</span></span><br><span class="line">                    <span class="string">&quot;Please make sure to instantiate class with `GPT2Attention(..., is_cross_attention=True)`.&quot;</span></span><br><span class="line">                )</span><br><span class="line"></span><br><span class="line">            query = <span class="variable language_">self</span>.q_attn(hidden_states)</span><br><span class="line">            key, value = <span class="variable language_">self</span>.c_attn(encoder_hidden_states).split(<span class="variable language_">self</span>.split_size, dim=<span class="number">2</span>)</span><br><span class="line">            attention_mask = encoder_attention_mask</span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            query, key, value = <span class="variable language_">self</span>.c_attn(hidden_states).split(<span class="variable language_">self</span>.split_size, dim=<span class="number">2</span>)</span><br><span class="line"></span><br><span class="line">        query = <span class="variable language_">self</span>._split_heads(query, <span class="variable language_">self</span>.num_heads, <span class="variable language_">self</span>.head_dim)</span><br><span class="line">        key = <span class="variable language_">self</span>._split_heads(key, <span class="variable language_">self</span>.num_heads, <span class="variable language_">self</span>.head_dim)</span><br><span class="line">        value = <span class="variable language_">self</span>._split_heads(value, <span class="variable language_">self</span>.num_heads, <span class="variable language_">self</span>.head_dim)</span><br><span class="line"></span><br><span class="line">        <span class="comment"># 过去所存的值</span></span><br><span class="line">        <span class="keyword">if</span> layer_past <span class="keyword">is</span> <span class="keyword">not</span> <span class="literal">None</span>:</span><br><span class="line">            past_key, past_value = layer_past</span><br><span class="line">            key = torch.cat((past_key, key), dim=-<span class="number">2</span>)  <span class="comment"># 把当前新的key加入</span></span><br><span class="line">            value = torch.cat((past_value, value), dim=-<span class="number">2</span>)  <span class="comment"># 把当前新的value加入</span></span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> use_cache <span class="keyword">is</span> <span class="literal">True</span>:</span><br><span class="line">            present = (key, value)  <span class="comment"># 输出用于保存</span></span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            present = <span class="literal">None</span></span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> <span class="variable language_">self</span>.reorder_and_upcast_attn:</span><br><span class="line">            attn_output, attn_weights = <span class="variable language_">self</span>._upcast_and_reordered_attn(query, key, value, attention_mask, head_mask)</span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            attn_output, attn_weights = <span class="variable language_">self</span>._attn(query, key, value, attention_mask, head_mask)</span><br><span class="line"></span><br><span class="line">        attn_output = <span class="variable language_">self</span>._merge_heads(attn_output, <span class="variable language_">self</span>.num_heads, <span class="variable language_">self</span>.head_dim)</span><br><span class="line">        attn_output = <span class="variable language_">self</span>.c_proj(attn_output)</span><br><span class="line">        attn_output = <span class="variable language_">self</span>.resid_dropout(attn_output)</span><br><span class="line"></span><br><span class="line">        outputs = (attn_output, present)</span><br><span class="line">        <span class="keyword">if</span> output_attentions:</span><br><span class="line">            outputs += (attn_weights,)</span><br><span class="line"></span><br><span class="line">        <span class="keyword">return</span> outputs  <span class="comment"># a, present, (attentions)</span></span><br><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>  总的来说，KV
+Cache是以空间换时间的做法，通过使用快速的缓存存取，减少了重复计算。（注意，只有decoder结构的模型可用，因为有mask
+attention的存在，使得前面的token可以不用关注后面的token）</p>
+<p>  但是，用了KV Cache之后也不是立刻万事大吉。</p>
+<p>  我们简单算一下，对于输入长度为<span class="math inline">\(s\)</span>，层数为<span class="math inline">\(L\)</span>，hidden size为<span class="math inline">\(d\)</span>的模型，需要缓存的参数量为</p>
+<p><span class="math display">\[2\times L\times s\times d
+\\\]</span></p>
+<p>  如果使用的是半精度浮点数，那么总共所需的空间就是</p>
+<p><span class="math display">\[2\times 2\times L\times s\times d
+\\\]</span></p>
+<p>  以Llama2 7B为例，有<span class="math inline">\(L=32\)</span>
+，<span class="math inline">\(L=4096\)</span>，那么每个token所需的缓存空间就是
+524,288bytes，约52K，当<span class="math inline">\(s=1024\)</span>时，则需要536,870,912
+bytes，超过500M的空间。</p>
+<p>  这里考虑的还只是batch size=1 的情况，如果batch size
+增大，这个值更是很容易就超过1G。（MHA相比单头的情况，相当于只是把<span class="math inline">\(q、k、v\)</span>切成多份并行计算了，对于实际需要缓存的大小没有影响）</p>
+<p>  看下现在主流的科学计算卡配置</p>
+<div class="img-container">
+<img src="https://picx.zhimg.com/v2-0f831b35b55cb838f966891f95a25eef_r.jpg" alt="sample" style="display:block; margin:0 auto; width:60%">
+<div class="caption" style="text-align: center; font-family: sans-serif">
+
+</div>
+</div>
+<p>  强如H100也只有50M的L2 Cache（L1
+Cache的大小更是可以忽略不计），大概只能支持Llama2
+7B总共100个token左右的输入。</p>
+<p>  想想我们现在用的LLM动辄34B/70B的规模，长度更是以千为基础单位，这样明显是不够用的。</p>
+<p>  那么超出L2 Cache的部分只能走到显存中去了，但是HBM速度比L2
+Cache慢多了。</p>
+<div class="img-container">
+<img src="https://pic1.zhimg.com/v2-98a3525b9ce728be66903fe35f3a143c_r.jpg" alt="sample" style="display:block; margin:0 auto; width:50%">
+<div class="caption" style="text-align: center; font-family: sans-serif">
+
+</div>
+</div>
+<p>  看来还需要进一步优化。</p>
+<p>  要保证模型的推理加速，要么增大Cache的大小，而且是需要一到两个数量级的增强，那这个只能靠黄老板了。</p>
+<p>  要么就是减少需要缓存的量。</p>
+<h2 id="mqa">4.MQA</h2>
+<p>  MQA就是来减少缓存所需要的量的。</p>
+<p>  Google在2019年就在《Fast Transformer Decoding: One Write-Head is
+All You
+Need》提出了MQA，不过那时候主要到的人不多，那是大家主要还是关注在用Bert把榜刷出新高上。</p>
+<p>  MQA的做法其实很简单。在MHA中，输入分别经过<span class="math inline">\(W_{Q}、W_{K}、W_{V}\)</span>变换之后，都切成了n份（n=头数），维度也从<span class="math inline">\(d_{model}\)</span>降到了<span class="math inline">\(d_{head}\)</span>，分别进行attention计算再拼接。而MQA这里，在线性变换之后，只对<span class="math inline">\(Q\)</span>进行切分（和 MHA 一样），而<span class="math inline">\(K、V\)</span>则直接在线性变换的时候把维度降到了<span class="math inline">\(d_{head}\)</span>（而不是切分变小），然后这n个Query头分别和同一份<span class="math inline">\(K、V\)</span>进行
+attention计算，之后把结果拼接起来。</p>
+<p>  简单来说，就是MHA中，每个注意力头的<span class="math inline">\(K、V\)</span>是不一样的，而MQA这里，每个注意力头的<span class="math inline">\(K、V\)</span>是一样的，值是共享的。而其他步骤都和MHA一样。</p>
+<div class="img-container">
+<img src="https://pic1.zhimg.com/v2-90c8caf647b040b1987f9bf3024a5828_r.jpg" alt="sample" style="display:block; margin:0 auto; width:50%">
+<div class="caption" style="text-align: center; font-family: sans-serif">
+
+</div>
+</div>
+<p>  这样一来，需要缓存的<span class="math inline">\(K、V\)</span>值一下就从所有头变成一个头的量。</p>
+<p>  比如在Llama2
+7B中用的是32个头，那用MQA后，1024个token需要缓存的量就变成
+1/32，536,870,912 bytes / 32 = 16,777,216
+bytes，差不多是16M，这就能全塞进缓存中了。(实现上，就是改一下线性变换矩阵，然后把
+<span class="math inline">\(K、V\)</span>的处理从切分变成复制，就不再赘述。）</p>
+<p>  当然，由于共享了多个头的参数，限制了模型的表达能力，MQA虽然能好地支持推理加速，但是在效果上略略比MHA差一点，但是并不多，且相比其他修改hidden
+size或者head num的做法效果都好。</p>
+<div class="img-container">
+<img src="https://pic3.zhimg.com/v2-d42ddafcf14e3f865fe4fd9765d21bd8_r.jpg" alt="sample" style="display:block; margin:0 auto; width:50%">
+<div class="caption" style="text-align: center; font-family: sans-serif">
+
+</div>
+</div>
+<div class="img-container">
+<img src="https://pic1.zhimg.com/v2-ca4682e17c6914cb5c0c9c9dadec7212_r.jpg" alt="sample" style="display:block; margin:0 auto; width:50%">
+<div class="caption" style="text-align: center; font-family: sans-serif">
+
+</div>
+</div>
+<h2 id="gqa">5.GQA</h2>
+<p>  既然MQA对效果有点影响，MHA缓存又存不下，那GQA（Grouped-Query
+Attention）就提出了一个折中的办法，既能减少MQA效果的损失，又相比MHA需要更少的缓存。
+（文章：《GQA: Training Generalized Multi-Query Transformer Models from
+Multi-Head Checkpoints》，2023 年）</p>
+<p>  GQA里，<span class="math inline">\(Q\)</span>还是按原来MHA/MQA的做法不变。只使用一套共享的<span class="math inline">\(K、V\)</span>不是效果不好吗，那就还是多弄几套。但是不要太多，数量还是比<span class="math inline">\(Q\)</span>的头数少一些。这样相当于把<span class="math inline">\(Q\)</span>的多个头给分了group，同一个group内的<span class="math inline">\(Q\)</span>共享同一套<span class="math inline">\(K、V\)</span> ，不同group的<span class="math inline">\(Q\)</span>所用的<span class="math inline">\(K、V\)</span> 不同。</p>
+<p>  MHA可以认为是<span class="math inline">\(K、V\)</span>头数最大时的GQA，而MQA可以任务是<span class="math inline">\(K、V\)</span>头数最少时的 GQA。</p>
+<p>  看论文里的图就很直观</p>
+<div class="img-container">
+<img src="https://pic2.zhimg.com/v2-152555107b3ad3ad0b4f97b0972eb123_r.jpg" alt="sample" style="display:block; margin:0 auto; width:80%">
+<div class="caption" style="text-align: center; font-family: sans-serif">
+
+</div>
+</div>
+<p>  效果怎么样呢？</p>
+<div class="img-container">
+<img src="https://picx.zhimg.com/v2-79080c0b8afa595f2ed639b1171bc819_r.jpg" alt="sample" style="display:block; margin:0 auto; width:60%">
+<div class="caption" style="text-align: center; font-family: sans-serif">
+
+</div>
+</div>
+<p>  看表中2/3/4行对比，GQA的速度相比MHA有明显提升，而效果上比MQA也好一些，能做到和MHA基本没差距。文中提到，这里的MQA和GQA都是通过average
+pooling从MHA初始化而来，然后进行了少量的训练得到的。如果我们想要把之前用MHA训练的模型改造成GQA，也可以通过这样的方法，增加少量训练来实现。当然如果从一开始就加上，从零开始训练，也是没有问题的。</p>
+<p>  Llama2用的就是GQA，在tech
+report中也做了MHA、MQA、GQA的效果对比，可以看到效果确实很不错。</p>
+<div class="img-container">
+<img src="https://pic2.zhimg.com/v2-aa6302478f6dab8cf4b4cc400a406f79_r.jpg" alt="sample" style="display:block; margin:0 auto; width:60%">
+<div class="caption" style="text-align: center; font-family: sans-serif">
+
+</div>
+</div>
+<ol start="6" type="1">
+<li>小结</li>
+</ol>
+<hr>
+<p>  MHA、MQA、GQA的实现其实并不复杂，效果也很好，理解上并没有太多困难。但是想要真正理解它们的出发点，还是需要深入每一个细节，去了解当时要解决的事什么问题。</p>
+<p>  目前来看GQA是LLM比较好的方案，但未来肯定还会有针对不同方向的进一步优化方案，计算效率、推理速度、显存消耗这些方向都值得我们继续去探索优化。</p>
+<p>文章搬运自<a target="_blank" rel="noopener" href="https://zhuanlan.zhihu.com/p/686149289">理解Attention:从起源到MHA,MQA和GQA</a></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/Attention-MHA-GQA-MQA-LLM/" rel="tag"> <i class="fa fa-tag"></i> -- Attention -- MHA -- GQA -- MQA -- LLM</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/posts/15775ef77/" rel="prev" title="理解自注意力机制">
+      <i class="fa fa-chevron-left"></i> 理解自注意力机制
+    </a></div>
+      <div class="post-nav-item"></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+    <div class="comments" id="gitalk-container"></div>
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BB%8E-rnn-%E8%AF%B4%E8%B5%B7"><span class="nav-number">1.</span> <span class="nav-text">1.1. 从 RNN 说起</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#transformer-%E7%9A%84-attention"><span class="nav-number">2.</span> <span class="nav-text">1.2.Transformer 的 attention</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%85%B3%E4%BA%8E-scaling"><span class="nav-number">3.</span> <span class="nav-text">1.3. 关于 scaling</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#mha"><span class="nav-number">4.</span> <span class="nav-text">2.MHA</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#mqa"><span class="nav-number">5.</span> <span class="nav-text">4.MQA</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#gqa"><span class="nav-number">6.</span> <span class="nav-text">5.GQA</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="殉道者"
+      src="/uploads/avatar.png">
+  <p class="site-author-name" itemprop="name">殉道者</p>
+  <div class="site-description" itemprop="description">幼而学者,如日出之光；老而学者，如秉烛夜行，犹贤乎瞑目而无见者也！</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">10</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">4</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">20</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/wcjb" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;wcjb" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="/wcjbyjx@gmail.com" title="E-Mail → wcjbyjx@gmail.com"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+
+      </div>
+      
+      
+        <div class="links-of-blogroll motion-element links-of-blogroll-block">
+          <div class="links-of-blogroll-title">
+            <!-- modify icon to fire by szw -->
+            <i class="fa fa-history fa-" aria-hidden="true"></i>
+            近期文章
+          </div>
+          <ul class="links-of-blogroll-list">
+            
+            
+              <li class="recent_posts_li">
+                <a href="/" title="" target="_blank"></a>
+              </li>
+            
+              <li class="recent_posts_li">
+                <a href="/" title="" target="_blank"></a>
+              </li>
+            
+              <li class="recent_posts_li">
+                <a href="/" title="" target="_blank"></a>
+              </li>
+            
+              <li class="recent_posts_li">
+                <a href="/" title="" target="_blank"></a>
+              </li>
+            
+              <li class="recent_posts_li">
+                <a href="/" title="" target="_blank"></a>
+              </li>
+            
+          </ul>
+        </div>
+      
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2025</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">殉道者</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+    <span title="站点总字数">41k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">2:29</span>
+</div>
+
+<!--
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+-->
+
+    <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script size="300" alpha="0.6" zIndex="-1" src="//cdn.jsdelivr.net/gh/theme-next/theme-next-canvas-ribbon@1/canvas-ribbon.js"></script>
+  <script src="/lib/anime.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/medium-zoom@1/dist/medium-zoom.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+      
+
+<script>
+  if (typeof MathJax === 'undefined') {
+    window.MathJax = {
+      loader: {
+          load: ['[tex]/mhchem'],
+        source: {
+          '[tex]/amsCd': '[tex]/amscd',
+          '[tex]/AMScd': '[tex]/amscd'
+        }
+      },
+      tex: {
+        inlineMath: {'[+]': [['$', '$']]},
+          packages: {'[+]': ['mhchem']},
+        tags: 'ams'
+      },
+      options: {
+        renderActions: {
+          findScript: [10, doc => {
+            document.querySelectorAll('script[type^="math/tex"]').forEach(node => {
+              const display = !!node.type.match(/; *mode=display/);
+              const math = new doc.options.MathItem(node.textContent, doc.inputJax[0], display);
+              const text = document.createTextNode('');
+              node.parentNode.replaceChild(text, node);
+              math.start = {node: text, delim: '', n: 0};
+              math.end = {node: text, delim: '', n: 0};
+              doc.math.push(math);
+            });
+          }, '', false],
+          insertedScript: [200, () => {
+            document.querySelectorAll('mjx-container').forEach(node => {
+              let target = node.parentNode;
+              if (target.nodeName.toLowerCase() === 'li') {
+                target.parentNode.classList.add('has-jax');
+              }
+            });
+          }, '', false]
+        }
+      }
+    };
+    (function () {
+      var script = document.createElement('script');
+      script.src = '//cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js';
+      script.defer = true;
+      document.head.appendChild(script);
+    })();
+  } else {
+    MathJax.startup.document.state(0);
+    MathJax.texReset();
+    MathJax.typeset();
+  }
+</script>
+
+    
+
+  
+
+<link rel="stylesheet" href="//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.css">
+
+<script>
+NexT.utils.loadComments(document.querySelector('#gitalk-container'), () => {
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.js', () => {
+    var gitalk = new Gitalk({
+      clientID    : 'Ov23lijO0ypdZO6PpImE',
+      clientSecret: '95acc21cc04144cce9fca13a46ca80ef78f03d8d',
+      repo        : 'wcjb.github.io',
+      owner       : 'wcjb',
+      admin       : ['wcjb'],
+      id          : 'd0d75c71e4460c7250ede3476152c5b3',
+        language: 'zh-CN',
+      distractionFreeMode: true
+    });
+    gitalk.render('gitalk-container');
+  }, window.Gitalk);
+});
+</script>
+
+<script src="/live2dw/lib/L2Dwidget.min.js?094cbace49a39548bed64abff5988b05"></script><script>L2Dwidget.init({"pluginRootPath":"live2dw/","pluginJsPath":"lib/","pluginModelPath":"assets/","tagMode":false,"log":false,"model":{"jsonPath":"/live2dw/assets/hijiki.model.json"},"display":{"position":"right","width":150,"height":300},"mobile":{"show":true}});</script></body>
+</html>

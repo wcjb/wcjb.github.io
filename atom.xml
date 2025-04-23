@@ -6,7 +6,7 @@
   <link href="https://wcjb.github.io/atom.xml" rel="self"/>
   
   <link href="https://wcjb.github.io/"/>
-  <updated>2025-04-18T06:01:13.416Z</updated>
+  <updated>2025-04-23T07:47:24.567Z</updated>
   <id>https://wcjb.github.io/</id>
   
   <author>
@@ -15,6 +15,29 @@
   </author>
   
   <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>理解Attention从起源到MHA、MQA和GQA</title>
+    <link href="https://wcjb.github.io/posts/2f67dcd1/"/>
+    <id>https://wcjb.github.io/posts/2f67dcd1/</id>
+    <published>2025-04-20T05:55:43.000Z</published>
+    <updated>2025-04-23T07:47:24.567Z</updated>
+    
+    
+    <summary type="html">&lt;p&gt;  Attention
+模块是现在几乎所有大模型的核心模块，因此也有很多工作致力于提升注意力计算的性能和效果。其中MHA（Multi-Head
+Attention）、MQA（Multi-Query Attention）和 GQA（Grouped-Query
+Attention）这一路线的思路和做法被很多主流模型所采用，因此简单地梳理一些这几个变体的思路和做法，以及会涉及到的KV
+Cache相关内容。思路比较直白，但也有一些细节和原理值得思考。&lt;/p&gt;</summary>
+    
+    
+    
+    <category term="LLM" scheme="https://wcjb.github.io/categories/LLM/"/>
+    
+    
+    <category term="-- Attention -- MHA -- GQA -- MQA -- LLM" scheme="https://wcjb.github.io/tags/Attention-MHA-GQA-MQA-LLM/"/>
+    
+  </entry>
   
   <entry>
     <title>理解自注意力机制</title>
@@ -43,7 +66,7 @@ Need&lt;/a&gt;》发表以来，自注意力机制已成为深度学习模型的
     <link href="https://wcjb.github.io/posts/e16fb9d/"/>
     <id>https://wcjb.github.io/posts/e16fb9d/</id>
     <published>2025-04-08T06:25:49.000Z</published>
-    <updated>2025-04-18T06:01:43.312Z</updated>
+    <updated>2025-04-23T06:24:07.860Z</updated>
     
     
     <summary type="html">&lt;p&gt;  在Transformer架构的生成式模型（如GPT系列）中，推理过程需要逐个生成token。传统方式每次生成都需重新计算所有历史token的注意力信息，导致计算复杂度达到O(n²)。&lt;strong&gt;KV

@@ -31,7 +31,7 @@
 <meta property="og:description" content="在Transformer架构的生成式模型（如GPT系列）中，推理过程需要逐个生成token。传统方式每次生成都需重新计算所有历史token的注意力信息，导致计算复杂度达到O(n²)。KV Cache技术通过缓存历史token的Key和Value矩阵，将后续生成的计算复杂度降至O(n)，实现推理加速，本质上是一种用空间来换取时间的加速策略。">
 <meta property="og:locale" content="zh_CN">
 <meta property="article:published_time" content="2025-04-08T06:25:49.000Z">
-<meta property="article:modified_time" content="2025-04-18T06:01:43.312Z">
+<meta property="article:modified_time" content="2025-04-23T06:24:07.860Z">
 <meta property="article:author" content="殉道者">
 <meta property="article:tag" content="-- Trasformer -- 大模型推理 -- 性能优化">
 <meta name="twitter:card" content="summary">
@@ -241,7 +241,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2025-04-18 14:01:43" itemprop="dateModified" datetime="2025-04-18T14:01:43+08:00">2025-04-18</time>
+                <time title="修改时间：2025-04-23 14:24:07" itemprop="dateModified" datetime="2025-04-23T14:24:07+08:00">2025-04-23</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -266,7 +266,7 @@
                 <i class="far fa-file-word"></i>
               </span>
                 <span class="post-meta-item-text">本文字数：</span>
-              <span>1.5k</span>
+              <span>1.4k</span>
             </span>
             <span class="post-meta-item" title="阅读时长">
               <span class="post-meta-item-icon">
@@ -291,10 +291,7 @@ Cache技术通过缓存历史token的Key和Value矩阵</strong>，将后续生�
 <h3 id="自注意力机制的冗余计算">1.自注意力机制的冗余计算</h3>
 <p>  GPT系列模型是经典的自回归模型，在推理过程中，一次推理只输出一个token，输出token会与输入tokens拼接在一起，然后作为下一次推理的输入，这样不断反复直到遇到终止符。以GPT2为例，代码如下:
 <figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> torch</span><br><span class="line"><span class="keyword">from</span> transformers <span class="keyword">import</span> GPT2LMHeadModel, GPT2Tokenizer</span><br><span class="line"></span><br><span class="line">model = GPT2LMHeadModel.from_pretrained(<span class="string">&quot;gpt2&quot;</span>, torchscript=<span class="literal">True</span>).<span class="built_in">eval</span>()</span><br><span class="line"></span><br><span class="line">tokenizer = GPT2Tokenizer.from_pretrained(<span class="string">&quot;gpt2&quot;</span>)</span><br><span class="line">in_text = <span class="string">&quot;Hello, how  &quot;</span></span><br><span class="line">in_tokens = torch.tensor(tokenizer.encode(in_text))</span><br><span class="line"></span><br><span class="line">token_eos = torch.tensor([<span class="number">198</span>]) </span><br><span class="line">out_token = <span class="literal">None</span></span><br><span class="line">i = <span class="number">0</span></span><br><span class="line"><span class="keyword">with</span> torch.no_grad():</span><br><span class="line">    <span class="keyword">while</span> out_token != token_eos:</span><br><span class="line">        logits, _ = model(in_tokens)</span><br><span class="line">        out_token = torch.argmax(logits[-<span class="number">1</span>, :], dim=<span class="number">0</span>, keepdim=<span class="literal">True</span>)</span><br><span class="line">        in_tokens = torch.cat((in_tokens, out_token), <span class="number">0</span>)</span><br><span class="line">        text = tokenizer.decode(in_tokens)</span><br><span class="line">        <span class="built_in">print</span>(<span class="string">f&#x27;step <span class="subst">&#123;i&#125;</span> input: <span class="subst">&#123;text&#125;</span>&#x27;</span>, flush=<span class="literal">True</span>)</span><br><span class="line">        i += <span class="number">1</span></span><br><span class="line"></span><br><span class="line">out_text = tokenizer.decode(in_tokens)</span><br><span class="line"><span class="built_in">print</span>(<span class="string">f&#x27;Input: <span class="subst">&#123;in_text&#125;</span>&#x27;</span>)</span><br><span class="line"><span class="built_in">print</span>(<span class="string">f&#x27;Output: <span class="subst">&#123;out_text&#125;</span>&#x27;</span>)</span><br></pre></td></tr></table></figure> ---</p>
-<p>执行输出结果如下： <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">step 0  input: Hello, how   </span><br><span class="line">step 1  input: Hello, how   <span class="keyword">do</span></span><br><span class="line">step 2  input: Hello, how   <span class="keyword">do</span> you</span><br><span class="line">step 3  input: Hello, how   <span class="keyword">do</span> you feel</span><br><span class="line">step 4  input: Hello, how   <span class="keyword">do</span> you feel about</span><br><span class="line">step 5  input: Hello, how   <span class="keyword">do</span> you feel about the</span><br><span class="line">step 6  input: Hello, how   <span class="keyword">do</span> you feel about the new</span><br><span class="line">step 7  input: Hello, how   <span class="keyword">do</span> you feel about the new season</span><br><span class="line">step 8  input: Hello, how   <span class="keyword">do</span> you feel about the new season of</span><br><span class="line">step 9  input: Hello, how   <span class="keyword">do</span> you feel about the new season of The</span><br><span class="line">step 10 input: Hello, how   <span class="keyword">do</span> you feel about the new season of The Walking</span><br><span class="line">step 11 input: Hello, how   <span class="keyword">do</span> you feel about the new season of The Walking Dead</span><br><span class="line">step 12 input: Hello, how   <span class="keyword">do</span> you feel about the new season of The Walking Dead?</span><br><span class="line">step 13 input: Hello, how   <span class="keyword">do</span> you feel about the new season of The Walking Dead?</span><br><span class="line"></span><br><span class="line">Input: Hello, how  </span><br><span class="line">Output: Hello, how   <span class="keyword">do</span> you feel about the new season of The Walking Dead?</span><br></pre></td></tr></table></figure> <span class="math display">\[
-\color{#F00}
-{\int_{-\pi}^{\pi}c_0\frac{1}{\sqrt{2\pi}}cos(jx)\mathrm{d}x}
-\]</span></p>
+<p>执行输出结果如下： <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">step 0  input: Hello, how   </span><br><span class="line">step 1  input: Hello, how   <span class="keyword">do</span></span><br><span class="line">step 2  input: Hello, how   <span class="keyword">do</span> you</span><br><span class="line">step 3  input: Hello, how   <span class="keyword">do</span> you feel</span><br><span class="line">step 4  input: Hello, how   <span class="keyword">do</span> you feel about</span><br><span class="line">step 5  input: Hello, how   <span class="keyword">do</span> you feel about the</span><br><span class="line">step 6  input: Hello, how   <span class="keyword">do</span> you feel about the new</span><br><span class="line">step 7  input: Hello, how   <span class="keyword">do</span> you feel about the new season</span><br><span class="line">step 8  input: Hello, how   <span class="keyword">do</span> you feel about the new season of</span><br><span class="line">step 9  input: Hello, how   <span class="keyword">do</span> you feel about the new season of The</span><br><span class="line">step 10 input: Hello, how   <span class="keyword">do</span> you feel about the new season of The Walking</span><br><span class="line">step 11 input: Hello, how   <span class="keyword">do</span> you feel about the new season of The Walking Dead</span><br><span class="line">step 12 input: Hello, how   <span class="keyword">do</span> you feel about the new season of The Walking Dead?</span><br><span class="line">step 13 input: Hello, how   <span class="keyword">do</span> you feel about the new season of The Walking Dead?</span><br><span class="line"></span><br><span class="line">Input: Hello, how  </span><br><span class="line">Output: Hello, how   <span class="keyword">do</span> you feel about the new season of The Walking Dead?</span><br></pre></td></tr></table></figure></p>
 <h3 id="kv-cache工作流程">2. KV Cache工作流程</h3>
 <p>  显然上面的计算过程中存在大量重复计算，在上面的推理过程中，每step内，输入一个token序列，经过Embedding层将输入token序列变为一个三维张量<span class="math inline">\([b, s,
 h]\)</span>，经过一通计算，最后经logits层将计算结果映射至词表空间，输出张量维度为<span class="math inline">\([b, s,
@@ -434,7 +431,7 @@ Transformers官方文档</a></p>
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">9</span>
+          <span class="site-state-item-count">10</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
@@ -447,7 +444,7 @@ Transformers官方文档</a></p>
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">19</span>
+        <span class="site-state-item-count">20</span>
         <span class="site-state-item-name">标签</span></a>
       </div>
   </nav>
@@ -526,12 +523,12 @@ Transformers官方文档</a></p>
     <span class="post-meta-item-icon">
       <i class="fa fa-chart-area"></i>
     </span>
-    <span title="站点总字数">33k</span>
+    <span title="站点总字数">41k</span>
     <span class="post-meta-divider">|</span>
     <span class="post-meta-item-icon">
       <i class="fa fa-coffee"></i>
     </span>
-    <span title="站点阅读时长">2:02</span>
+    <span title="站点阅读时长">2:29</span>
 </div>
 
 <!--
