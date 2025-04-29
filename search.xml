@@ -1760,6 +1760,21 @@ f(b)-f(a)=f^\prime(\xi)(b-a)
       </tags>
   </entry>
   <entry>
+    <title>FlashAttention从原理到cuda实现</title>
+    <url>/posts/6721533d/</url>
+    <content><![CDATA[<p>  <code>Flash Attention</code>是一种基于硬件设计的注意力加速策略，原始论文
+<a href="https://link.zhihu.com/?target=https%3A//arxiv.org/abs/2205.14135">FlashAttention:
+Fast and Memory-Efficient Exact Attention with IO-Awareness</a>。</p>
+<span id="more"></span>
+]]></content>
+      <categories>
+        <category>LLM</category>
+      </categories>
+      <tags>
+        <tag>-- Flash Attenttion -- Attention -- 自注意力</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>机器视觉之基本概念</title>
     <url>/posts/781628f/</url>
     <content><![CDATA[<p>  主要记录机器视觉领域的一些基本概念及一些实践中的tricks。
@@ -1975,6 +1990,173 @@ Camera）指感光单元（像素）按线性形式排列的相机，其一次�
         <tag>相机</tag>
         <tag>视觉</tag>
         <tag>图像</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>点云内存布局</title>
+    <url>/posts/900a74c0/</url>
+    <content><![CDATA[<p>  点云数据可采用两种基本布局：<strong>结构体数组</strong> (AoS, Array
+of Structures) 和 <strong>数组结构</strong> (SoA, Structure of
+Arrays)。</p>
+<span id="more"></span>
+<p>  AoS形式将每个点的所有字段（如 x、y、z
+坐标）连成一个结构体再按点排列，易于编程直观，每个点的字段存放在一起
+。但当批量访问同一字段（如所有点的 x 坐标）时，AoS
+需要不连续的“Gather”操作，降低 SIMD 和 GPU 内存带宽利用率 。相反，SoA
+将每个字段分离成独立数组（如 X[N], Y[N],
+Z[N]），使得同一字段在内存中连续，这样一个 SIMD
+寄存器可以一次性加载多个同类坐标 ，且 CUDA
+线程按编号依次读取连续元素时能够形成<strong>合并访问</strong>（coalesced
+access） 。所以，在向量化和大规模并行场景下一般<strong>推荐使用 SoA
+布局</strong>。</p>
+<table>
+<colgroup>
+<col style="width: 9%">
+<col style="width: 45%">
+<col style="width: 45%">
+</colgroup>
+<thead>
+<tr>
+<th><strong>布局</strong></th>
+<th><strong>优点</strong></th>
+<th><strong>缺点</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>AoS</td>
+<td>易于编程理解：每个点字段相邻，遍历单点时缓存友好</td>
+<td>矢量化不友好：跨点访问同一字段时需 Gather/Scatter ；GPU
+并行访问时各线程访问内存间隔大</td>
+</tr>
+<tr>
+<td>SoA</td>
+<td>SIMD 友好：同字段数据连续，可连续装载 ；GPU
+多线程访问时可形成内存合并</td>
+<td>难以同时处理一个点的所有字段，访问多字段时缓存局部性下降
+；编程稍复杂</td>
+</tr>
+<tr>
+<td>AoSoA (折中)</td>
+<td>局部字段成块对齐到向量宽度，兼顾 SIMD 单元化和缓存局部</td>
+<td>编程复杂：需要按向量长度分块组织数据</td>
+</tr>
+</tbody>
+</table>
+<p><strong>选择建议</strong>：若主要操作是批量处理（如对所有点坐标做相同计算），则
+SoA 布局往往更高效 。如需兼顾单点操作和向量化，可考虑
+AoSoA（每个结构体内含定长坐标数组）技术 。</p>
+<h2 id="内存对齐与simd"><strong>内存对齐与SIMD</strong></h2>
+<p>  为发挥SSE/AVX等SIMD指令性能，应保证数据按向量宽度对齐。Intel建议对齐规则为：<strong>SSE(128-bit)</strong>
+使用 16 字节对齐，<strong>AVX(256-bit)</strong> 使用 32
+字节对齐，<strong>AVX-512(512-bit)</strong> 使用 64 字节对齐 。对齐可让
+<code>_mm_load_ps/_mm256_load_ps</code>
+等指令在对齐模式下加载，避免未对齐访问开销。实现方法包括：</p>
+<ul>
+<li>在 C++ 中对结构体或数组使用 <code>alignas(16)、alignas(32)</code>
+等声明。例如：<code>alignas(32) float X[N]</code>;。</li>
+<li>动态分配对齐内存：使用C11
+<code>aligned_alloc、POSIX posix_memalign</code>（Linux/macOS）或
+Windows 的 <code>_aligned_malloc</code>
+接口，确保返回指针满足指定字节对齐。</li>
+<li>结构体定义时统一对齐：如
+<code>struct alignas(32) MyStruct &#123; ... &#125;;</code>，或根据编译器使用
+<code>__attribute__((aligned(32)))/__declspec(align(32))</code>。建议使用
+C++11 标准的 alignas 以提高可移植性。</li>
+</ul>
+<p>  对齐策略可以参考
+：<code>针对 SSE2 平台应使用 16 字节对齐，对 AVX 平台尝试 32 字节对齐，对 AVX-512 则 64 字节对齐</code>。同时，高对齐也减少了L1/L2缓存冲突，提高数据并行载入效率。</p>
+<h2 id="cpu端simd优化策略"><strong>CPU端SIMD优化策略</strong></h2>
+<p>  在x86CPU 上，可利用 SSE/AVX 指令集批量处理点云数据，关键策略包括：
+- <strong>矢量化加载/存储</strong>：使用
+<code>_mm_load_ps/_mm256_load_ps</code>（对齐）或
+<code>_mm_loadu_ps/_mm256_loadu_ps</code>（未对齐）批量加载若干连续浮点数。例如对
+SoA 布局中的坐标数组，每次加载 4 或 8 个浮点进行运算。Intel
+指南指出应“使用单元步长访问(unit stride)和 SoA 布局，以助力向量化” 。 -
+<strong>无别名提示</strong>：使用 <code>__restrict__</code> 或
+<code>restrict</code>
+修饰指针，告知编译器数据无重叠，以消除因可能别名引起的矢量化障碍。 -
+<strong>循环展开与指令级并行</strong>：对循环固定步长进行展开，或使用
+<code>#pragma omp simd、#pragma ivdep</code> 等编译指示，协助编译器生成
+SIMD 代码。对已对齐数据，编译器更容易自动生成 _mm256 类指令。 -
+<strong>示例</strong>：下面以4点做简单变换为例（假设 X[],Y[],Z[]
+是对齐的坐标数组）：</p>
+<figure class="highlight c++"><table><tr><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;immintrin.h&gt;</span></span></span><br><span class="line"><span class="comment">// 例如，对 X 坐标批量加常数偏移</span></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">transformX</span><span class="params">(<span class="type">const</span> <span class="type">float</span> *X, <span class="type">float</span> *X_out, <span class="type">int</span> n)</span> </span>&#123;</span><br><span class="line">    __m128 offset = _mm_set1_ps(<span class="number">1.0f</span>); <span class="comment">// 每个元素加 1.0</span></span><br><span class="line">    <span class="keyword">for</span>(<span class="type">int</span> i = <span class="number">0</span>; i &lt; n; i += <span class="number">4</span>) &#123;</span><br><span class="line">        <span class="comment">// 对齐加载 4 个连续浮点</span></span><br><span class="line">        __m128 vx = _mm_load_ps(&amp;X[i]);</span><br><span class="line">        <span class="comment">// 矢量相加</span></span><br><span class="line">        __m128 res = _mm_add_ps(vx, offset);</span><br><span class="line">        <span class="comment">// 存回结果（假设 X_out 已对齐）</span></span><br><span class="line">        _mm_store_ps(&amp;X_out[i], res);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>  此示例演示以 SSE（128 位寄存器）一次处理 4 个浮点的思路；类似地可用
+AVX （256 位）一次处理 8 个浮点。关键在于保证 X、X_out
+数组地址对齐（如使用 <code>alignas(16/32)）</code>，使
+<code>_mm_load_ps</code> 调用更高效。更多优化可以参考第三方库或 PCL 的
+SIMD 实现 。</p>
+<h2 id="gpu-端内存访问设计"><strong>GPU 端内存访问设计</strong></h2>
+<p>  在CUDA GPU上进行批量处理时，<strong>连续性访问（Coalesced
+Access）</strong> 是性能关键。CUDA 对于全局内存访问要求：同一个 warp（32
+线程）中的连续线程访问相邻内存地址段，才能合并为少量内存事务。采用 SoA
+布局时，如果线程索引 i 访问 X[i],Y[i],Z[i]，则第 <em>i</em> 线程读取第
+<em>i</em> 个点各坐标，各坐标数组内存连续，典型会落在同一个 128
+字节块内，从而实现合并加载 。例如参考[25]所示：若一组线程依次请求 x[0],
+x[1], x[2]，硬件可一次性读取连续浮点0,1,2，极大提升带宽利用 。</p>
+<p>应注意避免未对齐大小：CUDA 编程手册建议使用 float4 等 16
+字节对齐类型进行存储和传输；与之相比，float3
+结构由于未对齐边界而可能导致效率下降 。因此可以将三维坐标存为
+float4（第4个元素作填充），或采用 SoA
+方式本质上也是将每个坐标数组对齐存储。</p>
+<p>CUDA 示例：假设已在设备上分配了对齐的 X[],Y[],Z[]
+数组，下面示例按线程对每个坐标加偏移：</p>
+<figure class="highlight c++"><table><tr><td class="code"><pre><span class="line"><span class="comment">// CUDA kernel：每个线程处理一个点</span></span><br><span class="line"><span class="function">__global__ <span class="type">void</span> <span class="title">addOffsetKernel</span><span class="params">(<span class="type">float</span> *X, <span class="type">float</span> *Y, <span class="type">float</span> *Z, <span class="type">int</span> n)</span> </span>&#123;</span><br><span class="line">    <span class="type">int</span> idx = blockIdx.x * blockDim.x + threadIdx.x;</span><br><span class="line">    <span class="keyword">if</span> (idx &lt; n) &#123;</span><br><span class="line">        <span class="comment">// 访问各坐标数组中的同一位置</span></span><br><span class="line">        <span class="type">float</span> x = X[idx], y = Y[idx], z = Z[idx];</span><br><span class="line">        <span class="comment">// 简单偏移操作</span></span><br><span class="line">        X[idx] = x + <span class="number">1.0f</span>;</span><br><span class="line">        Y[idx] = y + <span class="number">2.0f</span>;</span><br><span class="line">        Z[idx] = z + <span class="number">3.0f</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>  在这个SoA布局下，线程idx顺序访问X[idx]、Y[idx]、Z[idx]，使得连续线程访问连续的内存地址，能获得最佳的内存合并性能。</p>
+<h2 id="批量处理示例"><strong>批量处理示例</strong></h2>
+<ul>
+<li><strong>CPU 端批量变换示例（SSE/AVX）</strong>：将上述 transformX
+扩展到对 x,y,z 坐标同时变换，可以在循环内同时加载 X[i],Y[i],Z[i]
+到向量寄存器，并应用仿射变换矩阵（4×4）实现点云的旋转平移等运算。可参考
+Eigen 或手写内联汇编优化。</li>
+<li><strong>CUDA 批量计算示例</strong>：在 CUDA kernel
+中，为了避免线程分支，可让每线程按元素编号连续处理任务，如上例所示。复杂计算时，可把矩阵常量存入常量内存，用单线程分别计算
+x,y,z
+坐标的输出，并写回全局内存。关键是保证对齐访问和共存存储局部性。</li>
+</ul>
+<p>（根据实际应用，可使用线程块划分、共享内存缓存等进一步优化，但核心原则是保证内存访问的对齐和并行性。）</p>
+<h2 id="跨平台兼容性"><strong>跨平台兼容性</strong></h2>
+<p>  为了保证代码在不同平台（x86/Linux/Windows、CUDA/非CUDA）上一致高效，需要注意：</p>
+<ul>
+<li><strong>对齐修饰符移植</strong>：优先使用 C++11 的 alignas
+关键字指定对齐，替代编译器特定语法。这在 GCC/Clang/MSVC
+上均有支持。若需兼容老旧编译器，可定义跨平台宏：例如 #ifdef _MSC_VER
+#define ALIGN(N) __declspec(align(N)) #else #define ALIGN(N)
+<strong>attribute</strong>((aligned(N)))。</li>
+<li><strong>固定宽度类型</strong>：使用 <cstdint> 中的
+uint32_t、uint64_t 等代替原生 int/long，以及确保 float/double
+精度统一。注意 CUDA float3、float4 在 Host
+端无内建类型，应自行定义结构体兼容。</cstdint></li>
+<li><strong>内存分配</strong>：避免使用 malloc/new
+默认分配（未必满足高对齐要求）。对齐分配可使用 C11 的
+aligned_alloc、POSIX posix_memalign、Windows
+_aligned_malloc，并在释放时配对对应函数。或利用 SIMD 接口如
+_mm_malloc/_mm_free。C++17 可用 std::aligned_alloc 或 std::vector
+结合对齐 allocator。</li>
+<li><strong>编译环境</strong>：在需要跨编译 CUDA 代码时，可使用
+<strong>host</strong> <strong>device</strong>
+关键字标记通用函数/结构体；避免在共享代码中使用只在一种环境下可用的扩展。比如，在
+CPU 代码避免直接包含 CUDA 头文件，在 GPU 代码避免使用 x86 SIMD
+intrinsic。</li>
+</ul>
+<p>  通过上述方法，可避免不同平台间的对齐和内存布局陷阱，保证同一套数据结构在
+CPU 和 GPU 端表现一致。</p>
+<h2 id="推荐代码模板"><strong>推荐代码模板</strong></h2>
+<p>  综合上述考虑，推荐采用 SoA 布局并进行对齐。示例代码模板如下（C++11
+及以上）：</p>
+<figure class="highlight c++"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 示例：按 32 字节对齐的点云结构（每个坐标数组独立存储）</span></span><br><span class="line"><span class="keyword">struct</span> <span class="title class_">PointCloud</span> &#123;</span><br><span class="line">    <span class="type">size_t</span> N;              <span class="comment">// 点数</span></span><br><span class="line">    <span class="type">float</span> *X, *Y, *Z;      <span class="comment">// 指向对齐的坐标数组</span></span><br><span class="line"></span><br><span class="line">    <span class="built_in">PointCloud</span>(<span class="type">size_t</span> n) : <span class="built_in">N</span>(n) &#123;</span><br><span class="line">        <span class="comment">// 32 字节对齐分配，跨平台示例（实际使用时根据平台选择接口）</span></span><br><span class="line">        X = (<span class="type">float</span>*)_mm_malloc(N * <span class="built_in">sizeof</span>(<span class="type">float</span>), <span class="number">32</span>);</span><br><span class="line">        Y = (<span class="type">float</span>*)_mm_malloc(N * <span class="built_in">sizeof</span>(<span class="type">float</span>), <span class="number">32</span>);</span><br><span class="line">        Z = (<span class="type">float</span>*)_mm_malloc(N * <span class="built_in">sizeof</span>(<span class="type">float</span>), <span class="number">32</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    ~<span class="built_in">PointCloud</span>() &#123;</span><br><span class="line">        _mm_free(X);</span><br><span class="line">        _mm_free(Y);</span><br><span class="line">        _mm_free(Z);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 若需要单点结构，可定义对齐的 AoS 结构体（结合向量指令使用）</span></span><br><span class="line"><span class="keyword">struct</span> <span class="title class_">alignas</span>(<span class="number">16</span>) PointXYZ &#123;</span><br><span class="line">    <span class="type">float</span> x, y, z, w;  <span class="comment">// w 作为填充，保证 16 字节对齐</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>  以上模板中，PointCloud 用 SoA 方式存储各坐标数组，构造函数使用
+_mm_malloc（或 posix_memalign、aligned_alloc）指定 32 字节对齐；PointXYZ
+演示对齐的AoS数据结构，在需要使用如 SSE 载入一个 float4
+时非常方便。实际使用时可根据目标 SIMD 宽度调整对齐大小（例如 AVX 可设 32
+或 64 字节对齐）。如需在 CUDA 中使用，可将 float* 指针对应改为 CUDA
+统一地址空间或 <strong>device</strong> 全局指针，并在分配时使用
+cudaMalloc（CUDA 11 起已保证至少 256 字节对齐）。通过统一的对齐策略与
+SoA 设计，可实现高效且跨平台的点云批量处理结构。</p>
+]]></content>
+      <tags>
+        <tag>-- AOS -- SOA -- 点云</tag>
       </tags>
   </entry>
   <entry>

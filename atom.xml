@@ -6,7 +6,7 @@
   <link href="https://wcjb.github.io/atom.xml" rel="self"/>
   
   <link href="https://wcjb.github.io/"/>
-  <updated>2025-04-23T07:47:24.567Z</updated>
+  <updated>2025-04-24T07:53:24.527Z</updated>
   <id>https://wcjb.github.io/</id>
   
   <author>
@@ -15,6 +15,27 @@
   </author>
   
   <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>FlashAttention从原理到cuda实现</title>
+    <link href="https://wcjb.github.io/posts/6721533d/"/>
+    <id>https://wcjb.github.io/posts/6721533d/</id>
+    <published>2025-04-24T07:45:33.000Z</published>
+    <updated>2025-04-24T07:53:24.527Z</updated>
+    
+    
+    <summary type="html">&lt;p&gt;  &lt;code&gt;Flash Attention&lt;/code&gt;是一种基于硬件设计的注意力加速策略，原始论文
+&lt;a href=&quot;https://link.zhihu.com/?target=https%3A//arxiv.org/abs/2205.14135&quot;&gt;FlashAttention:
+Fast and Memory-Efficient Exact Attention with IO-Awareness&lt;/a&gt;。&lt;/p&gt;</summary>
+    
+    
+    
+    <category term="LLM" scheme="https://wcjb.github.io/categories/LLM/"/>
+    
+    
+    <category term="-- Flash Attenttion -- Attention -- 自注意力" scheme="https://wcjb.github.io/tags/Flash-Attenttion-Attention-%E8%87%AA%E6%B3%A8%E6%84%8F%E5%8A%9B/"/>
+    
+  </entry>
   
   <entry>
     <title>理解Attention从起源到MHA、MQA和GQA</title>
@@ -143,6 +164,25 @@ Transformer
     <category term="视觉" scheme="https://wcjb.github.io/tags/%E8%A7%86%E8%A7%89/"/>
     
     <category term="图像" scheme="https://wcjb.github.io/tags/%E5%9B%BE%E5%83%8F/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>点云内存布局</title>
+    <link href="https://wcjb.github.io/posts/900a74c0/"/>
+    <id>https://wcjb.github.io/posts/900a74c0/</id>
+    <published>2023-03-29T01:56:51.000Z</published>
+    <updated>2025-04-29T02:04:32.155Z</updated>
+    
+    
+    <summary type="html">&lt;p&gt;  点云数据可采用两种基本布局：&lt;strong&gt;结构体数组&lt;/strong&gt; (AoS, Array
+of Structures) 和 &lt;strong&gt;数组结构&lt;/strong&gt; (SoA, Structure of
+Arrays)。&lt;/p&gt;</summary>
+    
+    
+    
+    
+    <category term="-- AOS -- SOA -- 点云" scheme="https://wcjb.github.io/tags/AOS-SOA-%E7%82%B9%E4%BA%91/"/>
     
   </entry>
   
