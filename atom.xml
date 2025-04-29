@@ -6,7 +6,7 @@
   <link href="https://wcjb.github.io/atom.xml" rel="self"/>
   
   <link href="https://wcjb.github.io/"/>
-  <updated>2025-04-24T07:53:24.527Z</updated>
+  <updated>2025-04-29T08:14:26.037Z</updated>
   <id>https://wcjb.github.io/</id>
   
   <author>
@@ -17,11 +17,36 @@
   <generator uri="https://hexo.io/">Hexo</generator>
   
   <entry>
+    <title>Linux命令指南</title>
+    <link href="https://wcjb.github.io/posts/a3123ebc/"/>
+    <id>https://wcjb.github.io/posts/a3123ebc/</id>
+    <published>2025-04-29T08:12:52.000Z</published>
+    <updated>2025-04-29T08:14:26.037Z</updated>
+    
+    
+      
+      
+        
+        
+    <summary type="html">&lt;h2</summary>
+        
+      
+    
+    
+    
+    <category term="Linux" scheme="https://wcjb.github.io/categories/Linux/"/>
+    
+    
+    <category term="-- Linux" scheme="https://wcjb.github.io/tags/Linux/"/>
+    
+  </entry>
+  
+  <entry>
     <title>FlashAttention从原理到cuda实现</title>
     <link href="https://wcjb.github.io/posts/6721533d/"/>
     <id>https://wcjb.github.io/posts/6721533d/</id>
     <published>2025-04-24T07:45:33.000Z</published>
-    <updated>2025-04-24T07:53:24.527Z</updated>
+    <updated>2025-04-29T02:05:05.411Z</updated>
     
     
     <summary type="html">&lt;p&gt;  &lt;code&gt;Flash Attention&lt;/code&gt;是一种基于硬件设计的注意力加速策略，原始论文
@@ -172,7 +197,7 @@ Transformer
     <link href="https://wcjb.github.io/posts/900a74c0/"/>
     <id>https://wcjb.github.io/posts/900a74c0/</id>
     <published>2023-03-29T01:56:51.000Z</published>
-    <updated>2025-04-29T02:04:32.155Z</updated>
+    <updated>2025-04-29T08:14:13.963Z</updated>
     
     
     <summary type="html">&lt;p&gt;  点云数据可采用两种基本布局：&lt;strong&gt;结构体数组&lt;/strong&gt; (AoS, Array
@@ -180,6 +205,8 @@ of Structures) 和 &lt;strong&gt;数组结构&lt;/strong&gt; (SoA, Structure of
 Arrays)。&lt;/p&gt;</summary>
     
     
+    
+    <category term="C++" scheme="https://wcjb.github.io/categories/C/"/>
     
     
     <category term="-- AOS -- SOA -- 点云" scheme="https://wcjb.github.io/tags/AOS-SOA-%E7%82%B9%E4%BA%91/"/>

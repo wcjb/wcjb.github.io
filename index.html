@@ -1019,6 +1019,134 @@ w_{new} = w_{old} - \eta \ \Delta J(w)
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://wcjb.github.io/posts/a3123ebc/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/uploads/avatar.png">
+      <meta itemprop="name" content="殉道者">
+      <meta itemprop="description" content="幼而学者,如日出之光；老而学者，如秉烛夜行，犹贤乎瞑目而无见者也！">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="老学庵">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/posts/a3123ebc/" class="post-title-link" itemprop="url">Linux命令指南</a>
+        </h2>
+
+        <div class="post-meta">
+
+          
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2025-04-29 16:12:52 / 修改时间：16:14:26" itemprop="dateCreated datePublished" datetime="2025-04-29T16:12:52+08:00">2025-04-29</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Linux/" itemprop="url" rel="index"><span itemprop="name">Linux</span></a>
+                </span>
+            </span>
+
+          <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>446</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>2 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h2 id="du"><strong>du</strong></h2>
+<p>du
+用于计算文件或目录的磁盘使用情况。它帮助我们确定需要压缩的文件夹大小，用于为进度条工具（如
+pv）提供总大小信息。</p>
+<p><strong>常用选项：</strong></p>
+<ul>
+<li>-s：显示文件夹的总大小，而不是列出子目录的大小。</li>
+<li>-k：以 KiB（1024 字节为一单位）显示大小。</li>
+<li>-b：以byte为单位显示大小（macOS 无此选项）</li>
+</ul>
+<hr>
+<h2 id="tar"><strong>tar</strong></h2>
+<p>tar
+是一个打包工具，用于将多个文件/目录打包为单一的归档文件（不压缩），然后可以通过管道传递给其他压缩工具。</p>
+<p><strong>常用选项：</strong></p>
+<ul>
+<li>-c：创建新的归档。</li>
+<li>-v：显示详细信息（如每个被打包的文件名）。</li>
+<li>-f：指定输出文件名，或用 - 表示将数据传递到标准输出（如管道）。</li>
+<li>-：表示数据直接输出到标准输出（通常用于与其他工具结合，如 pv 和
+pigz）。</li>
+</ul>
+<hr>
+<h2 id="pv"><strong>pv</strong></h2>
+<p>pv
+是一个工具，用于监视通过管道传输的数据流，显示实时的进度、速度、已处理数据量和预计完成时间。</p>
+<p><strong>常用选项：</strong></p>
+<ul>
+<li>-s <size>：指定总数据量（通常是以字节为单位）。若未指定，pv
+会根据数据流猜测总量，但不准确。</size></li>
+<li>$(...)：在命令中动态执行 du 并将输出传递给 pv。</li>
+<li>awk '{print $1 * 1024}'：将 du 的输出（以 KiB
+为单位）转换为字节。</li>
+</ul>
+<hr>
+<h2 id="pigz"><strong>pigz</strong></h2>
+<p>pigz 是 gzip 的多线程版本，支持更高的压缩效率和速度。</p>
+<p><strong>常用选项：</strong></p>
+<ul>
+<li>-9：指定最高压缩级别。</li>
+<li>-p <number>：指定线程数（根据你的 CPU 核心数设置）。</number></li>
+</ul>
+<hr>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">% </span><span class="language-bash">多线程压缩</span></span><br><span class="line">tar -cvf - ./QwQ-32B | pv -s $(du -sk ./QwQ-32B | awk &#x27;&#123;print $1 * 1024&#125;&#x27;) | pigz -9 -p 16 &gt; QwQ-32B.tar.gz</span><br></pre></td></tr></table></figure>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">% </span><span class="language-bash">线程解压</span> </span><br><span class="line">pv QwQ-32B.tar.gz | pigz -dc -p 16 | tar -xvf -</span><br></pre></td></tr></table></figure>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
     <link itemprop="mainEntityOfPage" href="https://wcjb.github.io/posts/6721533d/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -1044,10 +1172,16 @@ w_{new} = w_{old} - \eta \ \Delta J(w)
                 <i class="far fa-calendar"></i>
               </span>
               <span class="post-meta-item-text">发表于</span>
-              
 
-              <time title="创建时间：2025-04-24 15:45:33 / 修改时间：15:53:24" itemprop="dateCreated datePublished" datetime="2025-04-24T15:45:33+08:00">2025-04-24</time>
+              <time title="创建时间：2025-04-24 15:45:33" itemprop="dateCreated datePublished" datetime="2025-04-24T15:45:33+08:00">2025-04-24</time>
             </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2025-04-29 10:05:05" itemprop="dateModified" datetime="2025-04-29T10:05:05+08:00">2025-04-29</time>
+              </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
                 <i class="far fa-folder"></i>
@@ -1089,103 +1223,6 @@ Fast and Memory-Efficient Exact Attention with IO-Awareness</a>。</p>
           <!--noindex-->
             <div class="post-button">
               <a class="btn" href="/posts/6721533d/#more" rel="contents">
-                阅读全文 &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://wcjb.github.io/posts/781628f/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/uploads/avatar.png">
-      <meta itemprop="name" content="殉道者">
-      <meta itemprop="description" content="幼而学者,如日出之光；老而学者，如秉烛夜行，犹贤乎瞑目而无见者也！">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="老学庵">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/posts/781628f/" class="post-title-link" itemprop="url">机器视觉之基本概念</a>
-        </h2>
-
-        <div class="post-meta">
-
-          
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2025-02-18 15:21:39" itemprop="dateCreated datePublished" datetime="2025-02-18T15:21:39+08:00">2025-02-18</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2025-04-18 14:02:55" itemprop="dateModified" datetime="2025-04-18T14:02:55+08:00">2025-04-18</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/%E6%9C%BA%E5%99%A8%E8%A7%86%E8%A7%89/" itemprop="url" rel="index"><span itemprop="name">机器视觉</span></a>
-                </span>
-            </span>
-
-          <br>
-            <span class="post-meta-item" title="本文字数">
-              <span class="post-meta-item-icon">
-                <i class="far fa-file-word"></i>
-              </span>
-                <span class="post-meta-item-text">本文字数：</span>
-              <span>3.8k</span>
-            </span>
-            <span class="post-meta-item" title="阅读时长">
-              <span class="post-meta-item-icon">
-                <i class="far fa-clock"></i>
-              </span>
-                <span class="post-meta-item-text">阅读时长 &asymp;</span>
-              <span>14 分钟</span>
-            </span>
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>  主要记录机器视觉领域的一些基本概念及一些实践中的tricks。</p>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/posts/781628f/#more" rel="contents">
                 阅读全文 &raquo;
               </a>
             </div>
@@ -1276,20 +1313,20 @@ Fast and Memory-Efficient Exact Attention with IO-Awareness</a>。</p>
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">12</span>
+          <span class="site-state-item-count">13</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
             <a href="/categories/">
           
-        <span class="site-state-item-count">4</span>
+        <span class="site-state-item-count">6</span>
         <span class="site-state-item-name">分类</span></a>
       </div>
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">22</span>
+        <span class="site-state-item-count">23</span>
         <span class="site-state-item-name">标签</span></a>
       </div>
   </nav>
@@ -1373,7 +1410,7 @@ Fast and Memory-Efficient Exact Attention with IO-Awareness</a>。</p>
     <span class="post-meta-item-icon">
       <i class="fa fa-coffee"></i>
     </span>
-    <span title="站点阅读时长">2:39</span>
+    <span title="站点阅读时长">2:40</span>
 </div>
 
 <!--

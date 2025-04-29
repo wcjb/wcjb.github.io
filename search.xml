@@ -1760,6 +1760,62 @@ f(b)-f(a)=f^\prime(\xi)(b-a)
       </tags>
   </entry>
   <entry>
+    <title>Linux命令指南</title>
+    <url>/posts/a3123ebc/</url>
+    <content><![CDATA[<h2 id="du"><strong>du</strong></h2>
+<p>du
+用于计算文件或目录的磁盘使用情况。它帮助我们确定需要压缩的文件夹大小，用于为进度条工具（如
+pv）提供总大小信息。</p>
+<p><strong>常用选项：</strong></p>
+<ul>
+<li>-s：显示文件夹的总大小，而不是列出子目录的大小。</li>
+<li>-k：以 KiB（1024 字节为一单位）显示大小。</li>
+<li>-b：以byte为单位显示大小（macOS 无此选项）</li>
+</ul>
+<hr>
+<h2 id="tar"><strong>tar</strong></h2>
+<p>tar
+是一个打包工具，用于将多个文件/目录打包为单一的归档文件（不压缩），然后可以通过管道传递给其他压缩工具。</p>
+<p><strong>常用选项：</strong></p>
+<ul>
+<li>-c：创建新的归档。</li>
+<li>-v：显示详细信息（如每个被打包的文件名）。</li>
+<li>-f：指定输出文件名，或用 - 表示将数据传递到标准输出（如管道）。</li>
+<li>-：表示数据直接输出到标准输出（通常用于与其他工具结合，如 pv 和
+pigz）。</li>
+</ul>
+<hr>
+<h2 id="pv"><strong>pv</strong></h2>
+<p>pv
+是一个工具，用于监视通过管道传输的数据流，显示实时的进度、速度、已处理数据量和预计完成时间。</p>
+<p><strong>常用选项：</strong></p>
+<ul>
+<li>-s <size>：指定总数据量（通常是以字节为单位）。若未指定，pv
+会根据数据流猜测总量，但不准确。</size></li>
+<li>$(...)：在命令中动态执行 du 并将输出传递给 pv。</li>
+<li>awk '{print $1 * 1024}'：将 du 的输出（以 KiB
+为单位）转换为字节。</li>
+</ul>
+<hr>
+<h2 id="pigz"><strong>pigz</strong></h2>
+<p>pigz 是 gzip 的多线程版本，支持更高的压缩效率和速度。</p>
+<p><strong>常用选项：</strong></p>
+<ul>
+<li>-9：指定最高压缩级别。</li>
+<li>-p <number>：指定线程数（根据你的 CPU 核心数设置）。</number></li>
+</ul>
+<hr>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">% </span><span class="language-bash">多线程压缩</span></span><br><span class="line">tar -cvf - ./QwQ-32B | pv -s $(du -sk ./QwQ-32B | awk &#x27;&#123;print $1 * 1024&#125;&#x27;) | pigz -9 -p 16 &gt; QwQ-32B.tar.gz</span><br></pre></td></tr></table></figure>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">% </span><span class="language-bash">线程解压</span> </span><br><span class="line">pv QwQ-32B.tar.gz | pigz -dc -p 16 | tar -xvf -</span><br></pre></td></tr></table></figure>
+]]></content>
+      <categories>
+        <category>Linux</category>
+      </categories>
+      <tags>
+        <tag>-- Linux</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>FlashAttention从原理到cuda实现</title>
     <url>/posts/6721533d/</url>
     <content><![CDATA[<p>  <code>Flash Attention</code>是一种基于硬件设计的注意力加速策略，原始论文
@@ -2003,7 +2059,7 @@ Arrays)。</p>
 坐标）连成一个结构体再按点排列，易于编程直观，每个点的字段存放在一起
 。但当批量访问同一字段（如所有点的 x 坐标）时，AoS
 需要不连续的“Gather”操作，降低 SIMD 和 GPU 内存带宽利用率 。相反，SoA
-将每个字段分离成独立数组（如 X[N], Y[N],
+将每个字段分离成独立数组（如X[N], Y[N],
 Z[N]），使得同一字段在内存中连续，这样一个 SIMD
 寄存器可以一次性加载多个同类坐标 ，且 CUDA
 线程按编号依次读取连续元素时能够形成<strong>合并访问</strong>（coalesced
@@ -2142,7 +2198,7 @@ intrinsic。</li>
 </ul>
 <p>  通过上述方法，可避免不同平台间的对齐和内存布局陷阱，保证同一套数据结构在
 CPU 和 GPU 端表现一致。</p>
-<h2 id="推荐代码模板"><strong>推荐代码模板</strong></h2>
+<h2 id="推荐代码实现"><strong>推荐代码实现</strong></h2>
 <p>  综合上述考虑，推荐采用 SoA 布局并进行对齐。示例代码模板如下（C++11
 及以上）：</p>
 <figure class="highlight c++"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 示例：按 32 字节对齐的点云结构（每个坐标数组独立存储）</span></span><br><span class="line"><span class="keyword">struct</span> <span class="title class_">PointCloud</span> &#123;</span><br><span class="line">    <span class="type">size_t</span> N;              <span class="comment">// 点数</span></span><br><span class="line">    <span class="type">float</span> *X, *Y, *Z;      <span class="comment">// 指向对齐的坐标数组</span></span><br><span class="line"></span><br><span class="line">    <span class="built_in">PointCloud</span>(<span class="type">size_t</span> n) : <span class="built_in">N</span>(n) &#123;</span><br><span class="line">        <span class="comment">// 32 字节对齐分配，跨平台示例（实际使用时根据平台选择接口）</span></span><br><span class="line">        X = (<span class="type">float</span>*)_mm_malloc(N * <span class="built_in">sizeof</span>(<span class="type">float</span>), <span class="number">32</span>);</span><br><span class="line">        Y = (<span class="type">float</span>*)_mm_malloc(N * <span class="built_in">sizeof</span>(<span class="type">float</span>), <span class="number">32</span>);</span><br><span class="line">        Z = (<span class="type">float</span>*)_mm_malloc(N * <span class="built_in">sizeof</span>(<span class="type">float</span>), <span class="number">32</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    ~<span class="built_in">PointCloud</span>() &#123;</span><br><span class="line">        _mm_free(X);</span><br><span class="line">        _mm_free(Y);</span><br><span class="line">        _mm_free(Z);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 若需要单点结构，可定义对齐的 AoS 结构体（结合向量指令使用）</span></span><br><span class="line"><span class="keyword">struct</span> <span class="title class_">alignas</span>(<span class="number">16</span>) PointXYZ &#123;</span><br><span class="line">    <span class="type">float</span> x, y, z, w;  <span class="comment">// w 作为填充，保证 16 字节对齐</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
@@ -2155,6 +2211,9 @@ _mm_malloc（或 posix_memalign、aligned_alloc）指定 32 字节对齐；Point
 cudaMalloc（CUDA 11 起已保证至少 256 字节对齐）。通过统一的对齐策略与
 SoA 设计，可实现高效且跨平台的点云批量处理结构。</p>
 ]]></content>
+      <categories>
+        <category>C++</category>
+      </categories>
       <tags>
         <tag>-- AOS -- SOA -- 点云</tag>
       </tags>
