@@ -6,7 +6,7 @@
   <link href="https://wcjb.github.io/atom.xml" rel="self"/>
   
   <link href="https://wcjb.github.io/"/>
-  <updated>2025-04-29T08:14:26.037Z</updated>
+  <updated>2025-05-06T06:53:12.097Z</updated>
   <id>https://wcjb.github.io/</id>
   
   <author>
@@ -17,11 +17,29 @@
   <generator uri="https://hexo.io/">Hexo</generator>
   
   <entry>
+    <title>NEON指令集</title>
+    <link href="https://wcjb.github.io/posts/3d830de3/"/>
+    <id>https://wcjb.github.io/posts/3d830de3/</id>
+    <published>2025-05-06T03:04:36.000Z</published>
+    <updated>2025-05-06T06:53:12.097Z</updated>
+    
+    
+    <summary type="html">&lt;p&gt;  NEON（Advanced
+SIMD）是ARM架构中用于向量化计算的指令集，广泛应用于手机、嵌入式设备和
+Apple
+Silicon等基于ARM的平台上。NEON提供了一种高效的方式同时处理多个数据元素，在多媒体处理、信号处理和机器学习中非常重要。&lt;/p&gt;</summary>
+    
+    
+    
+    
+  </entry>
+  
+  <entry>
     <title>Linux命令指南</title>
     <link href="https://wcjb.github.io/posts/a3123ebc/"/>
     <id>https://wcjb.github.io/posts/a3123ebc/</id>
     <published>2025-04-29T08:12:52.000Z</published>
-    <updated>2025-04-29T08:14:26.037Z</updated>
+    <updated>2025-04-29T08:14:47.509Z</updated>
     
     
       
@@ -197,7 +215,7 @@ Transformer
     <link href="https://wcjb.github.io/posts/900a74c0/"/>
     <id>https://wcjb.github.io/posts/900a74c0/</id>
     <published>2023-03-29T01:56:51.000Z</published>
-    <updated>2025-04-29T08:14:13.963Z</updated>
+    <updated>2025-05-07T07:31:36.976Z</updated>
     
     
     <summary type="html">&lt;p&gt;  点云数据可采用两种基本布局：&lt;strong&gt;结构体数组&lt;/strong&gt; (AoS, Array
