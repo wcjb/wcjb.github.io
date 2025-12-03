@@ -1094,8 +1094,8 @@ w_{new} = w_{old} - \eta \ \Delta J(w)
       </categories>
       <tags>
         <tag>LLM</tag>
-        <tag>学习率</tag>
         <tag>模型训练</tag>
+        <tag>学习率</tag>
         <tag>余弦退火</tag>
       </tags>
   </entry>
@@ -1762,7 +1762,8 @@ f(b)-f(a)=f^\prime(\xi)(b-a)
   <entry>
     <title>关于共享内存中的Bank-Conflicts</title>
     <url>/posts/d1779597/</url>
-    <content><![CDATA[<p>  CUDA的共享内存（Shared
+    <content><![CDATA[<span id="more"></span>
+<p>  CUDA的共享内存（Shared
 Memory）是GPU上的一种高速片上存储器，用于同一个线程块（Thread
 Block）内的线程共享数据。它的访问速度比全局内存（Global
 Memory）快得多，但访问效率可能受到 <strong>Bank
@@ -2267,7 +2268,7 @@ pigz）。</li>
         <category>Linux</category>
       </categories>
       <tags>
-        <tag>-- Linux</tag>
+        <tag>Linux</tag>
       </tags>
   </entry>
   <entry>

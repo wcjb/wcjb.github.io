@@ -6,7 +6,7 @@
   <link href="https://wcjb.github.io/atom.xml" rel="self"/>
   
   <link href="https://wcjb.github.io/"/>
-  <updated>2025-06-11T08:28:43.741Z</updated>
+  <updated>2025-12-03T02:40:12.015Z</updated>
   <id>https://wcjb.github.io/</id>
   
   <author>
@@ -21,14 +21,15 @@
     <link href="https://wcjb.github.io/posts/d1779597/"/>
     <id>https://wcjb.github.io/posts/d1779597/</id>
     <published>2025-06-11T01:03:34.000Z</published>
-    <updated>2025-06-11T08:28:43.741Z</updated>
+    <updated>2025-12-03T02:40:12.015Z</updated>
     
     
       
       
         
         
-    <summary type="html">&lt;p&gt;  CUDA的共享内存（Shared
+    <summary type="html">&lt;span id=&quot;more&quot;&gt;&lt;/span&gt;
+&lt;p&gt;  CUDA的共享内存（Shared
 Memory）是GPU上的一种高速片上存储器，用于同一个线程块（Thread
 Block）内的线程共享数据。它的访问速度比全局内存（Global
 Memory）快得多，但访问效率可能受到</summary>
@@ -49,7 +50,7 @@ Memory）快得多，但访问效率可能受到</summary>
     <link href="https://wcjb.github.io/posts/a3125ebc/"/>
     <id>https://wcjb.github.io/posts/a3125ebc/</id>
     <published>2025-06-10T08:44:17.000Z</published>
-    <updated>2025-06-11T01:19:45.066Z</updated>
+    <updated>2025-12-03T02:40:06.272Z</updated>
     
     
     <summary type="html">&lt;p&gt;  NVIDIA GPU 上的内存结构从慢到快分为 Global Memory、L2 缓存、L1TEX
@@ -97,7 +98,7 @@ Silicon等基于ARM的平台上。NEON提供了一种高效的方式同时处理
     <link href="https://wcjb.github.io/posts/a3123ebc/"/>
     <id>https://wcjb.github.io/posts/a3123ebc/</id>
     <published>2025-04-29T08:12:52.000Z</published>
-    <updated>2025-12-03T02:26:56.261Z</updated>
+    <updated>2025-12-03T02:31:41.475Z</updated>
     
     
       
@@ -114,7 +115,7 @@ Silicon等基于ARM的平台上。NEON提供了一种高效的方式同时处理
     <category term="Linux" scheme="https://wcjb.github.io/categories/Linux/"/>
     
     
-    <category term="-- Linux" scheme="https://wcjb.github.io/tags/Linux/"/>
+    <category term="Linux" scheme="https://wcjb.github.io/tags/Linux/"/>
     
   </entry>
   
@@ -310,9 +311,9 @@ w_{new} = w_{old} - &#92;eta &#92; &#92;Delta J(w)
     
     <category term="LLM" scheme="https://wcjb.github.io/tags/LLM/"/>
     
-    <category term="学习率" scheme="https://wcjb.github.io/tags/%E5%AD%A6%E4%B9%A0%E7%8E%87/"/>
-    
     <category term="模型训练" scheme="https://wcjb.github.io/tags/%E6%A8%A1%E5%9E%8B%E8%AE%AD%E7%BB%83/"/>
+    
+    <category term="学习率" scheme="https://wcjb.github.io/tags/%E5%AD%A6%E4%B9%A0%E7%8E%87/"/>
     
     <category term="余弦退火" scheme="https://wcjb.github.io/tags/%E4%BD%99%E5%BC%A6%E9%80%80%E7%81%AB/"/>
     
