@@ -1019,7 +1019,7 @@ w_{new} = w_{old} - \eta \ \Delta J(w)
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://wcjb.github.io/posts/3d830de3/">
+    <link itemprop="mainEntityOfPage" href="https://wcjb.github.io/posts/d1779597/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/uploads/avatar.png">
@@ -1033,7 +1033,7 @@ w_{new} = w_{old} - \eta \ \Delta J(w)
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/posts/3d830de3/" class="post-title-link" itemprop="url">NEON指令集</a>
+            <a href="/posts/d1779597/" class="post-title-link" itemprop="url">关于共享内存中的Bank-Conflicts</a>
         </h2>
 
         <div class="post-meta">
@@ -1046,7 +1046,16 @@ w_{new} = w_{old} - \eta \ \Delta J(w)
               <span class="post-meta-item-text">发表于</span>
               
 
-              <time title="创建时间：2025-05-06 11:04:36 / 修改时间：14:53:12" itemprop="dateCreated datePublished" datetime="2025-05-06T11:04:36+08:00">2025-05-06</time>
+              <time title="创建时间：2025-06-11 09:03:34 / 修改时间：16:28:43" itemprop="dateCreated datePublished" datetime="2025-06-11T09:03:34+08:00">2025-06-11</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Cuda%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/" itemprop="url" rel="index"><span itemprop="name">Cuda性能优化</span></a>
+                </span>
             </span>
 
           <br>
@@ -1055,14 +1064,14 @@ w_{new} = w_{old} - \eta \ \Delta J(w)
                 <i class="far fa-file-word"></i>
               </span>
                 <span class="post-meta-item-text">本文字数：</span>
-              <span>1.2k</span>
+              <span>2.2k</span>
             </span>
             <span class="post-meta-item" title="阅读时长">
               <span class="post-meta-item-icon">
                 <i class="far fa-clock"></i>
               </span>
                 <span class="post-meta-item-text">阅读时长 &asymp;</span>
-              <span>5 分钟</span>
+              <span>8 分钟</span>
             </span>
 
         </div>
@@ -1074,18 +1083,182 @@ w_{new} = w_{old} - \eta \ \Delta J(w)
     <div class="post-body" itemprop="articleBody">
 
       
-          <p>  NEON（Advanced
-SIMD）是ARM架构中用于向量化计算的指令集，广泛应用于手机、嵌入式设备和
-Apple
-Silicon等基于ARM的平台上。NEON提供了一种高效的方式同时处理多个数据元素，在多媒体处理、信号处理和机器学习中非常重要。</p>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/posts/3d830de3/#more" rel="contents">
-                阅读全文 &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
+          <p>  CUDA的共享内存（Shared
+Memory）是GPU上的一种高速片上存储器，用于同一个线程块（Thread
+Block）内的线程共享数据。它的访问速度比全局内存（Global
+Memory）快得多，但访问效率可能受到 <strong>Bank
+Conflicts（内存库冲突）</strong>的影响。</p>
+<h3 id="什么是-shared-memory-和-bank">什么是 Shared Memory 和
+Bank？</h3>
+<ul>
+<li><strong>共享内存</strong>：每个CUDA线程块有一个小的共享内存区域（通常几十KB），由该块内的所有线程共享，数据存储在<strong>Bank</strong>
+中。</li>
+<li><strong>Bank</strong>：共享内存被分成多个固定大小的存储单元（通常32个Bank），每个Bank可以同时服务一个线程的内存请求。
+<ul>
+<li>在NVIDIA GPU中，每个Bank通常存储4字节（32 位）数据。</li>
+<li>Bank允许一个warp（32个线程）并行访问共享内存，前提是每个线程访问不同的Bank。</li>
+<li>如果一个Warp中的两个不同的线程同时访问了Back中同一个元素，那么就会触发<strong>广播机制</strong>，即可以合并成对Shared
+Memory的一次访问；</li>
+</ul></li>
+</ul>
+<h3 id="什么是-bank-conflicts">什么是 Bank Conflicts？</h3>
+<ul>
+<li><strong>Bank Conflict</strong>
+发生在多个线程（通常是同一个warp中的线程）试图同时访问<strong>同一个Bank中的不同数据</strong>。</li>
+<li>当多个线程访问同一个Bank的不同数据时，GPU
+法并行处理这些请求，必须将访问<strong>串行化</strong>，导致性能下降。</li>
+<li><strong>理想情况</strong>：一个 warp 的 32 个线程访问 32 个不同的
+Bank，这样访问是并行的，效率最高。</li>
+</ul>
+<h3 id="bank-conflicts-的简单例子">Bank Conflicts 的简单例子</h3>
+<p>  假设共享内存有 32 个 Bank，每个 Bank 存储 4 字节，编号为 Bank 0 到
+Bank 31。考虑一个 warp（32 个线程）访问共享内存的场景：</p>
+<ul>
+<li><strong>无 Bank Conflict</strong>：
+<ul>
+<li>线程 0 访问 Bank 0，线程 1 访问 Bank 1，...，线程 31 访问 Bank
+31。</li>
+<li>所有线程的请求可以同时处理，效率最高。</li>
+<li>示例代码： <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">__shared__ <span class="type">float</span> data[<span class="number">32</span>];</span><br><span class="line"><span class="type">int</span> idx = threadIdx.x; <span class="comment">// 线程 ID (0-31)</span></span><br><span class="line"><span class="type">float</span> value = data[idx]; <span class="comment">// 每个线程访问不同的 Bank</span></span><br></pre></td></tr></table></figure>
+<ul>
+<li>每个线程访问一个元素（4 字节），均匀分布在 32 个 Bank，无冲突。</li>
+</ul></li>
+</ul></li>
+<li><strong>有 Bank Conflict</strong>：
+<ul>
+<li>线程 0 和线程 1 都访问 Bank 0（例如，访问 <code>data[0]</code> 和
+<code>data[32]</code>，因为它们在同一个 Bank）。</li>
+<li>GPU 将这两个请求串行处理，访问时间翻倍。</li>
+<li>示例代码： <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">__shared__ <span class="type">float</span> data[<span class="number">64</span>];</span><br><span class="line"><span class="type">int</span> idx = threadIdx.x * <span class="number">32</span>; <span class="comment">// 每个线程访问 data[0], data[32], data[64], ...</span></span><br><span class="line"><span class="type">float</span> value = data[idx]; <span class="comment">// 多个线程访问同一个 Bank</span></span><br></pre></td></tr></table></figure>
+<ul>
+<li>假设 <code>data[0]</code> 和 <code>data[32]</code> 在 Bank 0，线程 0
+和线程 1 的访问会冲突。</li>
+</ul></li>
+</ul></li>
+</ul>
+<h3 id="bank-conflicts-的影响">Bank Conflicts 的影响</h3>
+<ul>
+<li><strong>性能下降</strong>：Bank Conflict
+会导致内存访问被串行化。例如：
+<ul>
+<li>如果 2 个线程访问同一个 Bank，访问时间加倍（2-way Bank
+Conflict）。</li>
+<li>如果 4 个线程访问同一个 Bank，访问时间增加 4 倍（4-way Bank
+Conflict）。</li>
+</ul></li>
+<li><strong>延迟增加</strong>：串行化增加了共享内存访问的延迟，降低了整体性能。</li>
+</ul>
+<h3 id="如何避免-bank-conflicts">如何避免 Bank Conflicts？</h3>
+<ul>
+<li><p><strong>均匀分布访问</strong>：确保一个 warp 的 32
+个线程访问不同的 Bank。例如，线程 <code>i</code> 访问
+<code>data[i]</code> 或按步幅 1 访问连续内存。</p></li>
+<li><p><strong>填充（Padding）</strong>：在共享内存数组中添加填充，调整数据布局，避免多个线程访问同一
+Bank。例如： <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">__shared__ <span class="type">float</span> data[<span class="number">33</span>]; <span class="comment">// 填充 1 个元素</span></span><br><span class="line"><span class="type">int</span> idx = threadIdx.x;</span><br><span class="line"><span class="type">float</span> value = data[idx]; <span class="comment">// 避免冲突</span></span><br></pre></td></tr></table></figure></p></li>
+<li><p><strong>调整步幅</strong>：避免线程访问的索引导致 Bank
+重叠。例如，步幅为 32（或其倍数）可能导致所有线程访问同一个
+Bank。</p></li>
+<li><p><strong>广播访问</strong>：如果多个线程读取同一地址（Bank
+内的同一数据），CUDA 会通过<strong>广播机制</strong>避免冲突。</p></li>
+<li><p><strong>对齐访问</strong>：确保数据按 4 字节或 8
+字节对齐，减少部分冲突。</p></li>
+</ul>
+<h3 id="简单比喻">简单比喻</h3>
+<p>  想象共享内存像一个有 32
+个窗口（Bank）的银行，每个窗口一次只能服务一个客户（线程）。如果 32
+个客户去不同的窗口（无冲突），服务很快完成；但如果多个客户挤到同一个窗口（Bank
+Conflict），就得排队等候，效率降低。</p>
+<h3 id="实际例子">实际例子</h3>
+<p>假设一个矩阵转置操作： <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">__shared__ <span class="type">float</span> tile[<span class="number">32</span>][<span class="number">32</span>];</span><br><span class="line"><span class="type">int</span> x = threadIdx.x, y = threadIdx.y;</span><br><span class="line">tile[x][y] = ...; <span class="comment">// 可能导致 Bank Conflict</span></span><br></pre></td></tr></table></figure> - 如果 <code>tile[x][y]</code>
+按列主序存储，多个线程可能访问同一个 Bank。 - 修正：使用填充：
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">__shared__ <span class="type">float</span> tile[<span class="number">32</span>][<span class="number">33</span>]; <span class="comment">// 填充 1 列</span></span><br><span class="line">tile[x][y] = ...; <span class="comment">// 减少冲突</span></span><br></pre></td></tr></table></figure></p>
+<h3 id="填充padding如何解决问题">填充（Padding）如何解决问题？</h3>
+<ul>
+<li><strong>填充的原理</strong>：通过在共享内存数组中添加额外的空间（填充），改变数据的内存布局，使线程访问的地址分布到不同的
+Bank，避免多个线程同时访问同一 Bank。</li>
+<li><strong>填充的效果</strong>：填充调整了内存对齐，使得相邻线程的访问索引不再映射到相同的
+Bank，从而实现并行访问。</li>
+</ul>
+<h4 id="简单比喻-1">简单比喻</h4>
+<p>  想象共享内存的32个Bank像一个有32个窗口的银行，每个窗口一次只能服务一个客户（线程）。如果客户（线程）都去同一个窗口（Bank），就得排队（串行化，性能下降）。填充就像在窗口之间插入“占位符”，让每个客户去不同的窗口，避免排队。</p>
+<h3 id="具体例子矩阵转置中的-bank-conflicts">9. 具体例子：矩阵转置中的
+Bank Conflicts</h3>
+<p>假设一个 CUDA 核函数用于矩阵转置，共享内存定义为一个
+<code>32 × 32</code> 的二维数组： <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">__shared__ <span class="type">float</span> tile[<span class="number">32</span>][<span class="number">32</span>];</span><br><span class="line"><span class="type">int</span> x = threadIdx.x, y = threadIdx.y;</span><br><span class="line">tile[x][y] = ...; <span class="comment">// 写入共享内存</span></span><br><span class="line"><span class="type">float</span> value = tile[x][y]; <span class="comment">// 读取共享内存</span></span><br></pre></td></tr></table></figure> -
+<strong>内存布局</strong>（列主序）： - CUDA
+共享内存按列主序存储，<code>tile[x][y]</code> 的地址为
+<code>x + y * 32</code>（假设每个 <code>float</code> 占 4 字节）。 -
+Bank 分配规则：地址 <code>addr</code> 所属的 Bank 为
+<code>addr % 32</code>（以 4 字节为单位）。 - 对于 <code>y = 0</code>
+的列，线程 <code>x = 0</code> 到 <code>x = 31</code> 访问
+<code>tile[0][0], tile[1][0], ..., tile[31][0]</code>，地址为
+<code>0, 1, 2, ..., 31</code>，分别落在 Bank 0 到 Bank 31，无冲突。 -
+但对于 <code>x = 0</code> 的行，线程 <code>y = 0</code> 到
+<code>y = 31</code> 访问
+<code>tile[0][0], tile[0][1], ..., tile[0][31]</code>，地址为
+<code>0, 32, 64, ..., 992</code>，这些地址对 32 取模后均为 0，全落在
+<strong>Bank 0</strong>，导致 32-way Bank Conflict。</p>
+<ul>
+<li><strong>添加填充</strong>：
+<ul>
+<li>修改数组为 <code>32 × 33</code>（添加一列填充）： <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">__shared__ <span class="type">float</span> tile[<span class="number">32</span>][<span class="number">33</span>];</span><br></pre></td></tr></table></figure></li>
+<li>现在，<code>tile[x][y]</code> 的地址为
+<code>x + y * 33</code>。</li>
+<li>对于 <code>x = 0</code> 的行，线程 <code>y = 0</code> 到
+<code>y = 31</code> 访问
+<code>tile[0][0], tile[0][1], ..., tile[0][31]</code>，地址为
+<code>0, 33, 66, ..., 990</code>。</li>
+<li>Bank 计算：<code>0 % 32 = 0</code>, <code>33 % 32 = 1</code>,
+<code>66 % 32 = 2</code>, ..., <code>990 % 32 = 30</code>，这些地址落在
+<strong>Bank 0, 1, 2, ..., 30</strong>，避免了冲突。</li>
+</ul></li>
+<li><strong>为什么有效</strong>：
+<ul>
+<li>填充使每列的起始地址偏移（<code>y * 33</code> 代替
+<code>y * 32</code>），打破了地址对 32
+取模的规律，确保线程访问的地址分布到不同的 Bank。</li>
+<li>步幅（stride）从 32 变为 33（非 32
+的倍数），避免了多个线程的请求集中在同一 Bank。</li>
+</ul></li>
+</ul>
+<h3 id="填充的通用规则">填充的通用规则</h3>
+<ul>
+<li><strong>填充大小</strong>：通常在数组维度上加 1（例如
+<code>32 × 33</code> 而不是 <code>32 × 32</code>），因为这足以打乱 Bank
+分配，避免冲突。</li>
+<li><strong>适用场景</strong>：填充特别适用于二维数组或矩阵操作（如转置、卷积），其中线程按行或列访问可能导致冲突。</li>
+<li><strong>代价</strong>：填充会增加共享内存使用量（例如
+<code>32 × 33</code> 比 <code>32 × 32</code> 多 32 个
+<code>float</code>），需确保不超过共享内存限制（通常 48KB 或 96KB
+每线程块）。</li>
+</ul>
+<h3 id="性能影响">性能影响</h3>
+<ul>
+<li><strong>无冲突</strong>：一个 warp 的 32 个线程并行访问 32 个
+Bank，单周期完成。</li>
+<li><strong>有冲突</strong>：例如 32-way Bank Conflict 需要 32
+个周期，性能下降 32 倍。</li>
+<li><strong>填充效果</strong>：通过填充将冲突降为
+1-way（无冲突），显著提升性能。</li>
+</ul>
+<h3 id="简单例子">简单例子</h3>
+<p>假设线程块为 <code>32 × 1</code>，访问共享内存数组： <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">__shared__ <span class="type">float</span> data[<span class="number">32</span>];</span><br><span class="line"><span class="type">float</span> value = data[threadIdx.x]; <span class="comment">// 无冲突，每个线程访问不同 Bank</span></span><br></pre></td></tr></table></figure>
+改为： <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">__shared__ <span class="type">float</span> data[<span class="number">32</span>];</span><br><span class="line"><span class="type">float</span> value = data[threadIdx.x * <span class="number">32</span>]; <span class="comment">// 冲突，所有线程访问 Bank 0</span></span><br></pre></td></tr></table></figure> 添加填充： <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">__shared__ <span class="type">float</span> data[<span class="number">33</span>];</span><br><span class="line"><span class="type">float</span> value = data[threadIdx.x]; <span class="comment">// 无冲突，地址分布在不同 Bank</span></span><br></pre></td></tr></table></figure>
+  padding改变共享内存的步幅（如从 32 到 33），使线程访问的地址分布到不同
+Bank，避免多个线程竞争同一
+Bank。CUDA共享内存按32个Bank组织，填充打乱地址对32取模的规律，实现并行访问。填充增加内存使用，需平衡性能和资源。</p>
+<h3 id="总结">总结</h3>
+<ul>
+<li><strong>Bank Conflicts</strong>：当多个线程同时访问共享内存的同一
+Bank 时，访问被串行化，降低性能。</li>
+<li><strong>解决办法</strong>：确保线程访问不同
+Bank，使用填充或调整索引。</li>
+<li><strong>影响</strong>：增加内存访问延迟，通常使性能下降 2-4
+倍（视冲突程度）。</li>
+<li><strong>验证</strong>：使用 NVIDIA Nsight Compute
+检查共享内存访问模式。</li>
+</ul>
+
       
     </div>
 
@@ -1104,7 +1277,7 @@ Silicon等基于ARM的平台上。NEON提供了一种高效的方式同时处理
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://wcjb.github.io/posts/a3123ebc/">
+    <link itemprop="mainEntityOfPage" href="https://wcjb.github.io/posts/a3125ebc/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/uploads/avatar.png">
@@ -1118,7 +1291,7 @@ Silicon等基于ARM的平台上。NEON提供了一种高效的方式同时处理
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/posts/a3123ebc/" class="post-title-link" itemprop="url">Linux命令指南</a>
+            <a href="/posts/a3125ebc/" class="post-title-link" itemprop="url">CUDA共享内存在向量化指令下的访存机制</a>
         </h2>
 
         <div class="post-meta">
@@ -1129,17 +1302,23 @@ Silicon等基于ARM的平台上。NEON提供了一种高效的方式同时处理
                 <i class="far fa-calendar"></i>
               </span>
               <span class="post-meta-item-text">发表于</span>
-              
 
-              <time title="创建时间：2025-04-29 16:12:52 / 修改时间：16:14:47" itemprop="dateCreated datePublished" datetime="2025-04-29T16:12:52+08:00">2025-04-29</time>
+              <time title="创建时间：2025-06-10 16:44:17" itemprop="dateCreated datePublished" datetime="2025-06-10T16:44:17+08:00">2025-06-10</time>
             </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2025-06-11 09:19:45" itemprop="dateModified" datetime="2025-06-11T09:19:45+08:00">2025-06-11</time>
+              </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
                 <i class="far fa-folder"></i>
               </span>
               <span class="post-meta-item-text">分类于</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Linux/" itemprop="url" rel="index"><span itemprop="name">Linux</span></a>
+                  <a href="/categories/Cuda%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/" itemprop="url" rel="index"><span itemprop="name">Cuda性能优化</span></a>
                 </span>
             </span>
 
@@ -1149,14 +1328,14 @@ Silicon等基于ARM的平台上。NEON提供了一种高效的方式同时处理
                 <i class="far fa-file-word"></i>
               </span>
                 <span class="post-meta-item-text">本文字数：</span>
-              <span>446</span>
+              <span>3k</span>
             </span>
             <span class="post-meta-item" title="阅读时长">
               <span class="post-meta-item-icon">
                 <i class="far fa-clock"></i>
               </span>
                 <span class="post-meta-item-text">阅读时长 &asymp;</span>
-              <span>2 分钟</span>
+              <span>11 分钟</span>
             </span>
 
         </div>
@@ -1168,52 +1347,26 @@ Silicon等基于ARM的平台上。NEON提供了一种高效的方式同时处理
     <div class="post-body" itemprop="articleBody">
 
       
-          <h2 id="du"><strong>du</strong></h2>
-<p>du
-用于计算文件或目录的磁盘使用情况。它帮助我们确定需要压缩的文件夹大小，用于为进度条工具（如
-pv）提供总大小信息。</p>
-<p><strong>常用选项：</strong></p>
-<ul>
-<li>-s：显示文件夹的总大小，而不是列出子目录的大小。</li>
-<li>-k：以 KiB（1024 字节为一单位）显示大小。</li>
-<li>-b：以byte为单位显示大小（macOS 无此选项）</li>
-</ul>
-<hr>
-<h2 id="tar"><strong>tar</strong></h2>
-<p>tar
-是一个打包工具，用于将多个文件/目录打包为单一的归档文件（不压缩），然后可以通过管道传递给其他压缩工具。</p>
-<p><strong>常用选项：</strong></p>
-<ul>
-<li>-c：创建新的归档。</li>
-<li>-v：显示详细信息（如每个被打包的文件名）。</li>
-<li>-f：指定输出文件名，或用 - 表示将数据传递到标准输出（如管道）。</li>
-<li>-：表示数据直接输出到标准输出（通常用于与其他工具结合，如 pv 和
-pigz）。</li>
-</ul>
-<hr>
-<h2 id="pv"><strong>pv</strong></h2>
-<p>pv
-是一个工具，用于监视通过管道传输的数据流，显示实时的进度、速度、已处理数据量和预计完成时间。</p>
-<p><strong>常用选项：</strong></p>
-<ul>
-<li>-s <size>：指定总数据量（通常是以字节为单位）。若未指定，pv
-会根据数据流猜测总量，但不准确。</size></li>
-<li>$(...)：在命令中动态执行 du 并将输出传递给 pv。</li>
-<li>awk '{print $1 * 1024}'：将 du 的输出（以 KiB
-为单位）转换为字节。</li>
-</ul>
-<hr>
-<h2 id="pigz"><strong>pigz</strong></h2>
-<p>pigz 是 gzip 的多线程版本，支持更高的压缩效率和速度。</p>
-<p><strong>常用选项：</strong></p>
-<ul>
-<li>-9：指定最高压缩级别。</li>
-<li>-p <number>：指定线程数（根据你的 CPU 核心数设置）。</number></li>
-</ul>
-<hr>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">% </span><span class="language-bash">多线程压缩</span></span><br><span class="line">tar -cvf - ./QwQ-32B | pv -s $(du -sk ./QwQ-32B | awk &#x27;&#123;print $1 * 1024&#125;&#x27;) | pigz -9 -p 16 &gt; QwQ-32B.tar.gz</span><br></pre></td></tr></table></figure>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">% </span><span class="language-bash">线程解压</span> </span><br><span class="line">pv QwQ-32B.tar.gz | pigz -dc -p 16 | tar -xvf -</span><br></pre></td></tr></table></figure>
-
+          <p>  NVIDIA GPU 上的内存结构从慢到快分为 Global Memory、L2 缓存、L1TEX
+缓存 / Shared Memory 和寄存器，从 Volta/Turning 开始其中 L1TEX 缓存和
+Shared Memory 在物理上放在了同一块芯片上，拥有相似的延时和带宽 <a href="#fn:1">1</a>，因此如何掌握 Shared Memory
+对性能而言就变得尤为重要。可惜的是，NVIDIA 官方的 <a target="_blank" rel="noopener" href="https://docs.nvidia.com/cuda/cuda-c-programming-guide/index.html#shared-memory-5-x">CUDA
+编程手册</a>中介绍 Shared Memory 的教程其实只介绍了在每个线程访问一个 4
+字节（32 位宽）的元素时 Bank Conflict
+和广播机制，但对使用常用的向量化访存指令如 <code>LDS.64</code> 或
+<code>LDS.128</code> 这种一次能访问 8 个字节（64 位宽）或 16 个字节（128
+位宽）元素的情况却鲜有资料讨论。这篇文章大概就是想结合网络上的一些讨论以及通过
+Microbenchmark 对这些细节来一探究竟。需要注意的是这篇文章的结论仅在
+Turing 架构的 GPU 上验证过，其他架构的 GPU
+可能会产生变化（欢迎评论区交流🤪）。</p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/posts/a3125ebc/#more" rel="contents">
+                阅读全文 &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
       
     </div>
 
@@ -1299,20 +1452,20 @@ pigz）。</li>
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">14</span>
+          <span class="site-state-item-count">16</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
             <a href="/categories/">
           
-        <span class="site-state-item-count">6</span>
+        <span class="site-state-item-count">7</span>
         <span class="site-state-item-name">分类</span></a>
       </div>
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">23</span>
+        <span class="site-state-item-count">25</span>
         <span class="site-state-item-name">标签</span></a>
       </div>
   </nav>
@@ -1391,12 +1544,12 @@ pigz）。</li>
     <span class="post-meta-item-icon">
       <i class="fa fa-chart-area"></i>
     </span>
-    <span title="站点总字数">45k</span>
+    <span title="站点总字数">51k</span>
     <span class="post-meta-divider">|</span>
     <span class="post-meta-item-icon">
       <i class="fa fa-coffee"></i>
     </span>
-    <span title="站点阅读时长">2:45</span>
+    <span title="站点阅读时长">3:04</span>
 </div>
 
 <!--

@@ -6,7 +6,7 @@
   <link href="https://wcjb.github.io/atom.xml" rel="self"/>
   
   <link href="https://wcjb.github.io/"/>
-  <updated>2025-05-06T06:53:12.097Z</updated>
+  <updated>2025-06-11T08:28:43.741Z</updated>
   <id>https://wcjb.github.io/</id>
   
   <author>
@@ -17,11 +17,69 @@
   <generator uri="https://hexo.io/">Hexo</generator>
   
   <entry>
+    <title>关于共享内存中的Bank-Conflicts</title>
+    <link href="https://wcjb.github.io/posts/d1779597/"/>
+    <id>https://wcjb.github.io/posts/d1779597/</id>
+    <published>2025-06-11T01:03:34.000Z</published>
+    <updated>2025-06-11T08:28:43.741Z</updated>
+    
+    
+      
+      
+        
+        
+    <summary type="html">&lt;p&gt;  CUDA的共享内存（Shared
+Memory）是GPU上的一种高速片上存储器，用于同一个线程块（Thread
+Block）内的线程共享数据。它的访问速度比全局内存（Global
+Memory）快得多，但访问效率可能受到</summary>
+        
+      
+    
+    
+    
+    <category term="Cuda性能优化" scheme="https://wcjb.github.io/categories/Cuda%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/"/>
+    
+    
+    <category term="-- shared memory -- back conficts" scheme="https://wcjb.github.io/tags/shared-memory-back-conficts/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>CUDA共享内存在向量化指令下的访存机制</title>
+    <link href="https://wcjb.github.io/posts/a3125ebc/"/>
+    <id>https://wcjb.github.io/posts/a3125ebc/</id>
+    <published>2025-06-10T08:44:17.000Z</published>
+    <updated>2025-06-11T01:19:45.066Z</updated>
+    
+    
+    <summary type="html">&lt;p&gt;  NVIDIA GPU 上的内存结构从慢到快分为 Global Memory、L2 缓存、L1TEX
+缓存 / Shared Memory 和寄存器，从 Volta/Turning 开始其中 L1TEX 缓存和
+Shared Memory 在物理上放在了同一块芯片上，拥有相似的延时和带宽 &lt;a href=&quot;#fn:1&quot;&gt;1&lt;/a&gt;，因此如何掌握 Shared Memory
+对性能而言就变得尤为重要。可惜的是，NVIDIA 官方的 &lt;a href=&quot;https://docs.nvidia.com/cuda/cuda-c-programming-guide/index.html#shared-memory-5-x&quot;&gt;CUDA
+编程手册&lt;/a&gt;中介绍 Shared Memory 的教程其实只介绍了在每个线程访问一个 4
+字节（32 位宽）的元素时 Bank Conflict
+和广播机制，但对使用常用的向量化访存指令如 &lt;code&gt;LDS.64&lt;/code&gt; 或
+&lt;code&gt;LDS.128&lt;/code&gt; 这种一次能访问 8 个字节（64 位宽）或 16 个字节（128
+位宽）元素的情况却鲜有资料讨论。这篇文章大概就是想结合网络上的一些讨论以及通过
+Microbenchmark 对这些细节来一探究竟。需要注意的是这篇文章的结论仅在
+Turing 架构的 GPU 上验证过，其他架构的 GPU
+可能会产生变化（欢迎评论区交流🤪）。&lt;/p&gt;</summary>
+    
+    
+    
+    <category term="Cuda性能优化" scheme="https://wcjb.github.io/categories/Cuda%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/"/>
+    
+    
+    <category term="-- cuda -- Shared Memory -- Bank Conflict" scheme="https://wcjb.github.io/tags/cuda-Shared-Memory-Bank-Conflict/"/>
+    
+  </entry>
+  
+  <entry>
     <title>NEON指令集</title>
     <link href="https://wcjb.github.io/posts/3d830de3/"/>
     <id>https://wcjb.github.io/posts/3d830de3/</id>
     <published>2025-05-06T03:04:36.000Z</published>
-    <updated>2025-05-06T06:53:12.097Z</updated>
+    <updated>2025-05-07T07:31:41.735Z</updated>
     
     
     <summary type="html">&lt;p&gt;  NEON（Advanced
@@ -39,14 +97,15 @@ Silicon等基于ARM的平台上。NEON提供了一种高效的方式同时处理
     <link href="https://wcjb.github.io/posts/a3123ebc/"/>
     <id>https://wcjb.github.io/posts/a3123ebc/</id>
     <published>2025-04-29T08:12:52.000Z</published>
-    <updated>2025-04-29T08:14:47.509Z</updated>
+    <updated>2025-12-03T02:26:56.261Z</updated>
     
     
       
       
         
         
-    <summary type="html">&lt;h2</summary>
+    <summary type="html">&lt;span id=&quot;more&quot;&gt;&lt;/span&gt;
+&lt;h2</summary>
         
       
     
